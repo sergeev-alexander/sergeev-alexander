@@ -1,7 +1,6 @@
 # Hi, I'm Alexander 👋
 I am trainee in backend development on Java.
-
-I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer
+I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
 
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&count_private=true"><img
@@ -19,7 +18,7 @@ I am studying for more than a year and I want to find an internship, go through 
        <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
    </a>
 <p align='center'>
-   📫 How to reach me: <a href='mailto:roman.beskrovnyy@gmail.com'>roman.beskrovnyy@gmail.com</a>
+   📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
 </p>
 
 
@@ -44,7 +43,7 @@ I am studying for more than a year and I want to find an internship, go through 
 *   [Flights-monitoring](https://github.com/romankh3/flights-monitoring) - Application for monitoring flight cost based on Skyscanner API
 
 <div align="center" style="margin: 40px 0">
-   <a href="https://github.com/romankh3/github-profile-views-counter">
-       <img width="175px" src="https://komarev.com/ghpvc/?username=romankh3&color=DE002D">
+   <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
+       <img width="175px" src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
    </a>
 </div>
