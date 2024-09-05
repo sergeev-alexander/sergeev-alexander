@@ -1,5 +1,6 @@
 # Hi, I'm Alexander 👋
 I am trainee in backend development on Java.
+
 I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer
 
 <p align='center'>
