@@ -1,13 +1,13 @@
-# Hi, I'm Roman 👋
-Senior Software Engineer with more than 5 years of commertial experience. I have excellent knowledge in backend development on Java.
-In general worked with monolitic, microservice and serverless arthitectures. Big part of my acitities is open-source.
+# Hi, I'm Alexander 👋
+I am trainee in backend development on Java.
+I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer
 
 <p align='center'>
-   <a href="https://github-readme-stats.vercel.app/api?username=romankh3&show_icons=true&count_private=true"><img
+   <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&count_private=true"><img
            height=150
-           src="https://github-readme-stats.vercel.app/api?username=romankh3&show_icons=true&count_private=true"/></a>
+           src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&count_private=true"/></a>
    <a href="https://github.com/romankh3/github-readme-stats"><img height=150
-                                                                  src="https://github-readme-stats.vercel.app/api/top-langs/?username=romankh3&layout=compact"/></a>
+                                                                  src="https://github-readme-stats.vercel.app/api/top-langs/?username=sergeev-alexander&layout=compact"/></a>
 </p>
 
 <p align='center'>
