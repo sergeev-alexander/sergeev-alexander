@@ -3,7 +3,7 @@ I am trainee in backend development on Java.
 I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
 
 <p align='center'>
-   <a href="https://www.linkedin.com/in/romankh3/">
+   <a href="https://www.linkedin.com/in/sergeev-alexander/">
        <img src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white"/>
    </a>
    <a href="https://t.me/joinchat/@alexandr_sergeev">
@@ -12,6 +12,8 @@ I am studying for more than a year and I want to find an internship, go through 
    <a href="mailto:a79164220703@gmail.com">
       <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white"/>
    </a>
+   <a href= 
+      <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
 </p>
 
 
