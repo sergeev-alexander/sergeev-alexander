@@ -25,6 +25,8 @@ I am studying for more than a year and I want to find an internship, go through 
    </a>
 </p>
 
+![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=anuraghazra&show_icons=true&theme=radical)
+
 ## 🛠 Technical Stack
 *   Java
 *   MySQL, PostgreSQL
