@@ -19,6 +19,7 @@ I am studying for more than a year and I want to find an internship, go through 
    </a>
 <p align='center'>
    <a href="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap)">
+   </a>
 </p>
 <p align='center'>
    📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
