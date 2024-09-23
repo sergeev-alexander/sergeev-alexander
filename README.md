@@ -9,7 +9,6 @@ I am studying for more than a year and I want to find an internship, go through 
    <a href="https://github.com/romankh3/github-readme-stats"><img height=150
                                                                   src="https://github-readme-stats.vercel.app/api/top-langs/?username=sergeev-alexander&layout=compact"/></a>
 </p>
-
 <p align='center'>
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
        <img src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white"/>
@@ -18,16 +17,13 @@ I am studying for more than a year and I want to find an internship, go through 
        <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
    </a>
 <p align='center'>
+   📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
+</p>
+<p align='center'>
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap"/>
    </a>
 </p>
-<p align='center'>
-   📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
-</p>
-
-
-
 
 ## 🛠 Technical Stack
 *   Java
