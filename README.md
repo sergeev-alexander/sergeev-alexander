@@ -14,13 +14,13 @@ I am studying for more than a year and I want to find an internship, go through 
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
-         height=250
+         height=200
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"
          />
    </a>
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
-         height=250
+         height=200
          src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap"
          />
    </a>
