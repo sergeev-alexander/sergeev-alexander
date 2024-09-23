@@ -25,8 +25,6 @@ I am studying for more than a year and I want to find an internship, go through 
    </a>
 </p>
 
-![Anurag's GitHub activity graph](https://activity-graph.herokuapp.com/graph?sergeev-alexander)
-
 ## 🛠 Technical Stack
 *   Java
 *   MySQL, PostgreSQL
