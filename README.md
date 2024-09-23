@@ -9,10 +9,13 @@ I am studying for more than a year and I want to find an internship, go through 
    <a href="https://t.me/joinchat/@alexandr_sergeev">
        <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
    </a>
+   <a href="https://wa.me/79164220703">
+      <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=WhatsApp&logoColor=white"/>
+   </a>
    <a href="mailto:a79164220703@gmail.com">
       <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white"/>
    </a>
-   <a href= 
+   <a href="https://instagram.com/alexander._.sergeev">
       <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
 </p>
 
