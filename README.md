@@ -2,7 +2,20 @@
 I am trainee in backend development on Java.
 I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
 
+<p align='center'>
+   <a href="https://www.linkedin.com/in/romankh3/">
+       <img src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white"/>
+   </a>
+   <a href="https://t.me/joinchat/SpqRPBFo_sM6qm05">
+       <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
+   </a>
+   <a href="mailto:a79164220703@gmail.com">
+      <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white"/>
+   </a>
+<p align='center'>
    📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
+</p>
+
 
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
