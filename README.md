@@ -21,6 +21,8 @@ I am studying for more than a year and I want to find an internship, go through 
    📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
 </p>
 
+![](https://leetcard.jacoblin.cool/lapor?ext=heatmap)
+
 
 ## 🛠 Technical Stack
 *   Java
