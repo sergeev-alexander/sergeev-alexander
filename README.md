@@ -3,13 +3,6 @@ I am trainee in backend development on Java.
 I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
 
    📫 How to reach me: <a href='mailto:a79164220703@gmail.com'>a79164220703@gmail.com</a>
-</p>
-<p align='center'>
-   <a href="https://leetcode.com/u/alexander_sergeev">
-      <img src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap"/>
-   </a>
-</p>
-
 
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
@@ -25,9 +18,6 @@ I am studying for more than a year and I want to find an internship, go through 
          />
    </a>
 </p>
-
-
-   
 
 ## 🛠 Technical Stack
 *   Java
