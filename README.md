@@ -25,7 +25,7 @@ I am studying for more than a year and I want to find an internship, go through 
    </a>
 </p>
 
-[![GitHub Streak](https://github-readme-streak-stats.herokuapp.com/?user=anuraghazra&theme=dark)](https://git.io/streak-stats)
+![Anurag's GitHub activity graph](https://activity-graph.herokuapp.com/graph?user
 
 ## 🛠 Technical Stack
 *   Java
