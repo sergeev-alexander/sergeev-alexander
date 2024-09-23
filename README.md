@@ -19,8 +19,8 @@ I am studying for more than a year and I want to find an internship, go through 
       <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
    <a href=".....">
       <img
-         height=132
-         src="https://static.tildacdn.com/tild3730-3463-4331-a665-656365633837/stepik_logotype_green.png">
+         height=28
+         src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
 
