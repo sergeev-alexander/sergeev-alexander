@@ -17,7 +17,7 @@ I am studying for more than a year and I want to find an internship, go through 
    </a>
    <a href="https://instagram.com/alexander._.sergeev">
       <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
-   <a href=".....">
+   <a href="https://stepik.org/users/598949700/profile">
       <img
          height=28
          src="https://i.imgur.com/LQqo8y6.jpeg">
