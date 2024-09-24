@@ -38,6 +38,12 @@ I am studying for more than a year and I want to find an internship, go through 
          src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap"
          />
    </a>
+   <a href="https://www.codewars.com/users/Alexander%20Sergeev">
+      <img
+         height=200
+         src="https://codewars-stats-Alexander%20Sergeev.vercel.app/?username=Alexander%20Sergeev&theme=dark"
+         />
+   </a>
 </p>
 
 ## 🛠 Technical Stack
