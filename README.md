@@ -28,20 +28,22 @@ I am studying for more than a year and I want to find an internship, go through 
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
-         height=120
+         height=200
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"
          />
    </a>
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
-         height=120
+         height=200
          src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap"
          />
    </a>
-   <a href="https://www.codewars.com/users/Alexander%20Sergeev/badges/large">
+</p>
+<p align='center'>
+   <a href="https://www.codewars.com/users/Alexander%20Sergeev">
       <img
-         height=120
-         src="https://codewars-stats-ignacio-cuadra.vercel.app/?username=Alexander%20Sergeev&theme=dark"
+         height=80
+         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/large"
          />
    </a>
 </p>
