@@ -42,7 +42,7 @@ I am studying for more than a year and I want to find an internship, go through 
 <p align='center'>
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=35
+         height=43
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"
          />
    </a>
