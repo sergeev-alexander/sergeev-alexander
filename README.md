@@ -1,6 +1,6 @@
 ## Hi, I'm Alexander 👋
 ### I am trainee in backend development on Java.
-### I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
+I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
 
 <p align='center'>
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
@@ -23,18 +23,7 @@
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
-
-<p align='center'>
-   <a href="https://www.codewars.com/users/Alexander%20Sergeev">
-      <img
-         height=45
-         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/small"
-         />
-   </a>
-</p>
-
-
-      
+     
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
@@ -53,8 +42,8 @@
 <p align='center'>
    <a href="https://www.codewars.com/users/Alexander%20Sergeev">
       <img
-         height=70
-         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/large"
+         height=35
+         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/small"
          />
    </a>
 </p>
