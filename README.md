@@ -27,11 +27,13 @@
 <p align='center'>
    <a href="https://www.codewars.com/users/Alexander%20Sergeev">
       <img
-         height=70
-         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/large"
+         height=45
+         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/small"
          />
    </a>
 </p>
+
+
       
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
@@ -51,8 +53,8 @@
 <p align='center'>
    <a href="https://www.codewars.com/users/Alexander%20Sergeev">
       <img
-         height=45
-         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/small"
+         height=70
+         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/large"
          />
    </a>
 </p>
