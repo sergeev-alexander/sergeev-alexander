@@ -23,6 +23,15 @@
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
+
+<p align='center'>
+   <a href="https://www.codewars.com/users/Alexander%20Sergeev">
+      <img
+         height=70
+         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/large"
+         />
+   </a>
+</p>
       
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
