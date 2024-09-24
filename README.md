@@ -43,7 +43,7 @@ I am studying for more than a year and I want to find an internship, go through 
    <a href="https://www.codewars.com/users/Alexander%20Sergeev">
       <img
          height=80
-         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/large"
+         src="https://www.codewars.com/users/Alexander%20Sergeev/badges/small"
          />
    </a>
 </p>
