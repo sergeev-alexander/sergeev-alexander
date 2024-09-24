@@ -38,7 +38,7 @@ I am studying for more than a year and I want to find an internship, go through 
          src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap"
          />
    </a>
-   <a href="https://www.codewars.com/users/Alexander%20Sergeev">
+   <a href="https://www.codewars.com/users/Alexander%20Sergeev/badges/large">
       <img
          height=120
          src="https://codewars-stats-ignacio-cuadra.vercel.app/?username=Alexander%20Sergeev&theme=dark"
