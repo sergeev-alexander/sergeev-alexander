@@ -1,6 +1,6 @@
 ## Hi, I'm Alexander 👋
 ### I am trainee in backend development on Java.
-I am studying for more than a year and I want to find an internship, go through all the stages of training and become a confident developer.
+I am considering any internship offers.
 
 <p align='center'>
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
