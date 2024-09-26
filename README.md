@@ -1,4 +1,4 @@
-## Hi, I'm Alexander 👋
+### Hi, I'm Alexander 👋
 ### I am open to any internship offers in Java backend development.
 
 <p align='center'>
