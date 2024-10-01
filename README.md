@@ -46,6 +46,16 @@
    </a>
 </p>
 
+## 🛠 Education
+<p align='center'>
+   <a>
+      <img
+         height=50
+         src=""
+         />
+   </a>
+</p>
+
 ## 🛠 Technical Stack
 *   Java
 *   MySQL, PostgreSQL
