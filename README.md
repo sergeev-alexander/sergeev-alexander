@@ -46,7 +46,7 @@
    </a>
 </p>
 
-## 🛠 Education
+## 📚 Education
 <p align='center'>
    <a>
       <img
