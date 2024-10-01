@@ -50,8 +50,29 @@
 <p align='center'>
    <a>
       <img
-         height=50
-         src=""
+         height=135
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-images-0.jpg"
+         />
+   </a>
+
+   <a>
+      <img
+         height=135
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-images-1.jpg"
+         />
+   </a>
+
+   <a>
+      <img
+         height=135
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/stepic-certificate-basics-of-the-java-language-eng.jpg"
+         />
+   </a>
+
+   <a>
+      <img
+         height=135
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/stepik-certificate-jusan-singularity-eng.jpg"
          />
    </a>
 </p>
