@@ -32,7 +32,7 @@
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
          height=200
-         src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap?theme=dark"
+         src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap&theme=dark"
          />
    </a>
 </p>
