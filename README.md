@@ -58,7 +58,7 @@
    <a>
       <img
          height=135
-         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-images-1.jpg"
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-02.jpg"
          />
    </a>
 
