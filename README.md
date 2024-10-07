@@ -40,7 +40,7 @@
 <p align='center'>
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=43
+         height=30
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"
          />
    </a>
