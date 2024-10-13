@@ -1,4 +1,4 @@
-## Hi, I'm Alexander👋    💼Open to any internship offers in Java backend development.
+## Hi, I'm Alexander👋<br>💼Open to any internship offers in Java backend development.
 
 <p align='center'>
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
