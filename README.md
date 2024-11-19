@@ -1,18 +1,23 @@
 ## 👋Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development.
 
 <p align='center'>
+   
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
        <img src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white"/>
    </a>
+   
    <a href="https://t.me/joinchat/@alexandr_sergeev">
        <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
    </a>
+   
    <a href="https://wa.me/79164220703">
       <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=WhatsApp&logoColor=white"/>
    </a>
+   
    <a href="mailto:a79164220703@gmail.com">
       <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white"/>
    </a>
+   
    <a href="https://instagram.com/alexander._.sergeev">
       <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
    <a href="https://stepik.org/users/598949700/profile">
@@ -29,6 +34,7 @@
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"
          />
    </a>
+   
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
          height=200
@@ -47,20 +53,7 @@
 </p>
 
 ## 📚 Education
-<p align='center'>
-   <a>
-      <img
-         height=135
-         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-images-0.jpg"
-         />
-   </a>
 
-   <a>
-      <img
-         height=135
-         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-02.jpg"
-         />
-   </a>
 
    <a>
       <img
