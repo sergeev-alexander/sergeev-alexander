@@ -53,7 +53,7 @@
    </a>
 </p>
 
-## 📚 Education
+### 📚 Education
 
 <p align='center'>
    
@@ -77,7 +77,7 @@
    </a>
 </p>
 
-## 🛠 Technical Stack
+### 🛠 Technical Stack
 *   Java
 *   MySQL, PostgreSQL
 *   Spring Framework, Spring Boot, Spring Test, Spring Data Jpa, Spring Jdbc template and so on...
