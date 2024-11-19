@@ -28,13 +28,6 @@
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
-
-### 🛠 Stack
-*   Java
-*   MySQL, PostgreSQL
-*   Spring Framework, Spring Boot, Spring Test, Spring Data Jpa, Spring Jdbc template and so on...
-*   Hibernate
-*   GitHub
      
 <p align='center'>
    
@@ -59,6 +52,13 @@
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
+
+### 🛠 Stack
+*   Java
+*   MySQL, PostgreSQL
+*   Spring Framework, Spring Boot, Spring Test, Spring Data Jpa, Spring Jdbc template and so on...
+*   Hibernate
+*   GitHub
 
 ### 📚 Education
 
