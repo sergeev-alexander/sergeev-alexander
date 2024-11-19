@@ -30,18 +30,17 @@
 </p>
      
 <p align='center'>
+   
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
          height=165
-         src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"
-         />
+         src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
    </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
          height=165
-         src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap&theme=dark"
-         />
+         src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap&theme=dark"/>
    </a>
 </p>
 
@@ -50,30 +49,29 @@
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
          height=20
-         src="https://www.codewars.com/users/alexander_sergeev/badges/small"
-         />
+         src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
 
 ## 📚 Education
 
+<p align='center'>
+   
    <a>
       <img
-         height=135
-         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-02.jpg?raw=true"
-         />
+         height=145
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-02.jpg?raw=true"/>
    </a>
 
    <a>
       <img
-         height=135
-         src="https://github.com/sergeev-alexander/Certificates/blob/main/stepic-certificate-basics-of-the-java-language-eng.jpg"
-         />
+         height=145
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/stepic-certificate-basics-of-the-java-language-eng.jpg"/>
    </a>
 
    <a>
       <img
-         height=135
+         height=145
          src="https://github.com/sergeev-alexander/Certificates/blob/main/stepik-certificate-jusan-singularity-eng.jpg"
          />
    </a>
@@ -86,8 +84,12 @@
 *   Hibernate
 *   GitHub
 
-<div align="center" style="margin: 40px 0">
-   <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
-       <img width="175px" src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
-   </a>
+<div 
+   align="center" 
+   style="margin: 40px 0">
+      <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
+          <img 
+             width="140px" 
+             src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
+      </a>
 </div>
