@@ -1,4 +1,4 @@
-## 👋Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development.
+### 👋Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development.
 
 <p align='center'>
    
@@ -20,6 +20,8 @@
    
    <a href="https://instagram.com/alexander._.sergeev">
       <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
+   </a>
+   
    <a href="https://stepik.org/users/598949700/profile">
       <img
          height=28
@@ -30,23 +32,24 @@
 <p align='center'>
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
-         height=200
+         height=165
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"
          />
    </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
-         height=200
+         height=165
          src="https://leetcard.jacoblin.cool/alexander_sergeev?ext=heatmap&theme=dark"
          />
    </a>
 </p>
 
 <p align='center'>
+   
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=30
+         height=20
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"
          />
    </a>
@@ -54,6 +57,12 @@
 
 ## 📚 Education
 
+   <a>
+      <img
+         height=135
+         src="https://github.com/sergeev-alexander/Certificates/blob/main/yandex-practicum-certificate-eng-02.jpg?raw=true"
+         />
+   </a>
 
    <a>
       <img
