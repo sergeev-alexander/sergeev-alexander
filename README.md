@@ -40,7 +40,7 @@
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
          height=165
-         src="https://leetcard.jacoblin.cool/alexander_sergeev?hide=easy-solved-count,medium-solved-count,hard-solved-count"/>
+         src="https://leetcard.jacoblin.cool/alexander_sergeev"/>
    </a>
 </p>
 
