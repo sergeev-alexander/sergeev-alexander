@@ -33,13 +33,13 @@
    
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
-         height=165
+         height=133
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
    </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
-         height=165
+         height=133
          src="https://leetcard.jacoblin.cool/alexander_sergeev"/>
    </a>
 </p>
@@ -48,7 +48,7 @@
    
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=16
+         height=20
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
