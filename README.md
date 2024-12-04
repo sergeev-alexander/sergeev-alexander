@@ -1,4 +1,4 @@
-### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
 
 <p align='center'>
    
@@ -54,14 +54,60 @@
    </a>
 </p>
 
-### 🛠 Stack
-*   Java
-*   MySQL, PostgreSQL
-*   Spring Framework, Spring Boot, Spring Test, Spring Data Jpa, Spring Jdbc template and so on...
-*   Hibernate
-*   GitHub
+## 🛠 Stack
+### Core Java
+- Java syntax
+- Java Collections
+- Streams
+- Concurrency
+- JVM
+- Java memory organization
+- Garbage collection
 
-### 📚 Education
+### Java Frameworks and Libraries
+- Spring Boot
+- Common spring annotations
+- Spring Data JPA
+- Application properties
+- Bean lifecycle
+- Docker
+- Apache Commons
+- Log4j
+- Lombok
+- Mockito
+- JUnit
+- Apache Tomcat
+- Hibernate ORM
+
+### Java build systems
+- Maven
+- Gradle
+
+### Relational Databases
+- PostgreSQL
+- MySQL
+- H2
+
+### Version Control Systems
+- Git
+
+### Code Quality
+- SOLID
+- DRY
+- YAGNI
+- KISS
+- Unit Testing
+- Functional Testing
+- Integration Testing
+- Performance Testing
+
+### Algorithms and data structures
+- Binary Search, Quicksort, SelectionSort, etc.
+- Depth-first search algorithm
+- Breadth-first search algorithm
+- Huffman encoding algorithm
+
+## 📚 Education
 
 <p align='center'>
    
