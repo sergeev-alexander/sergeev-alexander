@@ -49,7 +49,7 @@
    
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=20
+         height=22
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
