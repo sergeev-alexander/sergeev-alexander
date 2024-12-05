@@ -66,10 +66,7 @@
 
 ### Java Frameworks and Libraries
 - Spring Boot
-- Common spring annotations
 - Spring Data JPA
-- Application properties
-- Bean lifecycle
 - Docker
 - Apache Commons
 - Log4j
@@ -102,7 +99,7 @@
 - Performance Testing
 
 ### Algorithms and data structures
-- Binary Search, Quicksort, SelectionSort, etc.
+- Binary search, Quick sort, Selection sort, Merge sort etc.
 - Depth-first search algorithm
 - Breadth-first search algorithm
 - Huffman encoding algorithm
