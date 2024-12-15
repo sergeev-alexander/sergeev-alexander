@@ -55,16 +55,8 @@
 </p>
 
 ## 🛠 Stack
-### Core Java
-- Java syntax
-- Java Collections
-- Streams
-- Concurrency
-- JVM
-- Java memory organization
-- Garbage collection
-
-### Java Frameworks and Libraries
+- Core Java
+- Spring Framework
 - Spring Boot
 - Spring Data JPA
 - Docker
@@ -75,34 +67,11 @@
 - JUnit
 - Apache Tomcat
 - Hibernate ORM
-
-### Java build systems
 - Maven
 - Gradle
-
-### Relational Databases
-- PostgreSQL
-- MySQL
-- H2
-
-### Version Control Systems
+- SQL (PostgreSQL, MySQL, H2)
 - Git
-
-### Code Quality
-- SOLID
-- DRY
-- YAGNI
-- KISS
-- Unit Testing
-- Functional Testing
-- Integration Testing
-- Performance Testing
-
-### Algorithms and data structures
-- Binary search, Quick sort, Selection sort, Merge sort etc.
-- Depth-first search algorithm
-- Breadth-first search algorithm
-- Huffman encoding algorithm
+- Algorithms and data structures
 
 ## 📚 Education
 
