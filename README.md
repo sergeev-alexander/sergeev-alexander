@@ -75,40 +75,29 @@
 
 ## 📚 Education
 
+- Java Developer Professional Trainng Course
+<br> Practicum By Yandex (INO CPE "Yandex EdTech")
+<br> Java backend developer
+
 - Interactive SQL Trainer
 <br> Far Eastern Federal University (ДФУ)
-<br> Practical tasks on creating SQL queries (MySQL) 
-<br> 22 lessons 10 tests 173 interactive tasks
+<br> Practical tasks on creating SQL queries (MySQL)
 
 - Algorithms: Theory and Practice. Methods
 <br> Computer Science Center
 <br> Greedy algorithms, divide & conquer method, dynamic programming, etc
-<br> 49 lessons, 14h 23m video, 10 tests, 21 interactive tasks
-
-- Java Developer Professional Trainng Course
-<br> Practicum By Yandex (INO CPE "Yandex EdTech")
-<br> Java backend developer
-<br> 630 hours
 
 - Basics of the Java language
 <br> Programming for Begginers (Eskova Oksana)
-<br> Java backend developer
-<br> 17 lessons, 5 h 39 m video, 39 tests, 68 interactive tasks
 
 - A Quick Introduction to Java
 <br> Stepic.org (Alexander Chernomyrdin)
-<br> Java backend developer
-<br> 33 lessons, 28 tests
 
 - Java Start from Jusan Singularity: Intensive
 <br> Educational project of the Jusan group of companies
-<br> Java backend developer
-<br> 43 lessons, 23 tests, 101 interactive tasks
 
 - Easy Start in Java
 <br> Stepic.org (Peter Mikhalevsky)
-<br> Java backend developer 
-<br> 27 lessons, 46 tests, 133 interactive tasks
 
 - Basics of Git
 <br> Practicum By Yandex (INO CPE "Yandex EdTech")
@@ -121,12 +110,9 @@
 - Java Basic Design Patterns
 <br>Stepic.org (Alexey Kutepov)
 <br> DRY, KISS, YAGNI, SOLID and basic design patterns
-<br> 15 lessons, 1 h 12 m video
 
 - Basics of Java
 <br> LegaSoft & IT-CUBE
-<br> Java backend developer
-<br> 49 lessons, 133 tests, 240 interactive tasks
 
 <div 
    align="center" 
