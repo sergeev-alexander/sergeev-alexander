@@ -1,5 +1,3 @@
-#### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
-
 <p align='center'>
    
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
@@ -28,15 +26,18 @@
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
+
+### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+
      
-<p align='center'>
+<!-- <p align='center'>
    
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
          height=165
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
       <!--   src="http://github-readme-streak-stats.herokuapp.com?user=sergeev-alexander&theme=dark&background=000000" alt="webDev's Github stats" />   -->
-   </a>
+<!--   </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
@@ -52,10 +53,26 @@
          height=22
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
-</p>
+</p> -->
 
-### 🛠 Stack
-###### Core Java<br>Spring Framework<br>Spring Boot<br>Spring Data JPA<br>Docker<br>Apache Commons<br>Log4j<br>Lombok<br>Mockito<br>JUnit<br>Apache Tomcat<br>Hibernate ORM<br>Maven<br>Gradle<br>SQL (PostgresSQL, MySQL, H2)<br>Git<br>Algorithms and data structures
+#### 🛠 Stack
+- Core Java
+- Spring Framework
+- Spring Boot
+- Spring Data JPA
+- Docker
+- Apache Commons
+- Log4j
+- Lombok
+- Mockito
+- JUnit
+- Apache Tomcat
+- Hibernate ORM
+- Maven
+- Gradle
+- SQL (PostgresSQL, MySQL, H2)
+- Git
+- Algorithms and data structures
 
 #### 📚 Education
 
