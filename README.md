@@ -55,23 +55,7 @@
 </p>
 
 ### 🛠 Stack
-- Core Java
-- Spring Framework
-- Spring Boot
-- Spring Data JPA
-- Docker
-- Apache Commons
-- Log4j
-- Lombok
-- Mockito
-- JUnit
-- Apache Tomcat
-- Hibernate ORM
-- Maven
-- Gradle
-- SQL (PostgresSQL, MySQL, H2)
-- Git
-- Algorithms and data structures
+###### Core Java<br>Spring Framework<br>Spring Boot<br>Spring Data JPA<br>Docker<br>Apache Commons<br>Log4j<br>Lombok<br>Mockito<br>JUnit<br>Apache Tomcat<br>Hibernate ORM<br>Maven<br>Gradle<br>SQL (PostgresSQL, MySQL, H2)<br>Git<br>Algorithms and data structures
 
 #### 📚 Education
 
