@@ -1,4 +1,4 @@
-## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+##### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
 
 <p align='center'>
    
@@ -54,26 +54,26 @@
    </a>
 </p>
 
-## 🛠 Stack
-- Core Java
-- Spring Framework
-- Spring Boot
-- Spring Data JPA
-- Docker
-- Apache Commons
-- Log4j
-- Lombok
-- Mockito
-- JUnit
-- Apache Tomcat
-- Hibernate ORM
-- Maven
-- Gradle
-- SQL (PostgreSQL, MySQL, H2)
-- Git
-- Algorithms and data structures
+#### 🛠 Stack
+###### Core Java
+###### Spring Framework
+###### Spring Boot
+###### Spring Data JPA
+###### Docker
+###### Apache Commons
+###### Log4j
+###### Lombok
+###### Mockito
+###### JUnit
+###### Apache Tomcat
+###### Hibernate ORM
+###### Maven
+###### Gradle
+###### SQL (PostgresSQL, MySQL, H2)
+###### Git
+###### Algorithms and data structures
 
-## 📚 Education
+#### 📚 Education
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 
