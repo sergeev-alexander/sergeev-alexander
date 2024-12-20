@@ -1,4 +1,4 @@
-##### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+#### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
 
 <p align='center'>
    
@@ -33,14 +33,14 @@
    
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
-         height=133
+         height=100
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
       <!--   src="http://github-readme-streak-stats.herokuapp.com?user=sergeev-alexander&theme=dark&background=000000" alt="webDev's Github stats" />   -->
    </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
-         height=133
+         height=100
          src="https://leetcard.jacoblin.cool/alexander_sergeev"/>
    </a>
 </p>
@@ -54,32 +54,32 @@
    </a>
 </p>
 
-#### 🛠 Stack
-###### Core Java
-###### Spring Framework
-###### Spring Boot
-###### Spring Data JPA
-###### Docker
-###### Apache Commons
-###### Log4j
-###### Lombok
-###### Mockito
-###### JUnit
-###### Apache Tomcat
-###### Hibernate ORM
-###### Maven
-###### Gradle
-###### SQL (PostgresSQL, MySQL, H2)
-###### Git
-###### Algorithms and data structures
+### 🛠 Stack
+- Core Java
+- Spring Framework
+- Spring Boot
+- Spring Data JPA
+- Docker
+- Apache Commons
+- Log4j
+- Lombok
+- Mockito
+- JUnit
+- Apache Tomcat
+- Hibernate ORM
+- Maven
+- Gradle
+- SQL (PostgresSQL, MySQL, H2)
+- Git
+- Algorithms and data structures
 
 #### 📚 Education
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 
-###### Interactive SQL Trainer<br>Far Eastern Federal University (ДФУ)<br>Practical tasks on creating SQL queries (MySQL)
+###### Interactive SQL Trainer<br>Far Eastern Federal University (ДФУ) - Practical tasks on creating SQL queries (MySQL)
 
-###### Algorithms: Theory and Practice. Methods<br>Computer Science Center<br>Greedy algorithms, divide & conquer method, dynamic programming, etc
+###### Algorithms: Theory and Practice. Methods<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
 
 ###### Basics of the Java language<br>Programming for Beginners (Eskova Oksana)
 
@@ -89,11 +89,11 @@
 
 ###### Easy Start in Java<br>Stepic.org (Peter Mikhalevsky)
 
-###### Basics of Git<br> Practicum By Yandex (INO CPE "Yandex EdTech")<br> Basics of branching, advanced teamwork with Git
+###### Basics of Git<br> Practicum By Yandex (INO CPE "Yandex EdTech") - Basics of branching, advanced teamwork with Git
 
-###### Fundamentals of Mathematics for IT Professions<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Fundamentals of set theory, Combinatorics, Probability Theory, etc.
+###### Fundamentals of Mathematics for IT Professions<br>Practicum By Yandex (INO CPE "Yandex EdTech") - Fundamentals of set theory, Combinatorics, Probability Theory, etc.
 
-###### Java Basic Design Patterns<br>Stepic.org (Alexey Kutepov)<br>DRY, KISS, YAGNI, SOLID and basic design patterns
+###### Java Basic Design Patterns<br>Stepic.org (Alexey Kutepov) - DRY, KISS, YAGNI, SOLID and basic design patterns
 
 ###### Basics of Java<br>LegaSoft & IT-CUBE
 
