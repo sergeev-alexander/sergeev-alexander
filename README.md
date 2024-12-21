@@ -88,7 +88,7 @@
 
 ###### Java Start from Jusan Singularity: Intensive<br>Educational project of the Jusan group of companies
 
-###### Easy Start in Java<br>Stepic.org (Peter Mikhalevsky)
+###### Start Java<br>Stepic.org (Peter Mikhalevsky)
 
 ###### Basics of Git<br> Practicum By Yandex (INO CPE "Yandex EdTech") - Basics of branching, advanced teamwork with Git
 
