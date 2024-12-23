@@ -1,5 +1,3 @@
-
-
 ## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to any internship offers in Java backend development
 
 <p align='center'>
@@ -32,7 +30,7 @@
 </p>
 
 <details closed>
-<summary>📊 Stats</summary>
+   <summary>📊 Stats</summary>
      
 <p align='center'>
    
@@ -71,7 +69,7 @@
 </details>
 
 <details closed>
-<summary>🛠 Stack</summary>
+   <summary>🛠 Stack</summary>
 
 - Core Java
   
@@ -111,7 +109,7 @@
 
 
 <details closed>
-<summary>📚 Education</summary>
+   <summary>📚 Education</summary>
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 
@@ -136,5 +134,3 @@
 ###### Basics of Java<br>LegaSoft & IT-CUBE
 
 </details>
-
-
