@@ -1,4 +1,4 @@
-## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
 
 <p align='center'>
    
@@ -29,7 +29,7 @@
    </a>
 </p>
 
-<details closed>
+<details open>
 <summary>📊 Stats</summary>
      
 <p align='center'>
@@ -38,7 +38,6 @@
       <img
          height=133
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
-      <!--   src="http://github-readme-streak-stats.herokuapp.com?user=sergeev-alexander&theme=dark&background=000000" alt="webDev's Github stats" />   -->
   </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
@@ -52,10 +51,20 @@
    
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=22
+         height=25
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
+
+<div 
+   align="center" 
+   style="margin: 40px 0">
+      <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
+          <img 
+             width="140px" 
+             src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
+      </a>
+</div>
 
 </details>
 
@@ -109,13 +118,3 @@
 ###### Basics of Java<br>LegaSoft & IT-CUBE
 
 </details>
-
-<div 
-   align="center" 
-   style="margin: 40px 0">
-      <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
-          <img 
-             width="140px" 
-             src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
-      </a>
-</div>
