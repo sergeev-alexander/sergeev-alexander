@@ -29,15 +29,17 @@
 
 ### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
 
+<details open>
+<summary>📊 Stats</summary>
      
-<!-- <p align='center'>
+<p align='center'>
    
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
          height=165
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
       <!--   src="http://github-readme-streak-stats.herokuapp.com?user=sergeev-alexander&theme=dark&background=000000" alt="webDev's Github stats" />   -->
-<!--   </a>
+  </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
@@ -53,9 +55,13 @@
          height=22
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
-</p> -->
+</p>
 
-#### 🛠 Stack
+</details>
+
+<details open>
+<summary>🛠 Stack</summary>
+
 - Core Java
 - Spring Framework
 - Spring Boot
@@ -74,7 +80,11 @@
 - Git
 - Algorithms and data structures
 
-#### 📚 Education
+</details>
+
+
+<details open>
+<summary>📚 Education</summary>
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 
@@ -97,6 +107,8 @@
 ###### Java Basic Design Patterns<br>Stepic.org (Alexey Kutepov) - DRY, KISS, YAGNI, SOLID and basic design patterns
 
 ###### Basics of Java<br>LegaSoft & IT-CUBE
+
+</details>
 
 <div 
    align="center" 
