@@ -1,4 +1,4 @@
-## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to any internship offers in Java backend development
 
 <p align='center'>
    
@@ -29,7 +29,7 @@
    </a>
 </p>
 
-<details open>
+<details closed>
 <summary>📊 Stats</summary>
      
 <p align='center'>
