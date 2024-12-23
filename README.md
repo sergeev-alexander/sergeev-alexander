@@ -27,9 +27,9 @@
    </a>
 </p>
 
-### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
 
-<details open>
+<details closed>
 <summary>📊 Stats</summary>
      
 <p align='center'>
@@ -59,7 +59,7 @@
 
 </details>
 
-<details open>
+<details closed>
 <summary>🛠 Stack</summary>
 
 - Core Java
@@ -83,7 +83,7 @@
 </details>
 
 
-<details open>
+<details closed>
 <summary>📚 Education</summary>
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
