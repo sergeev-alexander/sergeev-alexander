@@ -1,3 +1,5 @@
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
+
 <p align='center'>
    
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
@@ -27,8 +29,6 @@
    </a>
 </p>
 
-## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>Hi, I'm Alexander<br>💼Open to any internship offers in Java backend development
-
 <details closed>
 <summary>📊 Stats</summary>
      
@@ -36,14 +36,14 @@
    
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
       <img
-         height=165
+         height=133
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
       <!--   src="http://github-readme-streak-stats.herokuapp.com?user=sergeev-alexander&theme=dark&background=000000" alt="webDev's Github stats" />   -->
   </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img
-         height=165
+         height=133
          src="https://leetcard.jacoblin.cool/alexander_sergeev"/>
    </a>
 </p>
