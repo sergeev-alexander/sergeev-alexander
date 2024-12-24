@@ -49,10 +49,12 @@
 <p align='center'>
    
    <a href="https://www.codewars.com/users/alexander_sergeev">
-      <img height=27
+      <img height=22
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
+
+<!---
 
 <div align="center" 
    style="margin: 40px 0">
@@ -61,6 +63,8 @@
              src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
       </a>
 </div>
+
+--->
 
 </details>
 
