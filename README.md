@@ -1,4 +1,4 @@
-## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [`any`](https://github.com/sergeev-alexander 'to all..') internship offers in Java backend development
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [any](https://github.com/sergeev-alexander 'Push me!') internship offers in Java backend development
 
 <p align='center'>
    
@@ -30,7 +30,9 @@
 </p>
 
 <details closed>
-   <summary>📊 Stats</summary>
+   <summary>
+      📊 Stats
+   </summary>
      
 <p align='center'>
    
@@ -69,72 +71,6 @@
 </details>
 
 
-
-<details closed>
-   <summary>
-      🛠 Stack
-   </summary>
-
-<br>
-
-   <details closed>
-      <summary>
-            Core Java
-      </summary>
-
-   * `Java syntax`
-   
-   * `Collections Framework`
-  
-   </details>
-
-   <details closed>
-      <summary>
-         Spring Framework
-      </summary>
-  
-   - `Spring Framework`
-  
-   - `Spring Boot`
-  
-   - `Spring Data JPA`
-
-   </details>
-
-   <details closed>
-      <summary>
-         Docker
-      </summary>
-  
-   - Docker
-  
-   - Apache Commons
-  
-   - Log4j
-  
-   - Lombok
-  
-   - Mockito
-  
-   - JUnit
-  
-   - Apache Tomcat
-  
-   - Hibernate ORM
-  
-   - Maven
-  
-   - Gradle
-  
-   - SQL (PostgresSQL, MySQL, H2)
-  
-   - Git
-  
-   - Algorithms and data structures
-
-   </details>
-</details>
-
 <details closed>
    <summary>
       📚 Education
@@ -163,3 +99,90 @@
 ###### Basics of Java<br>LegaSoft & IT-CUBE
 
 </details>
+
+
+<details closed>
+   <summary>
+      🛠 Stack
+   </summary>
+
+<br>
+
+   <details open>
+      <summary>
+         Core Java
+      </summary>
+     
+`Java syntax`
+`JVM`
+`Garbage collection`
+`I/O`<br>
+`Stream API`
+`Collections Framework`
+`Concurrency`
+
+   <details open>
+      <summary>
+         Spring
+      </summary>
+  
+`Spring Framework` 
+`Spring Boot` 
+`Spring Data JPA`<br>
+`Application properties`
+`Bean lifecycle`
+
+   <details open>
+      <summary>
+         SQL
+      </summary>
+      
+`PostgresSQL`
+`MySQL`
+`H2`
+
+   <details open>
+      <summary>
+         Containers
+      </summary>
+  
+`Docker container`
+`Docker compose`
+`Docker Images`
+`Docker Volumes`
+
+   <details open>
+      <summary>
+         Ohter Frameworks
+      </summary>
+
+`Apache Commons`<br>
+`Log4j`<br>
+`Lombok`<br>
+`Mockito`<br>
+`JUnit`<br>
+`Apache Tomcat`<br>
+`Hibernate ORM`<br>
+`Git`<br>
+     
+   <details open>
+      <summary>
+         Project build systems
+      </summary>
+      
+`Maven`
+`Gradle`
+
+   <details open>
+      <summary>
+         Algorithms and data structures
+      </summary>
+  
+`Algorithms`
+`Data structures`
+
+   </details>
+</details>
+
+
+
