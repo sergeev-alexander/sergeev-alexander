@@ -1,4 +1,4 @@
-## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to any internship offers in Java backend development
+## <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [any](https://github.com/sergeev-alexander 'to all..') internship offers in Java backend development
 
 <p align='center'>
    
@@ -69,7 +69,9 @@
 </details>
 
 <details closed>
-   <summary>📚 Education</summary>
+   <summary>
+      📚 Education
+   </summary>
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 
@@ -96,40 +98,66 @@
 </details>
 
 <details closed>
-   <summary>🛠 Stack</summary>
+   <summary>
+      🛠 Stack
+   </summary>
 
-- Core Java
-  
-- Spring Framework
-  
-- Spring Boot
-  
-- Spring Data JPA
-  
-- Docker
-  
-- Apache Commons
-  
-- Log4j
-  
-- Lombok
-  
-- Mockito
-  
-- JUnit
-  
-- Apache Tomcat
-  
-- Hibernate ORM
-  
-- Maven
-  
-- Gradle
-  
-- SQL (PostgresSQL, MySQL, H2)
-  
-- Git
-  
-- Algorithms and data structures
+<br>
 
+   <details closed>
+      <summary>
+            Core Java
+      </summary>
+
+   * `Java syntax`
+   
+   * `Collections Framework`
+  
+   </details>
+
+   <details closed>
+      <summary>
+         Spring Framework
+      </summary>
+  
+   - `Spring Framework`
+  
+   - `Spring Boot`
+  
+   - `Spring Data JPA`
+
+   </details>
+
+   <details closed>
+      <summary>
+         Docker
+      </summary>
+  
+   - Docker
+  
+   - Apache Commons
+  
+   - Log4j
+  
+   - Lombok
+  
+   - Mockito
+  
+   - JUnit
+  
+   - Apache Tomcat
+  
+   - Hibernate ORM
+  
+   - Maven
+  
+   - Gradle
+  
+   - SQL (PostgresSQL, MySQL, H2)
+  
+   - Git
+  
+   - Algorithms and data structures
+
+   </details>
 </details>
