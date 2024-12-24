@@ -23,8 +23,7 @@
    </a>
    
    <a href="https://stepik.org/users/598949700/profile">
-      <img
-         height=28
+      <img height=28
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
@@ -37,14 +36,12 @@
 <p align='center'>
    
    <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
-      <img
-         height=133
+      <img height=133
          src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
   </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
-      <img
-         height=133
+      <img height=133
          src="https://leetcard.jacoblin.cool/alexander_sergeev"/>
    </a>
 </p>
@@ -52,24 +49,20 @@
 <p align='center'>
    
    <a href="https://www.codewars.com/users/alexander_sergeev">
-      <img
-         height=27
+      <img height=27
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
 
-<div 
-   align="center" 
+<div align="center" 
    style="margin: 40px 0">
       <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
-          <img 
-             width="140px" 
+          <img width="140px" 
              src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
       </a>
 </div>
 
 </details>
-
 
 <details closed>
    <summary>
@@ -120,6 +113,7 @@
 `Stream API`
 `Collections Framework`
 `Concurrency`
+</details>
 
    <details open>
       <summary>
@@ -131,6 +125,7 @@
 `Spring Data JPA`<br>
 `Application properties`
 `Bean lifecycle`
+</details>
 
    <details open>
       <summary>
@@ -140,6 +135,7 @@
 `PostgresSQL`
 `MySQL`
 `H2`
+</details>
 
    <details open>
       <summary>
@@ -150,6 +146,7 @@
 `Docker compose`
 `Docker Images`
 `Docker Volumes`
+</details>
 
    <details open>
       <summary>
@@ -163,7 +160,8 @@
 `JUnit`<br>
 `Lombok`<br>
 `Log4j`<br>
-     
+</details>
+
    <details open>
       <summary>
          Project build systems
@@ -171,6 +169,7 @@
       
 `Maven`
 `Gradle`
+</details>
 
    <details open>
       <summary>
@@ -179,12 +178,12 @@
   
 `QuickSort`
 `SelectionSort`
-`InsertionSort`
-`MergeSort`
+[`InsertionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/InsertionSort.java)
+[`MergeSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/MergeSort.java "MergeSort java example")
 `ShellSort`
-`BubbleSort`
-`CombSort`
-`BogoSort`<br>
+[`BubbleSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/BubbleSort.java "BubbleSort java example")
+[`CombSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/CombSort.java "CombSort java example")
+[`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/BogoSort.java "BogoSort java example")<br>
 `BinarySearch`
 `BFS`
 `DFS`<br>
@@ -198,6 +197,3 @@
 
    </details>
 </details>
-
-
-
