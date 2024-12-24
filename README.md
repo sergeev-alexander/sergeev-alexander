@@ -188,9 +188,9 @@
 `BinarySearch`
 `BFS`
 `DFS`<br>
-`Heap`
-`Trie`
-`BST`<br>
+[`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap example")
+[`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie example")
+[`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/tree/TreeNode.java "BST example")<br>
 [`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm example")
 [`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD tasks examples")
 [`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci tasks examles")
