@@ -156,14 +156,13 @@
          Ohter Frameworks
       </summary>
 
+`Hibernate ORM`<br>
+`Apache Tomcat`<br>
 `Apache Commons`<br>
-`Log4j`<br>
-`Lombok`<br>
 `Mockito`<br>
 `JUnit`<br>
-`Apache Tomcat`<br>
-`Hibernate ORM`<br>
-`Git`<br>
+`Lombok`<br>
+`Log4j`<br>
      
    <details open>
       <summary>
@@ -178,8 +177,24 @@
          Algorithms and data structures
       </summary>
   
-`Algorithms`
-`Data structures`
+`QuickSort`
+`SelectionSort`
+`InsertionSort`
+`MergeSort`
+`ShellSort`
+`BubbleSort`
+`CombSort`
+`BogoSort`<br>
+`BinarySearch`
+`BFS`
+`DFS`<br>
+`Heap`
+`Trie`
+`BST`<br>
+[`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm example")
+[`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD tasks examples")
+[`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci tasks examles")
+[`etc`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander "Diverse tasks examples")
 
    </details>
 </details>
