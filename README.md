@@ -1,5 +1,3 @@
-### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [any](https://github.com/sergeev-alexander 'Push me!') internship offers in Java backend development
-
 <p align='center'>
    
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
@@ -32,6 +30,8 @@
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
+
+### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [any](https://github.com/sergeev-alexander 'Push me!') internship offers in Java backend development
 
 <details closed>
    <summary>
