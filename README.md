@@ -51,7 +51,7 @@
    
    <a href="https://www.codewars.com/users/alexander_sergeev">
       <img
-         height=25
+         height=27
          src="https://www.codewars.com/users/alexander_sergeev/badges/small"/>
    </a>
 </p>
@@ -68,34 +68,7 @@
 
 </details>
 
-<details closed>
-   <summary>
-      📚 Education
-   </summary>
 
-###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
-
-###### Interactive SQL Trainer<br>Far Eastern Federal University (ДФУ) - Practical tasks on creating SQL queries (MySQL)
-
-###### Algorithms: Theory and Practice. Methods<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
-
-###### Basics of the Java language<br>Programming for Beginners (Eskova Oksana)
-
-###### Introduction to Java<br>Stepic.org (Alexander Chernomyrdin)
-
-###### Java Start from Jusan Singularity: Intensive<br>Educational project of the Jusan group of companies
-
-###### Start Java<br>Stepic.org (Peter Mikhalevsky)
-
-###### Basics of Git<br> Practicum By Yandex (INO CPE "Yandex EdTech") - Basics of branching, advanced teamwork with Git
-
-###### Fundamentals of Mathematics for IT Professions<br>Practicum By Yandex (INO CPE "Yandex EdTech") - Fundamentals of set theory, Combinatorics, Probability Theory, etc.
-
-###### Java Basic Design Patterns<br>Stepic.org (Alexey Kutepov) - DRY, KISS, YAGNI, SOLID and basic design patterns
-
-###### Basics of Java<br>LegaSoft & IT-CUBE
-
-</details>
 
 <details closed>
    <summary>
@@ -160,4 +133,33 @@
    - Algorithms and data structures
 
    </details>
+</details>
+
+<details closed>
+   <summary>
+      📚 Education
+   </summary>
+
+###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
+
+###### Interactive SQL Trainer<br>Far Eastern Federal University (ДФУ) - Practical tasks on creating SQL queries (MySQL)
+
+###### Algorithms: Theory and Practice. Methods<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
+
+###### Basics of the Java language<br>Programming for Beginners (Eskova Oksana)
+
+###### Introduction to Java<br>Stepic.org (Alexander Chernomyrdin)
+
+###### Java Start from Jusan Singularity: Intensive<br>Educational project of the Jusan group of companies
+
+###### Start Java<br>Stepic.org (Peter Mikhalevsky)
+
+###### Basics of Git<br> Practicum By Yandex (INO CPE "Yandex EdTech") - Basics of branching, advanced teamwork with Git
+
+###### Fundamentals of Mathematics for IT Professions<br>Practicum By Yandex (INO CPE "Yandex EdTech") - Fundamentals of set theory, Combinatorics, Probability Theory, etc.
+
+###### Java Basic Design Patterns<br>Stepic.org (Alexey Kutepov) - DRY, KISS, YAGNI, SOLID and basic design patterns
+
+###### Basics of Java<br>LegaSoft & IT-CUBE
+
 </details>
