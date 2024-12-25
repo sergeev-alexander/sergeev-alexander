@@ -152,7 +152,7 @@
       </summary>
   
 `Docker container`
-`Docker compose`
+[`Docker compose`](https://github.com/sergeev-alexander/stuff-sharing-app/blob/master/docker-compose.yml "Example")
 `Docker Images`
 `Docker Volumes`
 </details>
@@ -185,24 +185,24 @@
          Algorithms and data structures
       </summary>
   
-`QuickSort`
-`SelectionSort`
-[`InsertionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/InsertionSort.java)
+[`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/QuickSort.java "QuickSort java example")
+[`SelectionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/SelectionSort.java "SelectionSort java example")
+[`InsertionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/InsertionSort.java "InsertionSort java example")
 [`MergeSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/MergeSort.java "MergeSort java example")
-`ShellSort`
+[`ShellSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/ShellSort.java "ShellSort java example")
 [`BubbleSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/BubbleSort.java "BubbleSort java example")
 [`CombSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/CombSort.java "CombSort java example")
 [`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting_algorithms/BogoSort.java "BogoSort java example")<br>
-`BinarySearch`
-`BFS`
+[`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
+[`BFS`](https://github.com/sergeev-alexander/maze/blob/main/src/main/java/maze/service/Service.java "BFS java example")
 `DFS`<br>
-[`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap example")
-[`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie example")
-[`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/tree/TreeNode.java "BST example")<br>
-[`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm example")
-[`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD tasks examples")
-[`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci tasks examles")
-[`etc`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander "Diverse tasks examples")
+[`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
+[`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie java example")
+[`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/tree/TreeNode.java "BST java example")<br>
+[`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm java example")
+[`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD java examples")
+[`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci java examles")
+[`etc`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander "Diverse tasks java examples")
 
    </details>
 </details>
