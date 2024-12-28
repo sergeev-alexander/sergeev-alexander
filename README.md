@@ -111,6 +111,8 @@
 `Stream API`
 `Collections Framework`
 `Concurrency`
+`JDBC`
+`JPA`
 </details>
 
    <details open>
@@ -120,9 +122,12 @@
   
 `Spring Framework` 
 `Spring Boot` 
-`Spring Data JPA`<br>
+`Spring Data JPA`
+`Spring MVC`<br>
+`@ExceptionHandler`
 `Application properties`
 `Bean lifecycle`
+`XML Configuration`
 </details>
 
    <details open>
