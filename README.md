@@ -124,7 +124,7 @@
 `Spring Boot` 
 `Spring Data JPA`
 `Spring MVC`<br>
-`@ExceptionHandler`
+[`@ExceptionHandler`]()
 `Application properties`
 `Bean lifecycle`
 `XML Configuration`
