@@ -124,7 +124,7 @@
 `Spring Boot` 
 `Spring Data JPA`
 `Spring MVC`<br>
-[`@ExceptionHandler`]()
+[`@ExceptionHandler`](https://github.com/sergeev-alexander/stuff-sharing-app/blob/master/model/src/main/java/alexander/sergeev/stuff_sharing_app/exception/ExceptionResolver.java "Example")
 `Application properties`
 `Bean lifecycle`
 `XML Configuration`
