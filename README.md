@@ -81,7 +81,7 @@
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 ###### Interactive SQL Trainer<br>Far Eastern Federal University (ДФУ) - Practical tasks on creating SQL queries (MySQL)
 ###### Algorithms: Theory and Practice. Methods<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
-###### [Basics of Java language](https://stepik.org/cert/2322373)<br>"Programming Beginners (Eskova Oksana)
+###### [Basics of Java language](https://stepik.org/cert/2322373?lang=en)<br>"Programming Beginners (Eskova Oksana)
 ###### Introduction to Java<br>Stepic.org (Alexander Chernomyrdin)
 ###### Java Start from Jusan Singularity: Intensive<br>Educational project of the Jusan group of companies
 ###### Start Java<br>Stepic.org (Peter Mikhalevsky)
