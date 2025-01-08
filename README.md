@@ -80,10 +80,10 @@
 
 ###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 ###### Interactive SQL Trainer<br>Far Eastern Federal University (ДФУ) - Practical tasks on creating SQL queries (MySQL)
-###### Algorithms: Theory and Practice. Methods<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
-###### [Basics of Java language](https://stepik.org/cert/2322373?lang=en)<br>"Programming Beginners (Eskova Oksana)
+###### [Algorithms: Theory and Practice. Methods](https://stepik.org/course/217/info)<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
+###### [Basics of Java language](https://stepik.org/cert/2322373?lang=en)<br>Programming for Beginners (Eskova Oksana)
 ###### Introduction to Java<br>Stepic.org (Alexander Chernomyrdin)
-###### Java Start from Jusan Singularity: Intensive<br>Educational project of the Jusan group of companies
+###### [Java Start from Jusan Singularity: Intensive](https://stepik.org/cert/2203196?lang=en)<br>Educational project of the Jusan group of companies
 ###### Start Java<br>Stepic.org (Peter Mikhalevsky)
 ###### Basics of Git<br> Practicum By Yandex (INO CPE "Yandex EdTech") - Basics of branching, advanced teamwork with Git
 ###### Fundamentals of Mathematics for IT Professions<br>Practicum By Yandex (INO CPE "Yandex EdTech") - Fundamentals of set theory, Combinatorics, Probability Theory, etc.
