@@ -153,7 +153,7 @@
 
    <details open>
       <summary>
-         Ohter Frameworks
+         Other Frameworks
       </summary>
 
 `Hibernate ORM`<br>
