@@ -33,6 +33,9 @@
 
 ### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [any](https://github.com/sergeev-alexander 'Push me!') internship offers in Java backend development
 
+
+<!--
+
 <details closed>
    <summary>
       📊 Stats
@@ -70,6 +73,7 @@
 </div>
 
 -->
+
 
 </details>
 
