@@ -33,20 +33,17 @@
 
 ### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Open to [any](https://github.com/sergeev-alexander 'Push me!') internship offers in Java backend development
 
-
-
-
 <details closed>
    <summary>
       📊 Stats
    </summary>
      
 <p align='center'>
-   
-   <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true">
+
+   <a href="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&rank_icon=github&include_all_commits=true&show=prs_merged&hide=stars,issues,contribs">
       <img height=133
-         src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&count_private=true"/>
-  </a>
+         src="https://github-readme-stats.vercel.app/api?username=sergeev-alexander&show_icons=true&theme=radical&rank_icon=github&include_all_commits=true&show=prs_merged&hide=stars,issues,contribs"/>
+   </a>
    
    <a href="https://leetcode.com/u/alexander_sergeev">
       <img height=133
@@ -128,7 +125,7 @@
 `Spring Boot` 
 `Spring Data JPA`
 `Spring MVC`<br>
-[`@ExceptionHandler`](https://github.com/sergeev-alexander/stuff-sharing-app/blob/master/model/src/main/java/alexander/sergeev/stuff_sharing_app/exception/ExceptionResolver.java "Example")
+`@ExceptionHandler`
 `Application properties`
 `Bean lifecycle`
 `XML Configuration`
@@ -136,11 +133,12 @@
 
    <details open>
       <summary>
-         SQL
+         SQL/NoSQL
       </summary>
       
 `PostgresSQL`
 `MySQL`
+`Amason DynamoDB`
 `H2`
 </details>
 
@@ -150,7 +148,7 @@
       </summary>
   
 `Docker container`
-[`Docker compose`](https://github.com/sergeev-alexander/stuff-sharing-app/blob/master/docker-compose.yml "Example")
+`Docker compose`
 `Docker Images`
 `Docker Volumes`
 </details>
@@ -163,7 +161,7 @@
 `Hibernate ORM`<br>
 `Apache Tomcat`<br>
 `Apache Commons`<br>
-[`Mockito`](https://github.com/sergeev-alexander/stuff-sharing-app/blob/master/server/src/test/java/alexander/sergeev/stuff_sharing_app/user/item/service/ItemServiceImplTest.java "Example")<br>
+`Mockito` `BDDMocito`
 `JUnit`<br>
 `Lombok`<br>
 `Log4j`<br>
