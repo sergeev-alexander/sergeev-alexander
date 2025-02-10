@@ -1,32 +1,32 @@
 <p align='center'>
    
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
-       <img height=25
+       <img height=21
           src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white"/>
    </a>
    
    <a href="https://t.me/joinchat/@alexandr_sergeev">
-       <img height=25
+       <img height=21
           src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white"/>
    </a>
    
    <a href="https://wa.me/79164220703">
-      <img height=25
+      <img height=21
          src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=WhatsApp&logoColor=white"/>
    </a>
    
    <a href="mailto:a79164220703@gmail.com">
-      <img height=25
+      <img height=21
          src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white"/>
    </a>
    
    <a href="https://instagram.com/alexander._.sergeev">
-      <img height=25
+      <img height=21
          src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white"/>
    </a>
    
    <a href="https://stepik.org/users/598949700/profile">
-      <img height=25
+      <img height=21
          src="https://i.imgur.com/LQqo8y6.jpeg">
    </a>
 </p>
