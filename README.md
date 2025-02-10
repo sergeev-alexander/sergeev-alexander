@@ -79,7 +79,7 @@
       📚 Education
    </summary>
 
-###### Java Developer Professional Training Course<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
+###### [Java Developer Professional Training Course](https://github.com/sergeev-alexander/algorithms/blob/master/yandex_practicum_certificate.png)<br>Practicum By Yandex (INO CPE "Yandex EdTech")<br>Java backend developer
 ###### [Interactive SQL Trainer](https://stepik.org/course/63054/info)<br>Far Eastern Federal University (ДФУ) - Practical tasks on creating SQL queries (MySQL)
 ###### [Algorithms: Theory and Practice. Methods](https://stepik.org/course/217/info)<br>Computer Science Center - Greedy algorithms, divide & conquer method, dynamic programming, etc
 ###### [Basics of Java language](https://stepik.org/cert/2322373?lang=en)<br>Programming for Beginners (Eskova Oksana)
