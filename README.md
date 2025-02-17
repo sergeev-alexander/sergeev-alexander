@@ -138,7 +138,7 @@
       
 `PostgresSQL`
 `MySQL`
-`Amason DynamoDB`
+`Amazon DynamoDB`
 `H2`
 </details>
 
