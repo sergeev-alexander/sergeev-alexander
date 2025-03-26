@@ -61,19 +61,6 @@
    </a>
 </p>
 
-<!--
-
-<div align="center" 
-   style="margin: 20px 0">
-      <a href="https://github.com/sergeev-alexander/github-profile-views-counter">
-          <img width="140px" 
-             src="https://komarev.com/ghpvc/?username=sergeev-alexander&color=DE002D">
-      </a>
-</div>
-
--->
-
-
 </details>
 
 <details closed>
@@ -94,6 +81,7 @@
 ###### [Basics of Java](https://stepik.org/course/82867/info)<br>LegaSoft & IT-CUBE
 </details>
 
+-->
 
 <details closed>
    <summary>
