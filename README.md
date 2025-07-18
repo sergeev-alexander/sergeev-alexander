@@ -31,7 +31,7 @@
    </a>
 </p>
 
-### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Currently working in [Alivio AI](https://cooking.alivio.ai/)<br>🚀Open to [any](https://github.com/sergeev-alexander 'to all') internship offers in Java backend development
+### <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="23"/>  Hi, I'm Alexander!<br>💼Currently working in [Alivio AI](https://cooking.alivio.ai/ 'Alivio AI')<br>🚀Open to any  internship offers in Java backend development
 
 <!--
 
