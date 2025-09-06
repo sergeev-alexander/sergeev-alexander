@@ -31,7 +31,7 @@
    </a>
 </p>
 
-### 👋Hi, I'm Alexander!<br>💼Currently working in [Alivio AI](https://alivio.ai/ 'Alivio AI')<br>🚀Open to any  internship offers in Java backend development
+### 👋Hi, I'm Alexander!<br>💼Java developer at [Alivio AI](https://alivio.ai/ 'Alivio AI')<br>🚀Open to any offers in Java backend development
 
 <!--
 
