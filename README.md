@@ -131,7 +131,7 @@
 [`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BogoSort.java "BogoSort java example")<br>
 [`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
 [`BFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/Bfs.java "BFS java example")
-`DFS`<br>
+[`DFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/binary_tree/Traverse.java "DFS travese example")<br>
 [`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
 [`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie java example")
 [`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/binary_tree/BinaryTree.java "BST java example")<br>
