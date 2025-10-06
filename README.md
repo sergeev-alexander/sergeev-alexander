@@ -32,7 +32,6 @@
 </p>
 
 ### 👋Hi, I'm Alexander!<br>💼Java developer at [Alivio AI](https://alivio.ai/ 'Alivio AI')<br>🚀Open to any offers in Java backend development
-
 <details closed>
    <summary>
       🛠 Stack
@@ -42,83 +41,61 @@
 
    <details open>
       <summary>
-         Core Java
+         ♨️ Java
       </summary>
-     
-`Java syntax`
-`JVM`
-`Garbage collection`
-`I/O`<br>
-`Stream API`
-`Collections Framework`
-`Concurrency`
-`JDBC`
-`JPA`
+         
+`OOP` `SOLID` `DRY` `KISS` `YAGNI` 
+<br>
+`JVM` `Garbage collection` `I/O` `NIO` `Reflection` `Annotations`
+<br>
+`Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
+<br>
+`Multithreading` `Concurrency` `ExecutorService` `CompletableFuture`
+<br>
+`JDBC` `JPA` `JUnit` `Mockito` `BDDMockito` `Log4j`
 </details>
 
    <details open>
       <summary>
-         Spring
-      </summary>
-  
-`Spring Framework` 
-`Spring Boot` 
-`Spring Data JPA`
-`Spring MVC`<br>
-`@ExceptionHandler`
-`Application properties`
-`Bean lifecycle`
-`XML Configuration`
-</details>
-
-   <details open>
-      <summary>
-         SQL/NoSQL
-      </summary>
-      
-`PostgresSQL`
-`MySQL`
-`Amazon DynamoDB`
-`H2`
-</details>
-
-   <details open>
-      <summary>
-         Containers
+         🍃 Spring
       </summary>
   
-`Docker container`
-`Docker compose`
-`Docker Images`
-`Docker Volumes`
+`Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
+<br>
+`DI` `IoC` `Bean Lifecycle` `Application Properties` `Profiles` `Configuration`
+<br>
+`@RestController` `@RequestMapping` `DTO` `@ExceptionHandler` `Validation`
+<br>
+`@Transactional` `JPA Repositories` `Query Methods` `Pagination`
+<br>
+`RestTemplate` `WebClient` `WebFlux`
+<br>
+`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `Actuator`
 </details>
 
    <details open>
       <summary>
-         Other Frameworks
-      </summary>
-
-`Hibernate ORM`<br>
-`Apache Tomcat`<br>
-`Apache Commons`<br>
-`Mockito` `BDDMocito`
-`JUnit`<br>
-`Lombok`<br>
-`Log4j`<br>
-</details>
-
-   <details open>
-      <summary>
-         Project build systems
+         💾 SQL/NoSQL
       </summary>
       
-`Maven`
-`Gradle`
+`PostgreSQL` `MySQL` `Amazon DynamoDB` `H2`
+</details>
+
+<details open>
+   <summary>
+      ⚙️ Tools & Infrastructure
+   </summary>
+   
+`Docker` `Docker Compose` `Docker Images` `Docker Volumes`
+<br>
+`Apache Tomcat` `Apache Maven` `Apache Commons` `Apache Http Client` `Lombok`
+<br>
+`Gradle` `Git` `GitHub` `CI/CD` `REST API` `JSON` `Postman`
 </details>
 
    <details open>
       <summary>
-         Algorithms and data structures
+         🧠 Algorithms and data structures
       </summary>
   
 [`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
