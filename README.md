@@ -44,8 +44,6 @@
          ♨️ Java
       </summary>
          
-`OOP` `SOLID` `DRY` `KISS` `YAGNI` 
-<br>
 `JVM` `Garbage collection` `I/O` `NIO` `Reflection` `Annotations`
 <br>
 `Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
