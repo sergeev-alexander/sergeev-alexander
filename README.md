@@ -44,8 +44,8 @@
          ♨️ Java
       </summary>
          
-`JVM` 
-[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/garbage_collection/Garbage_Collection.md "Garbage_Collection.md") 
+[`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
+[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_Collection.md "Garbage_Collection.md") 
 `I/O` `NIO` `Reflection` `Annotations`
 <br>
 `Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
