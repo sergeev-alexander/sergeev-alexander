@@ -44,7 +44,9 @@
          ♨️ Java
       </summary>
          
-`JVM` `Garbage collection` `I/O` `NIO` `Reflection` `Annotations`
+`JVM` 
+[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/garbage_collection/Garbage_Collection.md "Garbage_Collection.md") 
+`I/O` `NIO` `Reflection` `Annotations`
 <br>
 `Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
 <br>
