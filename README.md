@@ -46,7 +46,9 @@
          
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
 [`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_Collection.md "Garbage_Collection.md") 
-`I/O` `NIO` `Reflection` `Annotations`
+[`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
+[`NIO`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
+`Reflection` `Annotations`
 <br>
 `Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
 <br>
