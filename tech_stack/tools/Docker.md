@@ -53,6 +53,13 @@ docker-compose images         # используемые образы
     </summary>
 
 ```ignorelang
+#Запущеные контейнеры
+
+docker-compose down    # Останавливает и удаляет контейнеры
+docker-compose down -v # Останавливает контейнеры, удаляет их И удаляет volumes
+
+#Остановленные контейнеры
+
 # Удалить все остановленные контейнеры
 docker container prune
 
