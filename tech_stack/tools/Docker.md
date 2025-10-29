@@ -25,7 +25,7 @@ docker-compose restart
 
 <details>
     <summary>
-        <b>Просмотр информации></b>
+        <b>Просмотр информации</b>
     </summary>
 
 ```ignorelang
@@ -49,14 +49,14 @@ docker-compose images         # используемые образы
 
 <details>
     <summary>
-        <b>Очистка контейнеров></b>
+        <b>Очистка контейнеров</b>
     </summary>
 
 ```ignorelang
 #Запущеные контейнеры
 
-docker-compose down    # Останавливает и удаляет контейнеры
-docker-compose down -v # Останавливает контейнеры, удаляет их И удаляет volumes
+docker-compose down            # Останавливает и удаляет контейнеры
+docker-compose down -v         # Останавливает контейнеры, удаляет их И удаляет volumes
 
 #Остановленные контейнеры
 
@@ -74,7 +74,7 @@ docker rm -f $(docker ps -aq)
 
 <details>
     <summary>
-        <b>Очистка образов></b>
+        <b>Очистка образов</b>
     </summary>
 
 ```ignorelang
