@@ -90,9 +90,6 @@
    </summary>
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
-[`Docker Compose`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
-[`Docker Images`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
-[`Docker Volumes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
 <br>
 `Apache Tomcat` `Apache Maven` `Apache Commons` `Apache Http Client` `Lombok`
 <br>
