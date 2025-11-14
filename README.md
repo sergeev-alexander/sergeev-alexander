@@ -48,7 +48,8 @@
 [`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md") 
 [`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
 [`NIO`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
-`Reflection` `Annotations`
+`Reflection`
+[`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md")
 <br>
 `Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
 <br>
@@ -67,7 +68,8 @@
 <br>
 `DI` `IoC` `Bean Lifecycle` `Application Properties` `Profiles` `Configuration`
 <br>
-`@RestController` `@RequestMapping` `@ExceptionHandler` `Validation`
+`@RestController` `@RequestMapping` `@ExceptionHandler`
+[`Validation`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotations.md") 
 <br>
 `@Transactional` `JPA Repositories` `Query Methods` `Pagination`
 <br>
