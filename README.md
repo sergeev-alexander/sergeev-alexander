@@ -51,7 +51,9 @@
 `Reflection`
 [`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md")
 <br>
-`Stream API` `Collections` `Optional` `Lambda` `Date/Time API`
+`Stream API` `Collections` `Optional`
+[`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md")
+`Date/Time API`
 <br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture`
 <br>
