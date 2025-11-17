@@ -58,3 +58,18 @@
 | `limit(long maxSize)`             | Ограничение количества элементов                       | `stream.limit(5)`                                        |
 | `skip(long n)`                    | Пропуск первых N элементов                             | `stream.skip(2)`                                         |
 </details>
+
+<details>
+    <summary>
+        <b>Терминальные операции (Terminal Operations)</b>
+    </summary>
+
+
+
+
+
+
+
+
+
+</details>
