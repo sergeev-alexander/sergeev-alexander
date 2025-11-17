@@ -48,7 +48,7 @@
 [`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md") 
 [`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
 [`NIO`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
-`Reflection`
+[`Reflection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Reflection.md "Reflection.md")
 [`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md")
 <br>
 `Stream API` `Collections`
