@@ -728,95 +728,96 @@ System.out.
 
 println("Task executed at: "+timeSupplier.get());
 ```
+</details>
 
-### Наследники Function
+<details>
+    <summary>
+        <b>Основные функциональные интерфейсы</b>
+    </summary>
 
+### Ключевые отношения
+
+- UnaryOperator<T> = Function<T, T>
+- BinaryOperator<T> = BiFunction<T, T, T>
+- Runnable = Supplier без возвращаемого значения
+- Callable = Supplier с возможностью исключений
+
+### Паттерны именования
+
+- XXXFunction - принимает примитив XXX, возвращает объект
+- ToXXXFunction - принимает объект, возвращает примитив XXX
+- XXXToYYYFunction - преобразует примитив XXX в YYY
+- XXXConsumer - принимает примитив XXX
+- XXXSupplier - возвращает примитив XXX
+- XXXPredicate - проверяет примитив XXX
+- ObjXXXConsumer - принимает (объект, примитив XXX)
+
+### `Function<T, R>` - преобразование (1 вход → 1 выход)
 ```text
-Function<T, R> — принимает T, возвращает R
-├── UnaryOperator<T> — принимает T, возвращает T (T -> T). Наследник Function<T, T>
+Function<T, R>           T → R
+├─ UnaryOperator<T>      T → T
+│  ├─ IntUnaryOperator      int → int
+│  ├─ LongUnaryOperator     long → long
+│  └─ DoubleUnaryOperator   double → double
 
-BiFunction<T, U, R> — принимает T и U, возвращает R
-├── BinaryOperator<T> — принимает T и T, возвращает T. Наследник BiFunction<T, T, T>
+IntFunction<R>           int → R
+LongFunction<R>          long → R  
+DoubleFunction<R>        double → R
 
-Consumer<T> — принимает T, ничего не возвращает (void)
-├── (Нет наследников в стандартной библиотеке)
+ToIntFunction<T>         T → int
+ToLongFunction<T>        T → long
+ToDoubleFunction<T>      T → double
 
-Supplier<T> — ничего не принимает, возвращает T
-├── (Нет наследников в стандартной библиотеке)
-
-Predicate<T> — принимает T, возвращает boolean
-├── (Нет наследников в стандартной библиотеке)
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      Специализации (Int, Long, Double)                  │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Function<T, R>:
-├── IntFunction<R> — принимает int, возвращает R
-├── LongFunction<R> — принимает long, возвращает R
-├── DoubleFunction<R> — принимает double, возвращает R
-├── ToIntFunction<T> — принимает T, возвращает int
-├── ToLongFunction<T> — принимает T, возвращает long
-├── ToDoubleFunction<T> — принимает T, возвращает double
-├── IntToLongFunction — int → long
-├── IntToDoubleFunction — int → double
-├── LongToIntFunction — long → int
-├── LongToDoubleFunction — long → double
-├── DoubleToIntFunction — double → int
-└── DoubleToLongFunction — double → long
-
-Consumer<T>:
-├── IntConsumer — принимает int
-├── LongConsumer — принимает long
-└── DoubleConsumer — принимает double
-
-Supplier<T>:
-├── IntSupplier — возвращает int
-├── LongSupplier — возвращает long
-└── DoubleSupplier — возвращает double
-
-Predicate<T>:
-├── IntPredicate — принимает int
-├── LongPredicate — принимает long
-└── DoublePredicate — принимает double
-
-BiFunction<T, U, R>:
-├── ToIntBiFunction<T, U> — (T, U) → int
-├── ToLongBiFunction<T, U> — (T, U) → long
-└── ToDoubleBiFunction<T, U> — (T, U) → double
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Наследование и отношения                      │
-└─────────────────────────────────────────────────────────────────────────┘
-
-UnaryOperator<T> — это наследник Function<T, T>
-├── Потому что Function<T, R>, и если R = T, то получается Function<T, T>,
-│   а это и есть UnaryOperator<T> — операция, принимающая и возвращающая T.
-
-BinaryOperator<T> — это наследник BiFunction<T, T, T>
-├── Потому что BiFunction<T, U, R> — принимает T и U, возвращает R.
-│   Если U = T и R = T, то получается BiFunction<T, T, T> → BinaryOperator<T>
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Примеры иерархии                                 │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Function<String, Integer> — строку в число
-UnaryOperator<String> — строку в строку (например, .toUpperCase())
-
-BiFunction<Integer, Integer, Integer> — два числа → результат
-BinaryOperator<Integer> — два числа → число (например, сложение)
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Вывод:                                           │
-└─────────────────────────────────────────────────────────────────────────┘
-
-- Function<T, R> — общий интерфейс: T → R
-- Function<T, T> — частный случай: T → T → это UnaryOperator<T>
-- BiFunction<T, U, R> — два входа, один выход
-- BinaryOperator<T> — частный случай BiFunction<T, T, T>
+IntToLongFunction        int → long
+IntToDoubleFunction      int → double
+LongToIntFunction        long → int
+LongToDoubleFunction     long → double
+DoubleToIntFunction      double → int
+DoubleToLongFunction     double → long
 ```
 
+### `BiFunction<T, U, R>` - преобразование (2 входа → 1 выход)
+```text
+BiFunction<T, U, R>      (T, U) → R
+├─ BinaryOperator<T>     (T, T) → T
+│  ├─ IntBinaryOperator     (int, int) → int
+│  ├─ LongBinaryOperator    (long, long) → long
+│  └─ DoubleBinaryOperator  (double, double) → double
+
+ToIntBiFunction<T, U>    (T, U) → int
+ToLongBiFunction<T, U>   (T, U) → long
+ToDoubleBiFunction<T, U> (T, U) → double
+```
+
+### `Consumer<T>` - потребление (1 вход → нет выхода)
+```text
+Consumer<T>              T → void
+├─ BiConsumer<T, U>      (T, U) → void
+
+ToIntBiFunction<T, U>    (T, U) → int
+ToLongBiFunction<T, U>   (T, U) → long
+ToDoubleBiFunction<T, U> (T, U) → double
+```
+
+### `Supplier<T>` - поставщик (нет входа → 1 выход) 
+```text
+Supplier<T>              () → T
+
+IntSupplier              () → int
+LongSupplier             () → long
+DoubleSupplier           () → double
+BooleanSupplier          () → boolean
+```
+
+### `Predicate<T>` - проверка (1 вход → boolean)
+```text
+Predicate<T>             T → boolean
+├─ BiPredicate<T, U>     (T, U) → boolean
+
+IntPredicate             int → boolean
+LongPredicate            long → boolean
+DoublePredicate          double → boolean
+```
 </details>
 
 <details>
