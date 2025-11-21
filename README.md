@@ -51,7 +51,8 @@
 [`Reflection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Reflection.md "Reflection.md")
 [`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md")
 <br>
-`Stream API` `Collections`
+[`Stream API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Stream_API.md "Stream_API.md")
+`Collections`
 [`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md")
 [`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md")
 `Date/Time API`
