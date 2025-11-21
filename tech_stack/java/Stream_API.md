@@ -125,7 +125,18 @@ List<String> result = Stream.of("a", "b", "c")
 <br>
 Это основной шаг сбора.
 - `BiConsumer<R, R> combiner` - Функция, которая принимает два аккумулятора `R` и `R` и объединяет их содержимое в один аккумулятор. Используется только при параллельной обработке, когда результаты от разных частей потока нужно объединить.
-
+```java
+// Сбор строк в одну строку с разделителем ","
+String result = Stream.of("a", "b", "c").collect(
+    StringBuilder::new,                         // Supplier<StringBuilder> supplier (R = StringBuilder)
+    (sb, str) -> sb.append(str).append(","),    // BiConsumer<StringBuilder, String> accumulator (R = StringBuilder, T = String)
+    (sb1, sb2) -> sb1.append(sb2)               // BiConsumer<StringBuilder, StringBuilder> combiner (R = StringBuilder)
+);
+// T = String
+// A = StringBuilder (но неявно, так как A = R)
+// R = StringBuilder (и возвращаемый тип метода collect)
+// Результат: "a,b,c," (можно обрезать в конце в реальном коде)
+```
 ### Коллекторы (Collectors)
 
 | Сигнатура метода | Назначение | Пример |
