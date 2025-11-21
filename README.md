@@ -41,7 +41,7 @@
 
    <details open>
       <summary>
-         ♨️ Java
+         <b>♨️ Java</b>
       </summary>
          
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
@@ -64,7 +64,7 @@
 
    <details open>
       <summary>
-         🍃 Spring
+         <b>🍃 Spring</b>
       </summary>
   
 `Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
@@ -84,27 +84,54 @@
 
    <details open>
       <summary>
-         💾 SQL/NoSQL
+         <b>💾 SQL/NoSQL</b>
       </summary>
       
 `PostgreSQL` `MySQL` `Amazon DynamoDB` `H2`
 </details>
 
-<details open>
-   <summary>
-      ⚙️ Tools & Infrastructure
-   </summary>
+   <details open>
+      <summary>
+         <b>⚙️ Tools & Infrastructure</b>
+      </summary>
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
 <br>
 `Apache Tomcat` `Apache Maven` `Apache Commons` `Apache Http Client` `Lombok`
 <br>
-`Gradle` `Git` `GitHub` `CI/CD` `REST API` `JSON` `Postman`
+`Gradle` `Git` `GitHub` `CI/CD` `JSON` `Postman`
 </details>
+
+
+<details open>
+    <summary>
+         <b>🧪 Testing</b>
+    </summary>
+
+`Unit Testing` `Integration Testing` `E2E Testing` `TDD` `BDD`
+<br>
+`JUnit` `Mockito` `TestContainers` `WireMock` `AssertJ`
+<br>
+`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean`
+<br>
+`Test Doubles` `Test Pyramid` `Test Coverage` `Mutation Testing`
+   </details>
 
    <details open>
       <summary>
-         🧠 Algorithms and data structures
+         <b>📚 Theory</b>
+      </summary>
+
+`OOP` `SOLID` `Design Patterns` `Clean Code` `GRASP`
+<br>
+`REST API` `HTTP` `Microservices` `DDD` `CQRS`
+<br>
+`Concurrency Patterns` `Architecture Patterns` `Enterprise Patterns`
+   </details>
+
+   <details open>
+      <summary>
+         <b>🧠 Algorithms and data structures</b>
       </summary>
   
 [`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
