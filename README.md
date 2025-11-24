@@ -78,8 +78,7 @@
 `@Transactional` `JPA Repositories` `Query Methods` `Pagination`
 <br>
 `RestTemplate` `WebClient` `WebFlux`
-<br>
-`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `Actuator`
+
 </details>
 
    <details open>
@@ -112,7 +111,7 @@
 <br>
 `JUnit` `Mockito` `TestContainers` `WireMock` `AssertJ`
 <br>
-`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean`
+`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator`
 <br>
 `Test Doubles` `Test Pyramid` `Test Coverage` `Mutation Testing`
    </details>
