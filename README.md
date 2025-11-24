@@ -122,10 +122,11 @@
          <b>📚 Theory</b>
       </summary>
 
-`API architectural styles`
-`REST`
+[`API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/API.md "API.md")
+[`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md")
 <br>
-`OOP` `SOLID` `Design Patterns` `Clean Code` `GRASP`
+[`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
+`SOLID` `Design Patterns` `Clean Code` `GRASP`
 <br>
 `HTTP` `Microservices` `DDD` `CQRS`
 <br>
@@ -144,13 +145,16 @@
 [`ShellSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/ShellSort.java "ShellSort java example")
 [`BubbleSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BubbleSort.java "BubbleSort java example")
 [`CombSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/CombSort.java "CombSort java example")
-[`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BogoSort.java "BogoSort java example")<br>
+[`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BogoSort.java "BogoSort java example")
+<br>
 [`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
 [`BFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/Bfs.java "BFS java example")
-[`DFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/Traverse.java "DFS travese example")<br>
+[`DFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/Traverse.java "DFS travese example")
+<br>
 [`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
 [`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie java example")
-[`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/BinarySearchTree.java "BST java example")<br>
+[`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/BinarySearchTree.java "BST java example")
+<br>
 [`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm java example")
 [`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD java examples")
 [`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci java examles")
