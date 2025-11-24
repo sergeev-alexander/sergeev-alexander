@@ -293,4 +293,180 @@ class Child extends Parent {
     @Override private void privateMethod() { } // ОШИБКА компиляции
 }
 ```
+
+## Abstraction (Абстракция)
+
+Абстракция — это принцип объектно-ориентированного программирования, направленный на выделение существенных характеристик объекта и сокрытие сложных деталей реализации. 
+Это позволяет работать с объектами на уровне их назначения, а не внутреннего устройства.
+
+В Java абстракция реализуется с помощью абстрактных классов (abstract class) и интерфейсов (interface).
+
+### Абстрактный класс (abstract class)
+
+- Не может быть создан напрямую (new запрещён).
+- Может содержать как абстрактные методы (без тела, с ключевым словом `abstract`), так и обычные (конкретные) методы с реализацией.
+- Наследуемый (конкретный) класс обязан реализовать все абстрактные методы, если сам не объявлен как abstract.
+- Поддерживает наследование состояния (поля) и поведения (методы), что делает его удобным для создания «частично реализованных» шаблонов.
+
+### Интерфейс (interface)
+
+- Определяет контракт — набор методов, которые реализующий класс обязан предоставить.
+- До Java 8: содержал только публичные абстрактные методы и константы (`public static final`).
+- Начиная с Java 8:
+  - Появились `default`-методы (`default void method() { … }`), позволяющие добавлять реализацию без нарушения обратной совместимости.
+  - Появились статические методы (`static void method() { … }`).
+- Начиная с Java 9: разрешено объявлять `private`-методы внутри интерфейса (для рефакторинга общего кода в `default`/`static` методах).
+- Класс может реализовывать несколько интерфейсов (множественное наследование поведения).
+- Все поля в интерфейсе неявно являются `public static final`.
+
+### Ключевые различия: abstract class vs interface
+
+| Характеристика          | abstract class                                                         | interface                                    |
+|:------------------------|:-----------------------------------------------------------------------|:---------------------------------------------|
+| Назначение              | Моделирует сущность («является»)                                       | Моделирует поведение / роль («умеет»)        |
+| Наследование            | Одиночное (extends)                                                    | Множественное (implements)                   |
+| Поля                    | Любые: private", "protected", "public", "static", "final" с состоянием | Только public static final (константы)       |
+| Конструкторы            | Да (вызываются при создании подкласса)                                 | Нет                                          |
+| Абстрактные методы      | Да (abstract void method();)                                           | Да (неявно public abstract)                  |
+| Конкретные методы       | Да (обычные методы с реализацией)                                      | Да: default", "static", "private (с Java 8+) |
+| Инициализация состояния | Возможна (через поля и конструкторы)                                   | Невозможна                                   |
+
+### Поля в абстрактном классе и интерфейсе
+
+Абстрактный класс может хранить состояние — обычные поля, которые наследуются подклассами:
+
+```java
+abstract class Animal {
+    protected String name;           // поле с состоянием
+    protected int age;
+    
+    public Animal(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    public abstract void makeSound(); // абстрактный метод
+}
+```
+
+Интерфейс может содержать только константы (неявно public static final):
+
+```java
+interface Flying {
+    double MAX_ALTITUDE = 10000.0; // неявно public static final
+    
+    void fly(); // неявно public abstract
+}
+```
+
+### Пример иерархии
+
+```java
+// Абстрактный класс — общая сущность
+abstract class Animal {
+    protected String name;
+    protected int age;
+
+    public Animal(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public abstract void makeSound(); // каждый вид издаёт свой звук
+    public void sleep() {
+        System.out.println(name + " спит.");
+    }
+}
+
+// Более специализированный абстрактный класс
+abstract class Bird extends Animal {
+    protected double wingSpan;
+
+    public Bird(String name, int age, double wingSpan) {
+        super(name, age);
+        this.wingSpan = wingSpan;
+    }
+
+    // Птицы по умолчанию не плавают — если нужно, подкласс реализует
+    public void swim() {
+        System.out.println(name + " не умеет плавать.");
+    }
+}
+
+// Интерфейсы — роли/поведения
+interface Flying {
+    double MAX_ALTITUDE = 10000.0;
+    
+    void fly(); // абстрактный метод
+    
+    default void takeOff() {
+        System.out.println("Взлетаю!");
+    }
+    
+    static void describeAbility() {
+        System.out.println("Летающие существа могут подниматься в воздух.");
+    }
+    
+    private void logFlight(double altitude) {
+        if (altitude > MAX_ALTITUDE) {
+            System.out.println("Предупреждение: слишком высоко!");
+        }
+    }
+    
+    default void flyTo(double altitude) {
+        takeOff();
+        logFlight(altitude); // вызов private-метода внутри интерфейса
+    }
+}
+
+interface Swimming {
+    void swim(); // переопределяет метод из Bird при необходимости
+}
+
+interface Walking {
+    default void walk() {
+        System.out.println("Иду по земле.");
+    }
+}
+
+class Duck extends Bird implements Flying, Swimming, Walking {
+    public Duck(String name, int age, double wingSpan) {
+        super(name, age, wingSpan);
+    }
+
+    @Override
+    public void makeSound() {
+        System.out.println(name + " говорит: Кря!");
+    }
+
+    @Override
+    public void fly() {
+        System.out.println(name + " летит с размахом крыльев " + wingSpan + " м.");
+    }
+
+    @Override
+    public void swim() {
+        System.out.println(name + " плавает как утка!");
+    }
+
+    // walk() используется из default-метода интерфейса Walking
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Duck duck = new Duck("Дональд", 3, 0.8);
+
+        duck.makeSound();      // Кря! (реализация в Duck)
+        duck.sleep();          // Дональд спит. (унаследовано от Animal)
+        duck.fly();            // Дональд летит...
+        duck.swim();           // Дональд плавает как утка!
+        duck.walk();           // Иду по земле. (default из Walking)
+
+        duck.flyTo(5000);      // Использует default + private методы из Flying
+
+        Flying.describeAbility(); // Статический метод интерфейса
+        System.out.println("Макс. высота: " + Flying.MAX_ALTITUDE);
+    }
+}
+```
 </details>
