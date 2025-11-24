@@ -59,7 +59,7 @@
 <br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture`
 <br>
-`JDBC` `JPA` `JUnit` `Mockito` `BDDMockito` `Log4j`
+`JDBC` `JPA` `Log4j`
 </details>
 
    <details open>
