@@ -122,9 +122,12 @@
          <b>📚 Theory</b>
       </summary>
 
+`API architectural styles`
+`REST`
+<br>
 `OOP` `SOLID` `Design Patterns` `Clean Code` `GRASP`
 <br>
-`REST API` `HTTP` `Microservices` `DDD` `CQRS`
+`HTTP` `Microservices` `DDD` `CQRS`
 <br>
 `Concurrency Patterns` `Architecture Patterns` `Enterprise Patterns`
    </details>
