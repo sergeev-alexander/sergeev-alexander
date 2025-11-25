@@ -125,7 +125,8 @@
 [`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md")
 <br>
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
-`SOLID` `Design Patterns` `Clean Code` `GRASP`
+[`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md")
+`Design Patterns` `Clean Code` `GRASP`
 <br>
 `HTTP` `Microservices` `DDD` `CQRS`
 <br>
