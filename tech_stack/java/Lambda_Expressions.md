@@ -102,22 +102,19 @@ Runnable complexTask = () -> {
 
 ```java
 // 1. Без параметров
-()->expression
+() -> expression
 
 // 2. Один параметр (можно без скобок)
-parameter ->
-
-expression
+parameter -> expression
 
 // 3. Несколько параметров  
-(parameter1, parameter2) ->
-
-expression
+(parameter1, parameter2) -> expression
 
 // 4. Многострочное тело
-(parameters) ->{
-statement1;
-statement2;
+(parameters) -> {
+    statement1;
+    statement2;
+
     return result;
 }
 ```
