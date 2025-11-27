@@ -69,7 +69,7 @@
   
 `Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
 [`JWT`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/Spring/JVT.md "JWT.md") 
-`Jackson`
+[`Jackson`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Jackson.md "Jackson.md")
 <br>
 `DI` `IoC` `Bean Lifecycle` `Application Properties` `Profiles` `Configuration`
 <br>
