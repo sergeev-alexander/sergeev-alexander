@@ -131,8 +131,6 @@ public class JacksonConfig {
 ```
 </details>
 
-<br>
-
 <details>
     <summary>
         <b>Базовые аннотации</b>
