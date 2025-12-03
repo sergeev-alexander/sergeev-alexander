@@ -78,7 +78,7 @@
 <br>
 `@Transactional` `JPA Repositories` `Query Methods` `Pagination`
 <br>
-`RestTemplate` `WebClient` `WebFlux`
+`RestTemplate` `RestClient` `WebFlux` `WebClient`
 
 </details>
 

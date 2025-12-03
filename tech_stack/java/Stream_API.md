@@ -20,24 +20,179 @@
         <b>Создание потоков (Источники)</b>
     </summary>
 
-| Сигнатура метода                                                                         | Назначение                                                          | Пример                                       |
-|:-----------------------------------------------------------------------------------------|:--------------------------------------------------------------------|:---------------------------------------------|
-| `default Stream<E> stream()`                                                             | Создание последовательного потока из коллекции                      | `collection.stream()`                        |
-| `default Stream<E> parallelStream()`                                                     | Создание параллельного потока из коллекции                          | `collection.parallelStream()`                |
-| `static <T> Stream<T> of(T... values)`                                                   | Создание потока из набора значений                                  | `Stream.of("a", "b", "c")`                   |
-| `static <T> Stream<T> ofNullable(T t)`                                                   | Создание потока из одного элемента или пустого потока, если `null`  | `Stream.ofNullable(nullableObject)`          |
-| `static <T> Stream<T> empty()`                                                           | Создание пустого потока                                             | `Stream.empty()`                             |
-| `static <T> Stream<T> generate(Supplier<T> s)`                                           | Создание бесконечного потока с помощью поставщика                   | `Stream.generate(() -> "element").limit(10)` |
-| `static <T> Stream<T> iterate(T seed, UnaryOperator<T> f)`                               | Создание бесконечного потока с итеративным применением функции      | `Stream.iterate(0, n -> n + 2).limit(5)`     |
-| `static <T> Stream<T> iterate(T seed, Predicate<? super T> hasNext, UnaryOperator<T> f)` | Создание конечного потока с условием остановки (Java 9+)            | `Stream.iterate(0, n -> n < 10, n -> n + 2)` |
-| `static <T> Stream<T> stream(T[] array)`                                                 | Создание потока из массива для ссылочных типов                      | `Arrays.stream(array)`                       |
-| `static IntStream stream(int[] array)`                                                   | Создание потока из массива для примитивных типов                    | `Arrays.stream(array)`                       |
-| `static Stream<String> lines(Path path)`                                                 | Создание потока строк из файла                                      | `Files.lines(Paths.get("file.txt"))`         |
-| `static IntStream range(int startInclusive, int endExclusive)`                           | Создание потока целых чисел в диапазоне [start, end)                | `IntStream.range(0, 5)` // 0,1,2,3,4         |
-| `static IntStream rangeClosed(int startInclusive, int endInclusive)`                     | Создание потока целых чисел в диапазоне [start, end]                | `IntStream.rangeClosed(0, 5)` // 0,1,2,3,4,5 |
-| `static <T> Stream<T> concat(Stream<? extends T> a, Stream<? extends T> b)`              | Конкатенация двух потоков в один                                    | `Stream.concat(stream1, stream2)`            |
-| `static <T> Stream.Builder<T> builder()`                                                 | Создание потока через построитель                                   | `Stream.builder().add("a").add("b").build()` |
+| Сигнатура метода                                                                         | Назначение                                                         | Пример                                       |
+|:-----------------------------------------------------------------------------------------|:-------------------------------------------------------------------|:---------------------------------------------|
+| `default Stream<E> stream()`                                                             | Создание последовательного потока из коллекции                     | `collection.stream()`                        |
+| `default Stream<E> parallelStream()`                                                     | Создание параллельного потока из коллекции                         | `collection.parallelStream()`                |
+| `static <T> Stream<T> of(T... values)`                                                   | Создание потока из набора значений                                 | `Stream.of("a", "b", "c")`                   |
+| `static <T> Stream<T> ofNullable(T t)`                                                   | Создание потока из одного элемента или пустого потока, если `null` | `Stream.ofNullable(nullableObject)`          |
+| `static <T> Stream<T> empty()`                                                           | Создание пустого потока                                            | `Stream.empty()`                             |
+| `static <T> Stream<T> generate(Supplier<T> s)`                                           | Создание бесконечного потока с помощью поставщика                  | `Stream.generate(() -> "element").limit(10)` |
+| `static <T> Stream<T> iterate(T seed, UnaryOperator<T> f)`                               | Создание бесконечного потока с итеративным применением функции     | `Stream.iterate(0, n -> n + 2).limit(5)`     |
+| `static <T> Stream<T> iterate(T seed, Predicate<? super T> hasNext, UnaryOperator<T> f)` | Создание конечного потока с условием остановки (Java 9+)           | `Stream.iterate(0, n -> n < 10, n -> n + 2)` |
+| `static <T> Stream<T> stream(T[] array)`                                                 | Создание потока из массива для ссылочных типов                     | `Arrays.stream(array)`                       |
+| `static IntStream stream(int[] array)`                                                   | Создание потока из массива для примитивных типов                   | `Arrays.stream(array)`                       |
+| `static Stream<String> lines(Path path)`                                                 | Создание потока строк из файла                                     | `Files.lines(Paths.get("file.txt"))`         |
+| `static IntStream range(int startInclusive, int endExclusive)`                           | Создание потока целых чисел в диапазоне [start, end)               | `IntStream.range(0, 5)` // 0,1,2,3,4         |
+| `static IntStream rangeClosed(int startInclusive, int endInclusive)`                     | Создание потока целых чисел в диапазоне [start, end]               | `IntStream.rangeClosed(0, 5)` // 0,1,2,3,4,5 |
+| `static <T> Stream<T> concat(Stream<? extends T> a, Stream<? extends T> b)`              | Конкатенация двух потоков в один                                   | `Stream.concat(stream1, stream2)`            |
+| `static <T> Stream.Builder<T> builder()`                                                 | Создание потока через билдер                                       | `Stream.builder().add("a").add("b").build()` |
+
+## Несколько примеров создания стрима
+
+### Создание стрима из существующей коллекции
+
+```java
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
+
+public class CollectionStreamExample {
+    
+    public static void main(String[] args) {
+        List<String> words = Arrays.asList("hello", "world", "java");
+
+        Stream<String> stream = words.stream();     // Создаем стрим из коллекции
+
+        stream.forEach(System.out::println);        // Выводим элементы стрима
+    }
+}
+```
+
+### Преобразование массива в стрим
+
+```java
+import java.util.stream.Stream;
+
+public class ArrayStreamExample {
+    
+    public static void main(String[] args) {
+        String[] words = {"hello", "world", "java"};
+
+        Stream<String> stream = Arrays.stream(words);   // Создаем стрим из массива
+
+        stream.forEach(System.out::println);            // Выводим элементы стрима
+    }
+}
+```
+
+### Использование статического метода Stream.of() для передачи элементов.
+
+```java
+import java.util.stream.Stream;
+
+public class StreamOfExample {
+    
+    public static void main(String[] args) {
+        Stream<String> stream = Stream.of("hello", "world", "java");    // Создаем стрим из элементов
+
+        stream.forEach(System.out::println);                            // Выводим элементы стрима
+    }
+}
+```
+
+### Использование Stream.builder() для добавления элементов динамически
+
+```java
+import java.util.stream.Stream;
+
+public class StreamBuilderExample {
+    
+    public static void main(String[] args) {
+        Stream.Builder<String> builder = Stream.builder();
+
+        builder.add("hello");
+        builder.add("world");
+        builder.add("java");
+
+        Stream<String> stream = builder.build();    // Создаем стрим из билдера
+
+        stream.forEach(System.out::println);        // Выводим элементы стрима
+    }
+}
+```
+
+### Создание бесконечного стрима на основе функции-генератора
+
+```java
+import java.util.stream.Stream;
+
+public class StreamGenerateExample {
+ 
+    public static void main(String[] args) {
+        Stream<Double> stream = Stream.generate(Math::random);  // Создаем бесконечный стрим случайных чисел
+
+        stream.limit(5)                                         // Ограничиваем количество элементов
+              .forEach(System.out::println);                    // Выводим элементы стрима
+    }
+}
+```
+
+### Создание бесконечного стрима с помощью начального значения и функции-генератора
+
+```java
+import java.util.stream.Stream;
+
+public class StreamIterateExample {
+    
+    public static void main(String[] args) {
+        Stream<Integer> stream = Stream.iterate(0, n -> n + 2);     // Создаем бесконечный стрим четных чисел
+
+        stream.limit(5)                                             // Ограничиваем количество элементов
+              .forEach(System.out::println);                        // Выводим элементы стрима
+        
+        // Stream.iterate(0, n -> n < 5, n -> n + 2).forEach(System.out::println); // перегруженный метод с предикатом
+
+    }
+}
+```
+
+### Преобразование строки в стрим символов, кодовых точек или строк
+
+```java
+import java.util.stream.IntStream;
+
+public class StringStreamExample {
+    public static void main(String[] args) {
+        String text = "hello";
+
+        // Создаем стрим кодовых точек символов
+        IntStream charStream = text.chars();                        // Работает только с ASCII или BMP символами
+        
+        IntStream codePointStream = text.codePoints();              // Работает с текстом, который может содержать эмодзи или специальные символы
+        
+        charStream.forEach(ch -> System.out.println((char) ch));    // Выводим символы
+        
+        // При использовании .codePoints() лучше использовать Character.toCars(int codePoint)
+        codePointStream
+                .map(Character::toChars)                            // возвращает char[] 
+                .map(String::new)
+                .forEach(System.out::println);
+    }
+}
+```
+
+### Через методы из библиотеки Files
+
+```java
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
+
+public class FilesStreamExample {
+ 
+    public static void main(String[] args) {
+        try (Stream<String> stream = Files.lines(Paths.get("example.txt"))) {   // Создаем стрим из строк файла
+            stream.forEach(System.out::println);                                // Выводим строки файла
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
 </details>
+
+<br>
 
 <details>
     <summary>
@@ -57,7 +212,28 @@
 | `peek(Consumer<T>)`               | Просмотр каждого элемента без изменения элементов      | `stream.peek(System.out::println)`                       |
 | `limit(long maxSize)`             | Ограничение количества элементов                       | `stream.limit(5)`                                        |
 | `skip(long n)`                    | Пропуск первых N элементов                             | `stream.skip(2)`                                         |
+
+Промежуточные операции создают новый стрим, который можно дальше модифицировать. Операторы в стримах в Java обеспечивают эффективную, декларативную обработку данных, что делает код более читаемым и поддерживаемым.
+
+Если стрим в Java собрать без терминального оператора, то операции промежуточные (intermediate) не будут выполнены!
+
+Стрим будет создан, но никаких данных не будет обработано до момента вызова терминальной операции.
+
+Промежуточные операции в Java являются ленивыми (lazy), что означает, что они не выполняются, пока не потребуется
+
+### Открытый стрим
+
+Открытый стрим - это стрим, к которому еще можно применять операции.
+
+```java
+List<String> strings = Arrays.asList("a", "b", "c");
+Stream<String> stream = strings.stream();           // открытый стрим
+stream.filter(s -> s.contains("a"));                // промежуточная операция
+```
+
 </details>
+
+<br>
 
 <details>
     <summary>
@@ -84,7 +260,75 @@
 | `Optional<T> max(Comparator<T> comparator)`           | Поиск максимального элемента                              | `stream.max(Comparator.naturalOrder())`                                                                           |
 
 Примечание: Для примитивных специализаций потоков (IntStream, LongStream, DoubleStream) методы reduce, min, max, sum возвращают примитивные значения, а не Optional.
+
+### Закрытый стрим
+
+Закрытый стрим - это стрим, к которому уже была применена терминальная операция, и он не может быть использован для последующих промежуточных операций.
+
+```java
+List<String> strings = Arrays.asList("a", "b", "c");
+Stream<String> stream = strings.stream();                           // открытый стрим
+stream.filter(s -> s.contains("a")).forEach(System.out::println);   // терминальная операция - стрим теперь закрыт
+```
 </details>
+
+<br>
+
+<details>
+    <summary>
+        <b>Stateless и Stateful операторы</b>
+    </summary>
+
+### `Stateless` - ленивость сохраняется - эффективно при досрочном завершении (`findFirst()`, `anyMatch()`).
+
+### `Stateful` - ломает ленивость - может потребовать полной материализации промежуточных данных - потенциально дороже по памяти и времени на больших данных.
+
+## Stateless (Состояние-независимые)
+
+> `filter(Predicate<? super T> predicate)`
+
+> `map(Function<? super T, ? extends R> mapper)`
+
+> `flatMap(Function<? super T, ? extends Stream<? extends R>> mapper)`
+
+> `peek(Consumer<? super T> action)`
+
+> `distinct()` - (в некоторых случаях может быть stateful, но обычно считается stateless)
+
+- совместимы с ленивой (lazy) природой потоков 
+- могут остановиться досрочно (например, при findFirst())
+- не требуют сохранения состояния между вызовами
+- не зависят от предыдущих элементов для обработки текущего
+- обрабатывают каждый элемент независимо от других элементов
+
+Stateless операции (map(), filter(), peek()) обрабатывают элементы по мере необходимости и не требуют знания о других элементах. 
+
+```java
+        Optional<Integer> result = Stream.of(1, 2, 3, 4, 5)
+                .map(n -> {
+                    System.out.println("  [map] обрабатывается: " + n);
+                    return n * 10;
+                })
+                .filter(x -> {
+                    System.out.println("  [filter] проверяется: " + x);
+                    return x > 0;           // всегда true, но демонстрирует вызов
+                })
+                .findFirst();               // терминальная операция остановка после первого элемента
+```
+
+## Stateful (Состояние-зависимые)
+
+> `sorted()`
+
+>`distinct()` - (в некоторых случаях может быть stateful, если требуется сохранить состояние для определения уникальности элементов)
+
+>`limit(long maxSize)`
+
+> `skip(long n)`
+
+</details>
+
+<br>
 
 <details>
     <summary>
@@ -99,7 +343,7 @@
 
 `Collector<? super T, A, R>:` - Это интерфейс, который определяет, как собирать элементы потока в конечный результат.
 
-- `? super T`: Коллектор может принимать элементы типа `T` или его супертипы. Это обеспечивает ковариантность.
+- `? super T`: Коллектор может принимать элементы типа `T` или его предков. Это обеспечивает ковариантность.
 - `A`: Тип аккумулятора.
 - `R`: Тип результата.
 
@@ -128,45 +372,45 @@ String result = Stream.of("a", "b", "c").collect(
 // T = String
 // A = StringBuilder (но неявно, так как A = R)
 // R = StringBuilder (и возвращаемый тип метода collect)
-// Результат: "a,b,c," (можно обрезать в конце в реальном коде)
+// Результат: "a,b,c,"
 ```
 ### Коллекторы (Collectors)
 
-| Сигнатура метода | Назначение | Пример |
-|:-----------------|:-----------|:-------|
-| `static <T> Collector<T, ?, List<T>> toList()` | Сбор элементов в `List` (в JDK 16+ возвращаемый список неизменяем) | `stream.collect(Collectors.toList())` |
-| `static <T> Collector<T, ?, List<T>> toUnmodifiableList()` | Сбор элементов в неизменяемый `List` | `stream.collect(Collectors.toUnmodifiableList())` |
-| `static <T> Collector<T, ?, Set<T>> toSet()` | Сбор элементов в `Set` (в JDK 16+ возвращаемый сет неизменяем) | `stream.collect(Collectors.toSet())` |
-| `static <T> Collector<T, ?, Set<T>> toUnmodifiableSet()` | Сбор элементов в неизменяемый `Set` | `stream.collect(Collectors.toUnmodifiableSet())` |
-| `static <T, C extends Collection<T>> Collector<T, ?, C> toCollection(Supplier<C> collectionFactory)` | Сбор элементов в коллекцию, созданную через `collectionFactory` | `stream.collect(Collectors.toCollection(LinkedList::new))` |
-| `static <T, K> Collector<T, ?, Map<K, List<T>>> groupingBy(Function<? super T, ? extends K> classifier)` | Группировка элементов по классификатору в `Map<K, List<T>>` | `stream.collect(Collectors.groupingBy(Person::getCity))` |
-| `static <T, K, A, D> Collector<T, ?, Map<K, D>> groupingBy(Function<? super T, ? extends K> classifier, Collector<? super T, A, D> downstream)` | Группировка элементов по классификатору, с дополнительной обработкой (`downstream`) для значений | `stream.collect(Collectors.groupingBy(Person::getCity, Collectors.counting()))` |
-| `static <T, K, D, A, M extends Map<K, D>> Collector<T, ?, M> groupingBy(Function<? super T, ? extends K> classifier, Supplier<M> mapFactory, Collector<? super T, A, D> downstream)` | Группировка элементов по классификатору, с фабрикой карты и дополнительной обработкой значений | `stream.collect(Collectors.groupingBy(Person::getCity, LinkedHashMap::new, Collectors.toList()))` |
-| `static <T, K> Collector<T, ?, ConcurrentMap<K, List<T>>> groupingByConcurrent(Function<? super T, ? extends K> classifier)` | Группировка элементов по классификатору в `ConcurrentMap<K, List<T>>` | `stream.collect(Collectors.groupingByConcurrent(Person::getCity))` |
-| `static <T, K, A, D> Collector<T, ?, ConcurrentMap<K, D>> groupingByConcurrent(Function<? super T, ? extends K> classifier, Collector<? super T, A, D> downstream)` | Группировка элементов по классификатору в `ConcurrentMap`, с дополнительной обработкой значений | `stream.collect(Collectors.groupingByConcurrent(Person::getCity, Collectors.counting()))` |
-| `static <T, K, D, A, M extends ConcurrentMap<K, D>> Collector<T, ?, M> groupingByConcurrent(Function<? super T, ? extends K> classifier, Supplier<M> mapFactory, Collector<? super T, A, D> downstream)` | Группировка элементов по классификатору в `ConcurrentMap`, с фабрикой карты и дополнительной обработкой значений | `stream.collect(Collectors.groupingByConcurrent(Person::getCity, ConcurrentHashMap::new, Collectors.toList()))` |
-| `static <T, K, U> Collector<T, ?, Map<K, U>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper)` | Сбор элементов в `Map`, где ключ и значение определяются функциями | `stream.collect(Collectors.toMap(Person::getId, Person::getName))` |
-| `static <T, K, U> Collector<T, ?, Map<K, U>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper, BinaryOperator<U> mergeFunction)` | Сбор элементов в `Map`, с функцией слияния значений для дубликатов ключей | `stream.collect(Collectors.toMap(Person::getId, Person::getName, (name1, name2) -> name1))` |
-| `static <T, K, U, M extends Map<K, U>> Collector<T, ?, M> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper, BinaryOperator<U> mergeFunction, Supplier<M> mapFactory)` | Сбор элементов в `Map`, с фабрикой карты, функцией слияния значений для дубликатов ключей | `stream.collect(Collectors.toMap(Person::getId, Person::getName, (name1, name2) -> name1, LinkedHashMap::new))` |
-| `static <T, K, U> Collector<T, ?, Map<K, U>> toUnmodifiableMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper)` | Сбор элементов в неизменяемую `Map` | `stream.collect(Collectors.toUnmodifiableMap(Person::getId, Person::getName))` |
-| `static Collector<CharSequence, ?, String> joining()` | Объединение строковых представлений элементов в строку | `Stream.of("a", "b", "c").collect(Collectors.joining())` // результат: "abc" |
-| `static Collector<CharSequence, ?, String> joining(CharSequence delimiter)` | Объединение строковых представлений элементов в строку с разделителем | `Stream.of("a", "b", "c").collect(Collectors.joining(","))` // результат: "a,b,c" |
-| `static Collector<CharSequence, ?, String> joining(CharSequence delimiter, CharSequence prefix, CharSequence suffix)` | Объединение строковых представлений элементов в строку с разделителем, префиксом и суффиксом | `Stream.of("a", "b", "c").collect(Collectors.joining(",", "[", "]"))` // результат: "[a,b,c]" |
-| `static <T, A, R> Collector<T, A, R> collectingAndThen(Collector<T, A, R> downstream, Function<R, R> finisher)` | Применение дополнительной функции к результату другого коллектора | `stream.collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList))` |
-| `static <T> Collector<T, ?, T> reducing(T identity, BinaryOperator<T> op)` | Свёртка элементов с начальным значением и бинарным оператором | `stream.collect(Collectors.reducing(0, Integer::sum))` |
-| `static <T> Collector<T, ?, Optional<T>> reducing(BinaryOperator<T> op)` | Свёртка элементов с бинарным оператором, возвращает `Optional` | `stream.collect(Collectors.reducing(Integer::max))` |
-| `static <T, U> Collector<T, ?, U> reducing(U identity, Function<? super T, ? extends U> mapper, BinaryOperator<U> op)` | Свёртка элементов, преобразованных через `mapper`, с начальным значением и оператором | `stream.collect(Collectors.reducing(0, String::length, Integer::sum))` |
-| `static <T> Collector<T, ?, Optional<T>> minBy(Comparator<? super T> comparator)` | Поиск минимального элемента по компаратору | `stream.collect(Collectors.minBy(Comparator.naturalOrder()))` |
-| `static <T> Collector<T, ?, Optional<T>> maxBy(Comparator<? super T> comparator)` | Поиск максимального элемента по компаратору | `stream.collect(Collectors.maxBy(Comparator.naturalOrder()))` |
-| `static <T, A, R> Collector<T, ?, R> mapping(Function<? super T, ? extends A> mapper, Collector<A, ?, R> downstream)` | Преобразование элементов с последующей обработкой `downstream` коллектором | `stream.collect(Collectors.mapping(Person::getName, Collectors.toList()))` |
-| `static <T> Collector<T, ?, Long> counting()` | Подсчёт количества элементов | `stream.collect(Collectors.counting())` |
-| `static <T, U, A, R> Collector<T, ?, R> flatMapping(Function<? super T, ? extends Stream<? extends U>> mapper, Collector<? super U, A, R> downstream)` | Преобразование элементов в потоки, их плоское объединение и последующая обработка `downstream` коллектором | `stream.collect(Collectors.flatMapping(str -> Stream.of(str.split(" ")), Collectors.counting()))` |
-| `static <T> Collector<T, ?, Integer> summingInt(ToIntFunction<? super T> mapper)` | Вычисление суммы `int` значений, полученных из элементов через `mapper` | `stream.collect(Collectors.summingInt(Person::getScore))` |
-| `static <T> Collector<T, ?, Long> summingLong(ToLongFunction<? super T> mapper)` | Вычисление суммы `long` значений, полученных из элементов через `mapper` | `stream.collect(Collectors.summingLong(Person::getAge))` |
-| `static <T> Collector<T, ?, Double> summingDouble(ToDoubleFunction<? super T> mapper)` | Вычисление суммы `double` значений, полученных из элементов через `mapper` | `stream.collect(Collectors.summingDouble(Person::getSalary))` |
-| `static <T> Collector<T, ?, Double> averagingInt(ToIntFunction<? super T> mapper)` | Вычисление среднего значения `int`, полученных из элементов через `mapper` | `stream.collect(Collectors.averagingInt(Person::getScore))` |
-| `static <T> Collector<T, ?, Double> averagingLong(ToLongFunction<? super T> mapper)` | Вычисление среднего значения `long`, полученных из элементов через `mapper` | `stream.collect(Collectors.averagingLong(Person::getAge))` |
-| `static <T> Collector<T, ?, Double> averagingDouble(ToDoubleFunction<? super T> mapper)` | Вычисление среднего значения `double`, полученных из элементов через `mapper` | `stream.collect(Collectors.averagingDouble(Person::getHeight))` |
+| Сигнатура метода                                                                                                                                                                                                    | Назначение                                                                                                       | Пример                                                                                                          |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------|
+| `static <T> Collector<T, ?, List<T>> toList()`                                                                                                                                                                      | Сбор элементов в `List` (в JDK 16+ возвращаемый список неизменяем)                                               | `stream.collect(Collectors.toList())`                                                                           |
+| `static <T> Collector<T, ?, List<T>> toUnmodifiableList()`                                                                                                                                                          | Сбор элементов в неизменяемый `List`                                                                             | `stream.collect(Collectors.toUnmodifiableList())`                                                               |
+| `static <T> Collector<T, ?, Set<T>> toSet()`                                                                                                                                                                        | Сбор элементов в `Set` (в JDK 16+ возвращаемый сет неизменяем)                                                   | `stream.collect(Collectors.toSet())`                                                                            |
+| `static <T> Collector<T, ?, Set<T>> toUnmodifiableSet()`                                                                                                                                                            | Сбор элементов в неизменяемый `Set`                                                                              | `stream.collect(Collectors.toUnmodifiableSet())`                                                                |
+| `static <T, C extends Collection<T>> Collector<T, ?, C> toCollection(Supplier<C> collectionFactory)`                                                                                                                | Сбор элементов в коллекцию, созданную через `collectionFactory`                                                  | `stream.collect(Collectors.toCollection(LinkedList::new))`                                                      |
+| `static <T, K> Collector<T, ?, Map<K, List<T>>> groupingBy(Function<? super T, ? extends K> classifier)`                                                                                                            | Группировка элементов по классификатору в `Map<K, List<T>>`                                                      | `stream.collect(Collectors.groupingBy(Person::getCity))`                                                        |
+| `static <T, K, A, D> Collector<T, ?, Map<K, D>> groupingBy(Function<? super T, ? extends K> classifier, Collector<? super T, A, D> downstream)`                                                                     | Группировка элементов по классификатору, с дополнительной обработкой (`downstream`) для значений                 | `stream.collect(Collectors.groupingBy(Person::getCity, Collectors.counting()))`                                 |
+| `static <T, K, D, A, M extends Map<K, D>> Collector<T, ?, M> groupingBy(Function<? super T, ? extends K> classifier, Supplier<M> mapFactory, Collector<? super T, A, D> downstream)`                                | Группировка элементов по классификатору, с фабрикой карты и дополнительной обработкой значений                   | `stream.collect(Collectors.groupingBy(Person::getCity, LinkedHashMap::new, Collectors.toList()))`               |
+| `static <T, K> Collector<T, ?, ConcurrentMap<K, List<T>>> groupingByConcurrent(Function<? super T, ? extends K> classifier)`                                                                                        | Группировка элементов по классификатору в `ConcurrentMap<K, List<T>>`                                            | `stream.collect(Collectors.groupingByConcurrent(Person::getCity))`                                              |
+| `static <T, K, A, D> Collector<T, ?, ConcurrentMap<K, D>> groupingByConcurrent(Function<? super T, ? extends K> classifier, Collector<? super T, A, D> downstream)`                                                 | Группировка элементов по классификатору в `ConcurrentMap`, с дополнительной обработкой значений                  | `stream.collect(Collectors.groupingByConcurrent(Person::getCity, Collectors.counting()))`                       |
+| `static <T, K, D, A, M extends ConcurrentMap<K, D>> Collector<T, ?, M> groupingByConcurrent(Function<? super T, ? extends K> classifier, Supplier<M> mapFactory, Collector<? super T, A, D> downstream)`            | Группировка элементов по классификатору в `ConcurrentMap`, с фабрикой карты и дополнительной обработкой значений | `stream.collect(Collectors.groupingByConcurrent(Person::getCity, ConcurrentHashMap::new, Collectors.toList()))` |
+| `static <T, K, U> Collector<T, ?, Map<K, U>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper)`                                                                       | Сбор элементов в `Map`, где ключ и значение определяются функциями                                               | `stream.collect(Collectors.toMap(Person::getId, Person::getName))`                                              |
+| `static <T, K, U> Collector<T, ?, Map<K, U>> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper, BinaryOperator<U> mergeFunction)`                                      | Сбор элементов в `Map`, с функцией слияния значений для дубликатов ключей                                        | `stream.collect(Collectors.toMap(Person::getId, Person::getName, (name1, name2) -> name1))`                     |
+| `static <T, K, U, M extends Map<K, U>> Collector<T, ?, M> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper, BinaryOperator<U> mergeFunction, Supplier<M> mapFactory)` | Сбор элементов в `Map`, с фабрикой карты, функцией слияния значений для дубликатов ключей                        | `stream.collect(Collectors.toMap(Person::getId, Person::getName, (name1, name2) -> name1, LinkedHashMap::new))` |
+| `static <T, K, U> Collector<T, ?, Map<K, U>> toUnmodifiableMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper)`                                                           | Сбор элементов в неизменяемую `Map`                                                                              | `stream.collect(Collectors.toUnmodifiableMap(Person::getId, Person::getName))`                                  |
+| `static Collector<CharSequence, ?, String> joining()`                                                                                                                                                               | Объединение строковых представлений элементов в строку                                                           | `Stream.of("a", "b", "c").collect(Collectors.joining())` // результат: "abc"                                    |
+| `static Collector<CharSequence, ?, String> joining(CharSequence delimiter)`                                                                                                                                         | Объединение строковых представлений элементов в строку с разделителем                                            | `Stream.of("a", "b", "c").collect(Collectors.joining(","))` // результат: "a,b,c"                               |
+| `static Collector<CharSequence, ?, String> joining(CharSequence delimiter, CharSequence prefix, CharSequence suffix)`                                                                                               | Объединение строковых представлений элементов в строку с разделителем, префиксом и суффиксом                     | `Stream.of("a", "b", "c").collect(Collectors.joining(",", "[", "]"))` // результат: "[a,b,c]"                   |
+| `static <T, A, R> Collector<T, A, R> collectingAndThen(Collector<T, A, R> downstream, Function<R, R> finisher)`                                                                                                     | Применение дополнительной функции к результату другого коллектора                                                | `stream.collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList))`              |
+| `static <T> Collector<T, ?, T> reducing(T identity, BinaryOperator<T> op)`                                                                                                                                          | Свёртка элементов с начальным значением и бинарным оператором                                                    | `stream.collect(Collectors.reducing(0, Integer::sum))`                                                          |
+| `static <T> Collector<T, ?, Optional<T>> reducing(BinaryOperator<T> op)`                                                                                                                                            | Свёртка элементов с бинарным оператором, возвращает `Optional`                                                   | `stream.collect(Collectors.reducing(Integer::max))`                                                             |
+| `static <T, U> Collector<T, ?, U> reducing(U identity, Function<? super T, ? extends U> mapper, BinaryOperator<U> op)`                                                                                              | Свёртка элементов, преобразованных через `mapper`, с начальным значением и оператором                            | `stream.collect(Collectors.reducing(0, String::length, Integer::sum))`                                          |
+| `static <T> Collector<T, ?, Optional<T>> minBy(Comparator<? super T> comparator)`                                                                                                                                   | Поиск минимального элемента по компаратору                                                                       | `stream.collect(Collectors.minBy(Comparator.naturalOrder()))`                                                   |
+| `static <T> Collector<T, ?, Optional<T>> maxBy(Comparator<? super T> comparator)`                                                                                                                                   | Поиск максимального элемента по компаратору                                                                      | `stream.collect(Collectors.maxBy(Comparator.naturalOrder()))`                                                   |
+| `static <T, A, R> Collector<T, ?, R> mapping(Function<? super T, ? extends A> mapper, Collector<A, ?, R> downstream)`                                                                                               | Преобразование элементов с последующей обработкой `downstream` коллектором                                       | `stream.collect(Collectors.mapping(Person::getName, Collectors.toList()))`                                      |
+| `static <T> Collector<T, ?, Long> counting()`                                                                                                                                                                       | Подсчёт количества элементов                                                                                     | `stream.collect(Collectors.counting())`                                                                         |
+| `static <T, U, A, R> Collector<T, ?, R> flatMapping(Function<? super T, ? extends Stream<? extends U>> mapper, Collector<? super U, A, R> downstream)`                                                              | Преобразование элементов в потоки, их плоское объединение и последующая обработка `downstream` коллектором       | `stream.collect(Collectors.flatMapping(str -> Stream.of(str.split(" ")), Collectors.counting()))`               |
+| `static <T> Collector<T, ?, Integer> summingInt(ToIntFunction<? super T> mapper)`                                                                                                                                   | Вычисление суммы `int` значений, полученных из элементов через `mapper`                                          | `stream.collect(Collectors.summingInt(Person::getScore))`                                                       |
+| `static <T> Collector<T, ?, Long> summingLong(ToLongFunction<? super T> mapper)`                                                                                                                                    | Вычисление суммы `long` значений, полученных из элементов через `mapper`                                         | `stream.collect(Collectors.summingLong(Person::getAge))`                                                        |
+| `static <T> Collector<T, ?, Double> summingDouble(ToDoubleFunction<? super T> mapper)`                                                                                                                              | Вычисление суммы `double` значений, полученных из элементов через `mapper`                                       | `stream.collect(Collectors.summingDouble(Person::getSalary))`                                                   |
+| `static <T> Collector<T, ?, Double> averagingInt(ToIntFunction<? super T> mapper)`                                                                                                                                  | Вычисление среднего значения `int`, полученных из элементов через `mapper`                                       | `stream.collect(Collectors.averagingInt(Person::getScore))`                                                     |
+| `static <T> Collector<T, ?, Double> averagingLong(ToLongFunction<? super T> mapper)`                                                                                                                                | Вычисление среднего значения `long`, полученных из элементов через `mapper`                                      | `stream.collect(Collectors.averagingLong(Person::getAge))`                                                      |
+| `static <T> Collector<T, ?, Double> averagingDouble(ToDoubleFunction<? super T> mapper)`                                                                                                                            | Вычисление среднего значения `double`, полученных из элементов через `mapper`                                    | `stream.collect(Collectors.averagingDouble(Person::getHeight))`                                                 |
 
 ### Базовые коллекции
 ```java
