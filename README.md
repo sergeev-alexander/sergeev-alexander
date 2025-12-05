@@ -55,7 +55,7 @@
 `Collections`
 [`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md")
 [`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md")
-`Date/Time API`
+`Date/Time API` `Generics`
 <br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture`
 <br>
@@ -96,8 +96,9 @@
       </summary>
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
+`Maven`
 <br>
-`Apache Tomcat` `Apache Maven` `Apache Commons` `Apache Http Client` `Lombok`
+`Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok`
 <br>
 `Gradle` `Git` `GitHub` `CI/CD` `JSON` `Postman`
 </details>
