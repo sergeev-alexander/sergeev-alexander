@@ -47,28 +47,40 @@ class Cat extends Animal {
     }
 }
 
+class DogChild extends Dog {
+    @Override
+    void sound() {
+        System.out.println("Bark");
+    }
+}
+
 public class CovarianceExample {
-    
+
     public static void main(String[] args) {
         // ✅ Ковариантность массивов
         Dog[] dogs = new Dog[3];
         dogs[0] = new Dog();
-        
+
         // Можно присвоить массив собак переменной типа "массив животных"
         Animal[] animals = dogs; // Ковариантность!
-        
+
         // Проблема: компилятор это разрешает, но может привести к исключению
         try {
-            animals[1] = new Cat(); // ❌ ArrayStoreException в runtime!
+            animals[0] = new Cat(); // ❌ ArrayStoreException в runtime!
+            animals[1] = new Animal(); // ❌ ArrayStoreException в runtime!
         } catch (ArrayStoreException e) {
             System.out.println("Ошибка: " + e.getMessage());
         }
-        
+
         // ✅ Работает корректно
-        animals[2] = new Dog(); // OK, Dog подходит для массива Dog
+        animals[1] = new Dog(); // ✅ OK - Dog в Dog[]
+    
+        animals[2] = new DogChild(); // ✅ OK - DogChild тоже Dog
     }
 }
 ```
+### Ключевое правило: в ковариантный массив можно добавлять только сам тип или его подтипы, но не супертипы
+
 Компилятор разрешает присвоить Cat в массив, который на самом деле является Dog[], но в runtime возникает ArrayStoreException. 
 Это цена ковариантности массивов.
 
@@ -123,6 +135,9 @@ public class CovariantGenerics {
     
     // Ковариантность через wildcard
     static void processAnimalsCovariant(List<? extends Animal> animals) {
+        // Компилятор НЕ ЗНАЕТ точный тип list
+        // Это может быть List<Dog>, List<Cat>, List<Animal>
+        
         // Можно ЧИТАТЬ элементы как Animal
         for (Animal a : animals) {
             a.sound();
@@ -135,9 +150,52 @@ public class CovariantGenerics {
         
         // Почему? Потому что мы не знаем точный тип списка.
         // Это может быть List<Dog>, а мы пытаемся добавить Cat
+
+        // ✅ Единственное безопасное значение - null
+        list.add(null); // null подходит для любого типа
+
+        // ✅ Чтение - безопасно
+        Animal a = list.get(0); // Любой элемент можно привести к Animal
     }
 }
 ```
+
+### Глубокая причина: Типовая безопасность:
+
+```java
+class Box<T> {
+    private T value;
+    
+    void set(T value) { this.value = value; }
+    T get() { return value; }
+}
+
+public class TypeSafety {
+    public static void main(String[] args) {
+        Box<Dog> dogBox = new Box<>();
+        dogBox.set(new Dog());
+        
+        // Ковариантная ссылка
+        Box<? extends Animal> animalBox = dogBox;
+        
+        // ❌ Почему нельзя animalBox.set(new Cat())?
+        // Потому что animalBox может указывать на Box<Dog>
+        // И тогда в Box<Dog> окажется Cat!
+        
+        // ✅ Но можно читать
+        Animal animal = animalBox.get(); // Безопасно - Dog является Animal
+        
+        // Контравариантность (? super Dog) позволяет писать:
+        Box<? super Dog> dogContainer = new Box<Animal>();
+        dogContainer.set(new Dog()); // OK - Dog можно положить в Animal
+        // dogContainer.set(new Cat()); // ❌ Нельзя - Cat не Dog
+        
+        Object obj = dogContainer.get(); // Возвращает Object
+    }
+}
+```
+
+---
 
 ## 3. Ковариантность в возвращаемых типах методов
 
@@ -145,34 +203,52 @@ public class CovariantGenerics {
 
 ```java
 class AnimalFactory {
-    
     Animal create() {
+        System.out.println("AnimalFactory создает Animal");
         return new Animal();
     }
 }
 
 class DogFactory extends AnimalFactory {
-    
-    // ✅ Ковариантный возвращаемый тип
     @Override
-    Dog create() {  // Возвращаем Dog вместо Animal
+    Dog create() {  // Ковариантный возвращаемый тип
+        System.out.println("DogFactory создает Dog");
         return new Dog();
     }
 }
 
-public class ReturnTypeCovariance {
-    
+class CatFactory extends AnimalFactory {
+    @Override
+    Cat create() {  // Тоже ковариантный тип
+        System.out.println("CatFactory создает Cat");
+        return new Cat();
+    }
+}
+
+public class ReturnTypeCovarianceDemo {
     public static void main(String[] args) {
-        DogFactory factory = new DogFactory();
-        Dog dog = factory.create(); // Получаем Dog, не нужно кастовать
-        
-        // Или через родительский тип
-        AnimalFactory animalFactory = new DogFactory();
-        Animal animal = animalFactory.create(); // На самом деле Dog
-        animal.sound(); // "Woof!"
+        // Вариант 1: Ссылка DogFactory, переменная DogFactory
+        DogFactory dogFactory1 = new DogFactory();
+        Dog dog = dogFactory1.create(); // DogFactory.create() -> Dog
+
+        // Вариант 2: Ссылка AnimalFactory, переменная DogFactory (полиморфизм)
+        AnimalFactory factory = new DogFactory();
+        Animal animal = factory.create(); // Вызывается DogFactory.create()!
+        // Компилятор: вызов метода create() из AnimalFactory
+        // Runtime: фактический объект DogFactory, поэтому вызывается DogFactory.create()
+        // Результат: Dog, но присваивается в переменную Animal
+
+        System.out.println("Тип объекта: " + animal.getClass()); // class Dog
+        animal.sound(); // "Woof!" (полиморфный вызов)
     }
 }
 ```
+
+- Компилятор проверяет, что у AnimalFactory есть метод create(), возвращающий Animal
+- В runtime определяется фактический тип объекта и вызывается соответствующая реализация
+- Ковариантность возвращаемого типа разрешена с Java 5: переопределенный метод может возвращать подтип
+
+---
 
 ## 4. Когда использовать ковариантность?
 
@@ -211,8 +287,11 @@ public class PracticalExample {
 }
 ```
 
+---
+
 ## PECS принцип (Joshua Bloch)
 
 - ### `Producer Extends` - если коллекция производит элементы, используйте `? extends T`
 - ### `Consumer Super` - если коллекция потребляет элементы, используйте `? super T`
+- ### `Both` — если и то, и другое, не используйте `wildcards`
 </details>
