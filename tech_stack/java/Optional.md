@@ -234,7 +234,7 @@ import java.util.ArrayList;
 Optional<User> user = users.stream().findFirst(); // ✅ правильно
 
 // Но НЕЛЬЗЯ:
-List<Optional<User>> users = new ArrayList<>();
+List<Optional<User>> users = ...;
 Optional<User> first = users.stream().findFirst(); // <- Optional<Optional<User>> - ошибка проектирования
 ```
 
