@@ -238,7 +238,7 @@ docker exec -i bank_postgres psql -U bank_user bank_cards < backup.sql
 
 <details>
     <summary>
-        <b>⚠️ Важные предупреждения и советы</b>
+        <b>Важные предупреждения и советы</b>
     </summary>
 
 ```ignorelang
