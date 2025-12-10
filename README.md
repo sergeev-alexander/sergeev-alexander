@@ -55,7 +55,10 @@
 `Collections`
 [`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md")
 [`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md")
-`Date/Time API` `Generics`
+`Date/Time API` 
+[`Generics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Generics.md "Generics.md")
+[`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md")
+[`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md")
 <br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture`
 <br>
@@ -68,6 +71,7 @@
       </summary>
   
 `Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
+[`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security")
 [`JWT`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/Spring/JVT.md "JWT.md") 
 [`Jackson`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Jackson.md "Jackson.md")
 <br>
@@ -78,7 +82,9 @@
 <br>
 `@Transactional` `JPA Repositories` `Query Methods` `Pagination`
 <br>
-`RestTemplate` `RestClient` `WebFlux` `WebClient`
+`RestTemplate` 
+[`RestClient`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/RestClient.md "RestClient.md") 
+`WebFlux` `WebClient`
 
 </details>
 
@@ -96,7 +102,7 @@
       </summary>
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
-`Maven`
+[`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md")
 <br>
 `Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok`
 <br>
