@@ -669,3 +669,405 @@ Map<String, List<String>> tagsByCategory = articles.stream()
              Collectors.flatMapping(a -> a.getTags().stream(), Collectors.toList())));
 ```
 </details>
+
+<br>
+
+<details>
+    <summary>
+        <b>Parallel Streams</b>
+    </summary>
+
+# Parallel Streams
+
+> `parallelStream()` разбивает источник на части и обрабатывает каждую часть в отдельном потоке пула Fork/Join и потом объединяет результат (если нужно).
+>
+> ⚠️ `parallelStream()` не гарантирует порядок обработки и не ускоряет всё подряд. 
+> Выигрыш зависит от объема данных, стоимости операций и характеристик системы.
+
+## Создание параллельного стрима
+
+```java
+List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
+
+// Прямо из коллекции
+Stream<Integer> parallel = data.parallelStream();
+
+// Или переключить обычный стрим
+Stream<Integer> alsoParallel = data.stream().parallel();
+```
+
+### `.parallel()` и `.sequential()` — мутирующие (меняют внутреннее состояние стрима, не возвращают копию)
+
+### Последнее вызванное определение (parallel/sequential) — решает.
+
+```java
+// Практический пример с обработкой:
+long count = data.parallelStream()  // начинаем как параллельный
+    .filter(x -> x > 2)            // параллельная фильтрация
+    .sequential()                  // переключаем на последовательный
+    .map(x -> x * 2)               // последовательное отображение
+    .count();                      // последовательный подсчет
+```
+
+> Обычно не стоит переключать режим в середине цепочки операций, так как это может запутать и не даст ожидаемых преимуществ в производительности. 
+> Лучше явно определиться в начале, какой стрим вам нужен
+
+```java
+// Четко и понятно:
+Stream<Integer> parallelStream = data.parallelStream();
+Stream<Integer> sequentialStream = data.stream();
+```
+
+## Параллельные операции
+
+### Большинство промежуточных и терминальных операций могут выполняться параллельно:
+
+- `filter`, `map`, `flatMap`, `distinct`, `sorted` (с оговорками), `reduce`, `collect`, `forEach`, `forEachOrdered`, `anyMatch`, и т.д.
+
+```java
+List<String> result = data.parallelStream()
+    .filter(x -> x > 2)                 // параллельная фильтрация
+    .map(x -> "item-" + x)              // параллельное преобразование
+    .collect(Collectors.toList());      // сбор — тоже в общем случае параллелится
+```
+
+> collect() с иммутабельными коллекторами (например, toList(), toSet()) безопасен. Коллекторы вроде Collectors.toList() — потокобезопасны внутри, но не гарантируют порядок.
+
+### Пример с `reduce`:  
+
+```java
+List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8);
+
+// Параллельный reduce - как это работает внутри:
+Integer sum = numbers.parallelStream()
+    .reduce(0, (a, b) -> a + b); // identity, accumulator
+
+/*
+Как это выполняется:
+1. Стрим разбивается на части (например, [1,2,3,4] и [5,6,7,8])
+2. Каждая часть обрабатывается в своем потоке:
+   - Поток 1: reduce(0, 1+2+3+4) = 10
+   - Поток 2: reduce(0, 5+6+7+8) = 26
+3. Результаты частей объединяются: 10 + 26 = 36
+4. Итог: 36 (корректный результат)
+*/
+```
+
+Требования к аккумулятору для parallel reduce:
+
+- Ассоциативность: `(a ⊕ b) ⊕ c` = `a ⊕ (b ⊕ c)`
+- Identity элемент: `identity ⊕ a` = `a`
+
+### Пример неассоциативной операции:
+
+```java
+// Вычитание НЕ ассоциативно: (a - b) - c ≠ a - (b - c)
+// Этот код даст разный результат при каждом запуске в параллельном режиме
+int wrong = numbers.parallelStream()
+                .reduce(0, (a, b) -> a - b); // НЕПРЕДСКАЗУЕМО!
+```
+
+### Пример с `collect`:
+
+```java
+List<String> words = Arrays.asList("a", "b", "c", "d", "e", "f");
+
+// Параллельный collect в ArrayList
+List<String> result = words.parallelStream()
+    .collect(
+        ArrayList::new,          // Supplier - создает новый контейнер
+        ArrayList::add,          // Accumulator - добавляет элемент
+        ArrayList::addAll        // Combiner - объединяет контейнеры
+    );
+
+/*
+1. Стрим разбивается на части
+2. Для каждой части:
+   - Supplier создает новый ArrayList
+   - Accumulator добавляет элементы в этот список
+3. Combiner объединяет списки из разных потоков
+*/
+```
+
+### Проблема с небезопасными коллекторами:
+
+```java
+// НЕПРАВИЛЬНО! ConcurrentModificationException гарантирован
+List<String> badResult = words.parallelStream()
+                .collect(
+                        () -> new ArrayList<>(),
+                        (list, item) -> {
+                            if (item.equals("c")) list.add("C");
+                            else list.add(item);
+                        },
+                        (list1, list2) -> list1.addAll(list2)
+                );
+```
+
+```java
+List<Integer> sharedList = new ArrayList<>();  // НЕ потокобезопасен!
+
+// race condition
+
+data.parallelStream()
+    .map(x -> x * 2)
+    .forEach(sharedList::add);  // ⚠️ Потенциально некорректный результат!
+
+// ArrayList.add() внутри:
+public boolean add(E e) {
+    ensureCapacityInternal(size + 1);  // Проблема 1: гонка за size
+    elementData[size++] = e;           // Проблема 2: гонка за size и elementData
+    return true;
+}
+
+// Представьте, что два потока одновременно вызывают add():
+// Поток 1: size = 0, хочет записать в elementData[0]
+// Поток 2: size = 0, хочет записать в elementData[0]
+// Оба увеличивают size до 1, но один элемент перезапишет другой!
+```
+
+## Правильные подходы для параллельного collect
+
+### Использовать потокобезопасные коллекторы
+
+```java
+// Collectors.toList() уже оптимизирован для параллелизма
+List<String> safe1 = words.parallelStream()
+    .map(String::toUpperCase)
+    .collect(Collectors.toList());
+
+// Collectors.groupingByConcurrent() для параллельной группировки
+Map<Integer, List<String>> safe2 = words.parallelStream()
+    .collect(Collectors.groupingByConcurrent(String::length));
+
+```
+
+```java
+// Collectors.collectingAndThen() - собираем в список, затем делаем его неизменяемым
+List<String> unmodifiableList = items.stream()
+        .collect(Collectors.collectingAndThen(
+                Collectors.toList(),           // 1. Собираем в обычный список
+                Collections::unmodifiableList  // 2. Преобразуем в неизменяемый
+        ));
+
+// Эквивалент без collectingAndThen (более многословно):
+List<String> tempList = items.stream()
+        .collect(Collectors.toList());     // 1. Собираем
+List<String> result = Collections.unmodifiableList(tempList); // 2. Преобразуем
+```
+
+```java
+List<Integer> result = data.parallelStream()
+        .map(x -> x * 2)
+        .collect(Collectors.toCollection(ArrayList::new));  // ✅ Потокобезопасный / изолированный сбор
+```
+
+```java
+// Collectors.toCollection(ArrayList::new) внутри:
+Supplier<ArrayList> supplier = ArrayList::new;  // 1. Каждый поток создает СВОЙ список
+BiConsumer<ArrayList, Integer> accumulator = ArrayList::add;  // 2. Добавляет в свой список
+BinaryOperator<ArrayList> combiner = (list1, list2) -> {  // 3. В конце объединяет списки
+    list1.addAll(list2);
+    return list1;
+};
+
+// Таким образом:
+// - Каждый поток работает со своим изолированным ArrayList
+// - Нет гонки за ресурсы
+// - В конце списки безопасно объединяются
+```
+
+### Если нужно получить мутабельную коллекцию:
+
+### Вариант 1: Потокобезопасные коллекции в forEach
+
+```java
+// Можно использовать потокобезопасные коллекции в forEach
+CopyOnWriteArrayList<Integer> safeList = new CopyOnWriteArrayList<>();
+data.parallelStream()
+    .map(x -> x * 2)
+    .forEach(safeList::add);  // ✅ Безопасно, но НЕ ЭФФЕКТИВНО
+    
+// CopyOnWriteArrayList дорогой для частых записей
+// Лучше использовать только если действительно нужно
+```
+
+### Вариант 2: Concurrent коллекции с коллектором
+
+```java
+// Более эффективно: использовать специальный коллектор
+ConcurrentHashMap<Integer, Long> map = data.parallelStream()
+                .collect(Collectors.groupingByConcurrent(
+                        x -> x % 2,  // ключ: четность
+                        Collectors.counting()
+                ));
+```
+
+### Вариант 3: Atomic переменные для счетчиков
+
+```java
+AtomicInteger counter = new AtomicInteger(0);
+data.parallelStream()
+    .forEach(x -> {
+        if (x > 10) {
+            counter.incrementAndGet();  // ✅ Безопасно
+        }
+    });
+```
+
+## Порядок элементов
+- `.forEach()` — не сохраняет порядок
+- `.forEachOrdered()` — сохраняет порядок встречи в источнике, но снижает производительность (синхронизирует вывод).
+- `.sorted().forEachOrdered()` — гарантирует упорядоченный вывод.
+
+```java
+data.parallelStream()
+    .sorted()                     // сортирует (может быть частично параллельно)
+    .forEachOrdered(System.out::println);  // выводит в правильном порядке
+```
+
+> ⚠️ `.sorted()` в параллельном стриме требует дополнительных шагов: каждый поток сортирует свою часть, затем происходит слияние отсортированных частей (merge). Это создает оверхед по памяти и CPU.
+
+```java
+List<Integer> data = Arrays.asList(5, 8, 1, 3, 9, 2, 7);
+
+// ❌ Плохо: сортировка в параллельном стриме
+List<Integer> slow = data.parallelStream()
+    .sorted()                    // ⚠️ Каждый поток сортирует свою часть + merge
+    .collect(Collectors.toList());
+
+// ✅ Лучше: сортировать ДО параллельной обработки
+List<Integer> fast = data.stream()
+    .sorted()                    // Быстрая последовательная сортировка
+    .parallel()                  // Затем параллельная обработка
+    .map(x -> x * 2)             // Далее операции без сортировки
+    .collect(Collectors.toList());
+``` 
+
+### Если нужен limit() с сортировкой, используйте Stream.of() с явным указанием последовательности операций.
+
+```java
+List<Integer> data = Arrays.asList(5, 8, 1, 3, 9, 2, 7, 4, 6);
+
+// ❌ Плохо: limit() после parallel() - может работать неоптимально
+// Сортирует все 9 элементов параллельно, затем берет 3 первых
+List<Integer> suboptimal = data.parallelStream()
+    .sorted()
+    .limit(3)                    // ⚠️ Все равно сортируются все элементы!
+    .collect(Collectors.toList());
+
+// ✅ Лучше: сначала отсортировать, потом ограничить, потом паралеллизовать
+// Stream.of() помогает явно управлять порядком операций
+List<Integer> optimal = Stream.of(data)
+    .flatMap(List::stream)       // Разворачиваем список
+    .sorted()                    // Сортируем ПОСЛЕДОВАТЕЛЬНО
+    .limit(3)                    // Берем только нужные
+    .parallel()                  // Теперь можно паралеллизовать
+    .map(x -> x * 2)             // Дальнейшая параллельная обработка
+    .collect(Collectors.toList());
+```
+
+## Parallel Streams и Fork/Join Pool
+
+### Как работает под капотом
+
+> parallelStream() использует общий пул потоков ForkJoinPool.commonPool() — один на все приложение. 
+> Размер обычно равен количеству ядер процессора минус 1.
+
+```java
+// Проверим размер пула по умолчанию
+int poolSize = ForkJoinPool.getCommonPoolParallelism();
+System.out.println("Размер commonPool: " + poolSize); // Например, 7 для 8-ядерного CPU
+
+// Все parallelStream() делят один пул
+List<Integer> data = Arrays.asList(1, 2, 3, 4, 5);
+long sum = data.parallelStream()
+    .map(x -> x * 2)
+    .reduce(0, Integer::sum); // Использует commonPool
+```
+
+### Проблема: один пул на всех
+
+> Что плохо? Если у вас несколько `parallelStream()` работают одновременно, они конкурируют за одни и те же потоки. 
+> Это может привести к деградации производительности.
+
+### Кастомный пул потоков
+
+```java
+// Создаем кастомный пул с 4 потоками
+ForkJoinPool customPool = new ForkJoinPool(4);
+
+// Запускаем задачу в своем пуле
+int result = customPool.submit(() -> 
+    data.parallelStream()               // ⚠️ Важно: этот parallelStream будет использовать customPool
+        .map(x -> {                     
+            System.out.println(Thread.currentThread().getName());
+            return x * 2;
+        })
+        .reduce(0, Integer::sum)
+).join(); // Ждем завершения
+
+System.out.println("Результат: " + result);
+customPool.shutdown();
+```
+
+> Когда вы запускаете `parallelStream()` внутри задачи `ForkJoinPool`, он использует тот пул, в котором выполняется задача.
+
+### ⚠️ Вложенный параллелизм
+
+```java
+// ❌ ПРОБЛЕМА: nested parallelStream() может "утечь" в commonPool
+List<List<Integer>> matrix = Arrays.asList(
+    Arrays.asList(1, 2, 3),
+    Arrays.asList(4, 5, 6),
+    Arrays.asList(7, 8, 9)
+);
+
+customPool.submit(() -> 
+    matrix.parallelStream()                 // Использует customPool
+        .map(row -> row.parallelStream()    // ⚠️ Вложенный parallelStream() может использовать commonPool!
+                       .sum()              
+        )
+        .forEach(System.out::println)
+).join();
+```
+
+- Внутренний `parallelStream()` может начать использовать commonPool
+- Потоки из `customPool` ждут завершения задач в `commonPool`
+- Может возникнуть взаимная блокировка (deadlock) или деградация производительности
+
+### Избегайте вложенного parallelStream()
+
+```java
+// ✅ Лучше: преобразовать вложенность в плоскую структуру
+List<Integer> flatList = matrix.parallelStream()  // Только один parallelStream
+    .flatMap(List::stream)                        // "Разворачиваем" вложенные списки
+    .collect(Collectors.toList());                // Теперь обрабатываем как один поток
+
+// ✅ Альтернатива: явно управлять параллелизмом
+customPool.submit(() -> 
+    matrix.stream()                     // Последовательный внешний стрим
+        .map(row -> row.stream()        // Последовательный внутренний стрим
+                       .sum()
+        )
+        .parallel()                     // Параллелизм на верхнем уровне
+        .forEach(System.out::println)
+).join();
+```
+
+- Один `parallelStream()` лучше нескольких — избегайте вложенного параллелизма
+- Кастомный пул для изоляции — используйте для критичных по времени задач
+- Не смешивать пулы — если используете `customPool`, убедитесь, что все `parallelStream()` внутри него тоже используют его
+- Избегать блокирующих операций — в `parallelStream()` не должно быть I/O или синхронизации
+
+```java
+// ✅ Идеальный паттерн: один parallelStream с кастомным пулом
+ForkJoinPool dedicatedPool = new ForkJoinPool(8);
+dedicatedPool.submit(() -> 
+    bigDataList.parallelStream()  // Только ОДИН parallelStream
+        .map(this::processItem)    // Тяжелая операция
+        .collect(Collectors.toList())
+).join();
+dedicatedPool.shutdown();
+```
+</details>

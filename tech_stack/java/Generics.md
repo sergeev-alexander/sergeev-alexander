@@ -702,3 +702,94 @@ public class SortedNumberContainer<T extends Number & Comparable<T>> {
 // Но компилятор помнит, что есть и Comparable
 ```
 </details>
+
+<br>
+
+<details>
+    <summary>
+        <b>Type witness</b>
+    </summary>
+
+# Type witness
+
+> Type witness (свидетель типа) — специальный синтаксис Java для явного указания generic-типов при вызове generic-метода.
+>
+> Встречается в `Collections`, `Stream API`, `Optional` и других generic-библиотеках.
+
+```java
+Comparator.<Map.Entry<String, Double>>comparing(...)
+          ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+          Type witness - явное указание generic-типа
+```
+
+### Аналогия с обычными generic-классами:
+
+```java
+// Обычные generic-классы - тип в diamond operator
+List<String> list = new ArrayList<>();
+Map<String, Integer> map = new HashMap<>();
+
+// Generic-методы - тип перед именем метода
+Collections.<String>emptyList();    // Type witness
+Arrays.<Integer>asList(1, 2, 3);    // Type witness
+```
+
+## Где встречается
+
+### Collections utility methods:
+
+```java
+// Без type witness - работает
+List<String> empty1 = Collections.emptyList();
+
+// С type witness - явное указание
+List<String> empty2 = Collections.<String>emptyList();
+
+// Когда нужен type witness:
+List<?> list = Collections.<String>emptyList();  // ✅
+// List<?> list = Collections.emptyList();       // ❌ Может не компилироваться
+```
+
+### 2. Arrays.asList():
+
+```java
+// Компилятор выводит тип
+List<Integer> list1 = Arrays.asList(1, 2, 3);
+
+// Явное указание (редко нужно)
+List<Number> list2 = Arrays.<Number>asList(1, 2, 3.0);
+```
+
+### 3. Optional.ofNullable() с casting:
+
+```java
+// Когда нужен каст с generic-типом
+Optional<String> opt = Optional.<String>ofNullable(getObject());
+```
+
+### 4. Stream API:
+
+```java
+// В Stream.of() когда нужен общий тип
+Stream.<Number>of(1, 2.5, 3L);  // Все элементы как Number
+
+// В Collectors.collectingAndThen()
+Collectors.<String, ?, List<String>>collectingAndThen(...)
+```
+
+### 5. Comparator.comparing()
+
+```java
+// ❌ Ошибка: cannot infer type-variable(s) T
+.sorted(Comparator.comparing(Map.Entry::getValue).reversed())
+
+// ✅ Явно указываем, что comparing() работает с Map.Entry<String, Double>
+.sorted(Comparator.<Map.Entry<String, Double>>comparing(Map.Entry::getValue).reversed())
+```
+
+## Используйте type witness, когда:
+
+- ### Компилятор не может вывести тип (ошибка "cannot infer type-variable")
+- ### Нужно явно указать тип для читаемости
+- ### Работаете с wildcard-типами (`?`, `? super T`, `? extends T`)
+</details>
