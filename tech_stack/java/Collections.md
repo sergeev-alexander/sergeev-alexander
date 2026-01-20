@@ -1324,10 +1324,108 @@ Default-методы (начиная с Java 8):
 
 </details>
 
+<details>
+<summary>
+<code>LinkedHashMap&lt;K, V&gt;</code>
+</summary>
 
+## `public class LinkedHashMap<K, V> extends HashMap<K, V> implements Map<K, V>`
 
+> Хэш-таблица с сохранением порядка итерации — за счёт двусвязного списка поверх `HashMap`.
+>
+> Начиная с Java 21 — реализует `SequencedMap<K, V>`.
+>
+> Поддерживает два режима порядка: **insertion-order** (по умолчанию) и **access-order** (LRU-кэш).
 
+- Основа: наследует хэш-таблицу `HashMap` + **двусвязный список узлов** (`before`, `after`), интегрированный прямо в `Entry`  
+  → каждый `Node` (внутренний класс `LinkedHashMap.Entry`) расширяет `HashMap.Node` и добавляет:
+  ```java
+  static class Entry<K,V> extends HashMap.Node<K,V> {
+      Entry<K,V> before;
+      Entry<K,V> after;
+      Entry(int hash, K key, V value, Node<K,V> next) {
+          super(hash, key, value, next);
+      }
+  }
+  ```
 
+- Порядок итерации:
+  - `insertion-order` (по умолчанию): порядок вставки (включая `putIfAbsent`, `computeIfAbsent`); `put(k, v)` при существующем `k` не меняет порядок
+  - `access-order` (если accessOrder = true в конструкторе): порядок последнего доступа (`get`, `put`, `compute`, `merge`); `put(k, existing)` перемещает узел в конец
+
+ - Дубликаты ключей: НЕТ 
+ - Дубликаты значений: ДА
+ - null: ДА (один null-ключ; null-значения — любые)
+ - Сложность (амортизированная):
+  - `get`, `put`, `remove` — O(1) (как в HashMap, + O(1) на обновление списка)
+  - `keySet().iterator()`, `entrySet().iterator()` — O(1) на `next()` (последовательный обход двусвязного списка)
+  - `containsValue` — O(n)
+
+- Потокобезопасность: НЕТ (наследует от HashMap)
+- Особенности:
+  - head/tail списка поддерживаются через поля head, tail (внутренние)
+  - при `put(k, v)` с существующим `k` в insertion-order: значение обновляется, позиция в списке не меняется
+  - при `put(k, v)` с существующим `k` в access-order: узел удаляется из списка и вставляется в конец
+  - `removeEldestEntry(Map.Entry)` - protected-метод для автоочистки (используется для реализации LRU-кэша); вызывается после put/putAll; если возвращает true — удаляет eldest (head)
+  - итераторы - fail-fast
+  - накладные расходы: +2 ссылки (before, after) на каждый узел (~16 байт на элемент в 64-битной JVM с compressed oops)
+  - начиная с Java 21: реализует `SequencedMap`, поэтому поддерживает `putFirst`, `putLast`, `reversed()`, `inverse()` и др.
+
+</details>
+
+<details>
+<summary>
+<code>TreeMap&lt;K, V&gt;</code>
+</summary>
+
+## `public class TreeMap<K, V> extends AbstractMap<K, V> implements NavigableMap<K, V>, Cloneable, Serializable`
+
+> Упорядоченная карта на основе **красно-чёрного дерева** (самобалансирующееся бинарное дерево поиска).
+>
+> Гарантирует логарифмическую сложность основных операций и строгий порядок итерации.
+>
+> Начиная с Java 21 — реализует `SequencedMap<K, V>`.
+
+- Основа: красно-чёрное дерево, реализованное через внутренний класс `Entry<K,V>`:
+  ```java
+   static final class Entry<K,V> implements Map.Entry<K,V> {
+       K key;
+       V value;
+       Entry<K,V> left;
+       Entry<K,V> right;
+       Entry<K,V> parent;
+       boolean color; // true = RED, false = BLACK
+   }
+  ```
+  
+- Все операции вставки/удаления сопровождаются **фиксацией баланса**:  
+  → после `put`/`remove` вызываются `fixAfterInsertion`/`fixAfterDeletion`, выполняющие:
+  - перекрашивание узлов,
+  - левые/правые повороты (`rotateLeft`, `rotateRight`).  
+    → гарантируется: высота дерева ≤ 2·log₂(n+1).
+
+- Порядок: строгий (natural order или `Comparator<? super K>`)
+- Дубликаты ключей: НЕТ; дубликаты значений: ДА
+- `null`:
+  - ключи: разрешены **только если используется Comparator**, допускающий `null` (natural order — `NullPointerException`)
+  - значения: ДА (любое количество)
+- Сложность (гарантированная):
+  - `get`, `put`, `remove`, `containsKey` — O(log n)
+  - `firstKey`, `lastKey`, `lowerKey`, `floorKey`, `ceilingKey`, `higherKey` — O(log n)
+  - `firstEntry`, `lastEntry`, `pollFirstEntry`, `pollLastEntry` — O(log n) (для poll — + O(1) на удаление корня)
+  - `subMap`, `headMap`, `tailMap` — O(1) (возвращают view с границами; операции внутри — O(log n))
+  - `containsValue` — O(n)
+  - `size()` — O(1) (поддерживается счётчиком)
+  - итерация (`entrySet().iterator()`) — O(1) на `next()` (in-order обход с использованием `parent`)
+- Потокобезопасность: НЕТ (не синхронизирована; конкурентная модификация → `ConcurrentModificationException` или corruption)
+- Особенности:
+  - `entrySet().iterator()` использует `parent`-ссылки для in-order обхода без стека — итератор «помнит» последний узел и двигается по дереву по связям.
+  - `getCeilingEntry(key)` и аналоги реализованы через спуск по дереву с запоминанием кандидата — без полного поиска.
+  - `clone()` — shallow copy (новое дерево, но те же ключи/значения).
+  - `writeObject` сериализует в порядке итерации (in-order), `readObject` восстанавливает дерево через балансировку при вставке.
+  - начиная с Java 21: реализует `SequencedMap`, так как in-order последовательность — корректный последовательный порядок.
+
+</details>
 
 
 
