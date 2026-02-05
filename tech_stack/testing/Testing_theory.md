@@ -217,7 +217,7 @@
 
 ## ТИПЫ ТЕСТИРОВАНИЯ (Testing Types)
 
-- `Functional Testing` (Функциональное тестирование): Проверка соответствия функциональности системы заявленным требованиям.
+- [`Functional Testing` (Функциональное тестирование): Проверка соответствия функциональности системы заявленным требованиям](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md")
 
 ### Нефункциональные виды
 
