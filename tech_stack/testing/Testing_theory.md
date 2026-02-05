@@ -207,19 +207,24 @@
 
 ### По функциональности
 
-- `Functional Testing` (Функциональное тестирование): Проверка соответствия функциональности системы заявленным требованиям.
-- `Non-Functional Testing` (Нефункциональное тестирование): Проверка качественных характеристик системы (производительность, безопасность, удобство использования и т.д.).
+- [`Functional Testing Types` (Типы функционального тестирования)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md")
+  <br>
+  Проверка соответствия функциональности системы заявленным требованиям.
+
+  - [`Change-related Testing Types` (Типы тестирования основанные на изменениях)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md")
+    <br>
+    Проверка того, что недавние изменения в коде (исправления, новые функции) работают корректно и не сломали существующий функционал.
+
+- [`Non-functional Testing Types` (Типы нефункционального тестирования)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md")
+  <br>
+  Проверка качественных характеристик системы (производительность, безопасность, удобство использования и т.д.).
+
+
 
 ### По степени автоматизации
 
 - `Manual Testing` (Ручное тестирование): Выполнение тестовых сценариев (`test scenarios`) человеком без использования скриптов.
 - `Automated Testing` (Автоматизированное тестирование): Выполнение тестов с помощью специальных программ и скриптов.
-
-## ТИПЫ ТЕСТИРОВАНИЯ (Testing Types)
-
-- [`Functional Testing Types` (Типы функционального тестирования)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md")
-- [`Non-functional Testing Types` (Типы нефункционального тестирования)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md")
-- [`Change-related Testing Types` (Типы тестирования основанные на изменениях)](...)
 
 ## ПРОЦЕССЫ И ЖИЗНЕННЫЕ ЦИКЛЫ
 
