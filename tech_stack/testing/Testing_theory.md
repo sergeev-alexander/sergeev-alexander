@@ -33,10 +33,10 @@
 
 ### По исполнению кода
 
-- [`Static Testing` (Статическое тестирование)](...)
+- [`Static Testing` (Статическое тестирование)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md")
   <br>
   Анализ артефактов (код, требования, дизайн) без запуска программы.
-- [`Dynamic Testing` (Динамическое тестирование)](...)
+- [`Dynamic Testing` (Динамическое тестирование)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Dynamic_testing.md "Dynamic_testing.md")
   <br>
   Тестирование, при котором программный код исполняется для проверки его реального поведения при заданных входных данных.
 
@@ -75,7 +75,7 @@
 
 ## МЕТОДОЛОГИИ И ТЕХНИКИ ТЕСТИРОВАНИЯ
 
-- [Test Design technics (Техники Тест-Дизайна)](...)
+- [Test Design technics (Техники Тест-Дизайна)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md")
 
 <details>
   <summary>
