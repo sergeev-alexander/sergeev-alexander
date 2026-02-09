@@ -112,7 +112,7 @@
 
 <details open>
     <summary>
-         <b>🧪 Testing</b>
+         <b>🧪 Q/A</b>
     </summary>
 
 `Unit Testing` `Integration Testing` `E2E Testing` `TDD` `BDD`
@@ -121,7 +121,9 @@
 <br>
 `Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator`
 <br>
-`Test Doubles` `Test Pyramid` `Test Coverage` `Mutation Testing`
+[`Functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md")
+[`Change-related Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md")
+[`Non-functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md")
    </details>
 
    <details open>
