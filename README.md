@@ -106,7 +106,10 @@
 <br>
 `Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok`
 <br>
-`Gradle` `Git` `GitHub` `CI/CD` `JSON` `Postman`
+`Gradle` `JSON` 
+[`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md")
+<br>
+`Git` `GitHub` `CI/CD` `Postman`
 </details>
 
 
