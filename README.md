@@ -147,7 +147,8 @@
 <br>
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
 [`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md")
-`Design Patterns` `GRASP`
+`Design Patterns` 
+[`GRASP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/GRASP.md "GRASP.md")
 <br>
 `HTTP` `Microservices` `DDD` `CQRS`
 <br>
