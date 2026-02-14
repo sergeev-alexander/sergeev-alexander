@@ -1481,6 +1481,295 @@ Default-методы (начиная с Java 8):
 
 </details>
 
+<details>
+<summary>
+<code>ConcurrentSkipListMap&lt;K, V&gt;</code>
+</summary>
 
+## `public class ConcurrentSkipListMap<K, V> extends AbstractMap<K, V> implements ConcurrentNavigableMap<K, V>, Cloneable, Serializable`
+
+> Потокобезопасная упорядоченная карта на основе **skip list** (вероятностная структура данных с несколькими уровнями связных списков).
+>
+> Аналог `TreeMap` для многопоточных сценариев, но без глобальных блокировок.
+>
+> Использует **CAS** для атомарных операций и обеспечивает логарифмическую сложность при высокой конкурентности.
+
+- Основа: многоуровневый связный список (skip list), где:
+  - нижний уровень содержит все элементы в отсортированном порядке,
+  - верхние уровни — «экспресс-полосы» для быстрого поиска (каждый уровень содержит ~50% элементов предыдущего),
+  - узлы связаны через `Node` (данные) и `Index` (индексные узлы для верхних уровней).
+  
+- Порядок: строгий (natural order или `Comparator<? super K>`)
+- Дубликаты ключей: НЕТ; дубликаты значений: ДА
+- `null`: **НЕ ДОПУСКАЕТСЯ** ни для ключей, ни для значений (бросает `NullPointerException`)
+- Сложность (амортизированная, при умеренной конкуренции):
+  - `get(key)`, `put(key, value)`, `remove(key)` — O(log n)
+  - `containsKey`, `firstKey`, `lastKey`, `lowerKey`, `floorKey`, `ceilingKey`, `higherKey` — O(log n)
+  - `firstEntry`, `lastEntry`, `pollFirstEntry`, `pollLastEntry` — O(log n)
+  - `subMap`, `headMap`, `tailMap` — O(log n) на создание view (операции внутри — O(log n))
+  - `containsValue` — O(n)
+  - `size()` — O(n) (требует полного обхода; нет кэшированного счётчика)
+  - итерация — O(1) на `next()` (последовательный обход нижнего уровня)
+- Потокобезопасность: ДА
+  - все операции атомарны по контракту `ConcurrentNavigableMap`;
+  - итераторы — **weakly consistent**: не блокируют, не fail-fast, могут отражать часть изменений после создания;
+  - `ConcurrentModificationException` **никогда не выбрасывается**.
+
+- Особенности внутренней реализации:
+  - **lock-free операции**: используют CAS для вставки/удаления узлов;
+  - **логическое удаление**: узел сначала помечается как удалённый (через CAS на `value`), затем физически отвязывается;
+  - **уровни индексов**: создаются вероятностно (с вероятностью ~0.5 для каждого уровня); максимальная высота адаптируется к размеру;
+  - **head node**: специальный узел-заголовок, содержащий индексы всех уровней;
+  - **нет глобальных блокировок**: каждая операция работает локально с несколькими узлами;
+  - **диапазонные view** (`subMap`, `headMap`, `tailMap`) — живые, изменения отражаются в оригинале;
+  - **`size()` дорогая операция**: требует полного обхода нижнего уровня (используйте `isEmpty()` для проверки пустоты);
+  - **не сериализует индексы**: при десериализации индексы пересоздаются заново.
+
+</details>
+
+<details>
+<summary>
+<code>WeakHashMap&lt;K, V&gt;</code>
+</summary>
+
+## `public class WeakHashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>`
+
+> Хэш-таблица, где ключи хранятся как **weak references** (слабые ссылки).
+>
+> Когда на ключ больше нет сильных ссылок, garbage collector может удалить его, и запись автоматически удаляется из Map.
+>
+> Используется для кэшей, canonicalizing mappings, metadata, привязанных к времени жизни объектов.
+
+- Основа: хэш-таблица (`Entry<K,V>[]`), где каждый `Entry` наследует `WeakReference<Object>`:
+  ```java
+  private static class Entry<K,V> extends WeakReference<Object> implements Map.Entry<K,V> {
+      V value;
+      final int hash;
+      Entry<K,V> next;
+      // Ключ хранится в WeakReference, значение — сильная ссылка
+  }
+  ```
+- Порядок: НЕГАРАНТИРОВАН (как в `HashMap`)
+- Дубликаты ключей: НЕТ; дубликаты значений: ДА
+- `null`: ДА (один `null`-ключ разрешён; `null`-значения — любое количество)
+- Сложность (амортизированная):
+  - `get(key)`, `put(key, value)`, `remove(key)` — O(1) + возможная очистка stale entries
+  - `containsKey(key)` — O(1)
+  - `containsValue(value)` — O(n)
+  - `size()` — O(1) (но может быть неточным до очистки)
+- Потокобезопасность: НЕТ (как в `HashMap`)
+- Особенности:
+  - **автоматическая очистка**: когда GC удаляет ключ, `WeakReference` помещается в `ReferenceQueue`; при следующей операции (`get`, `put`, `size`) вызывается `expungeStaleEntries()`, который удаляет stale записи
+  - **значения — сильные ссылки**: если значение ссылается на ключ, ключ не будет удалён → утечка памяти!
+  - **identity-based сравнение**: использует `System.identityHashCode()` и `==` для ключей (а не `hashCode()`/`equals()`)
+  - **непредсказуемый `size()`**: может уменьшаться спонтанно после GC
+  - **итераторы**: fail-fast, но могут пропускать элементы, удалённые GC во время итерации
+  - **не подходит для примитивов**: автобоксинг создаёт новые объекты → ключи сразу становятся недоступными
+  - **типичные use cases**:
+    - кэш с автоочисткой: `WeakHashMap<Object, CachedData>`
+    - canonicalizing map: `WeakHashMap<String, String>` (пул строк)
+    - metadata/listeners: `WeakHashMap<Component, Listener>`
+
+</details>
+
+<details>
+<summary>
+<code>IdentityHashMap&lt;K, V&gt;</code>
+</summary>
+
+## `public class IdentityHashMap<K, V> extends AbstractMap<K, V> implements Map<K, V>, Serializable, Cloneable`
+
+> Хэш-таблица, использующая **reference equality** (`==`) вместо **object equality** (`equals()`).
+>
+> Два объекта считаются одинаковыми ключами, только если это **один и тот же экземпляр** (одна ссылка).
+>
+> Используется для сериализации, proxy-объектов, обхода графов, debugging.
+
+- Основа: **линейный массив** `Object[] table`, где пары хранятся последовательно: `[key0, value0, key1, value1, ...]`
+  - размер массива всегда чётный
+  - используется **linear probing** (открытая адресация) для разрешения коллизий
+  - нет связных списков или деревьев, как в `HashMap`
+  
+- Порядок: НЕГАРАНТИРОВАН (зависит от `System.identityHashCode()` и порядка вставки)
+- Дубликаты ключей: НЕТ (по reference equality); дубликаты значений: ДА
+- `null`: ДА (один `null`-ключ разрешён; `null`-значения — любое количество)
+- Сложность (амортизированная):
+  - `get(key)`, `put(key, value)`, `remove(key)` — O(1) в среднем, O(n) в худшем случае (при высоких коллизиях)
+  - `containsKey(key)` — O(1)
+  - `containsValue(value)` — O(n)
+  - `size()` — O(1)
+- Потокобезопасность: НЕТ (как в `HashMap`)
+- Особенности:
+  - **reference equality**: `map.get(new String("key"))` и `map.get(new String("key"))` — **разные ключи**!
+  - **`System.identityHashCode()`**: используется вместо `key.hashCode()`
+    - возвращает хэш-код, основанный на адресе объекта в памяти (не зависит от содержимого)
+    - два объекта с одинаковым содержимым имеют **разные** identity hash codes
+  - **linear probing**: при коллизии ищется следующая свободная ячейка в массиве (циклически)
+    - если `table[index]` занят, проверяется `table[index+2]`, затем `table[index+4]` и т.д.
+    - при удалении ячейка помечается как `null`, но поиск продолжается до первого `null`
+  - **максимальный размер**: `2^29` пар (ограничение массива)
+  - **load factor**: фиксирован на уровне ~2/3 (resize при `size > capacity * 2/3`)
+  - **начальная ёмкость**: 32 элемента (16 пар) по умолчанию
+  - **не использует `equals()`/`hashCode()`**: даже если ключи переопределяют эти методы, они игнорируются
+  - **итераторы**: fail-fast
+  - **типичные use cases**:
+    - сериализация: `IdentityHashMap<Object, Integer>` для отслеживания уже сериализованных объектов
+    - обход графа: `IdentityHashMap<Node, Boolean>` для пометки посещённых узлов
+    - proxy/wrapper: различать оригинальный объект и его обёртку
+    - debugging: `IdentityHashMap<Object, StackTrace>` для отслеживания создания объектов
+  - **не подходит для**:
+    - строк (`String` интернируются → разные литералы могут быть одним объектом)
+    - autoboxing примитивов (`Integer.valueOf(1)` кэширует -128..127 → одни объекты)
+    - любых immutable объектов с кэшированием
+
+</details>
+
+<details>
+<summary>
+<code>EnumMap&lt;K extends Enum&lt;K&gt;, V&gt;</code>
+</summary>
+
+## `public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V> implements Serializable, Cloneable`
+
+> Высокоэффективная Map для enum-ключей, использующая массив вместо хэш-таблицы.
+>
+> Все ключи должны быть одного enum-типа, заданного при создании.
+>
+> Порядок итерации — порядок объявления констант в enum (ordinal-порядок).
+
+- Основа: **массив значений** `Object[] vals`, где индекс = `key.ordinal()`:
+  ```java
+  // Внутренняя структура (упрощённо)
+  private transient Object[] vals;  // vals[key.ordinal()] = value
+  private final Class<K> keyType;   // тип enum
+  ```
+  - размер массива = количество констант в enum
+  - `null` в массиве означает отсутствие ключа
+  - нет хэширования, коллизий, связных списков
+
+- Порядок: **ordinal-порядок** (порядок объявления констант в enum)
+- Дубликаты ключей: НЕТ; дубликаты значений: ДА
+- `null`:
+  - ключи: **НЕТ** (бросает `NullPointerException`)
+  - значения: ДА (любое количество)
+- Сложность:
+  - `get(key)`, `put(key, value)`, `remove(key)`, `containsKey(key)` — **O(1)** (прямой доступ по индексу)
+  - `containsValue(value)` — O(n), где n = количество констант в enum
+  - `size()` — O(1) (поддерживается счётчиком)
+  - `keySet()`, `values()`, `entrySet()` — O(1) (возвращают view)
+  - итерация — O(n), где n = количество констант (не size()!)
+- Потокобезопасность: НЕТ (`Collections.synchronizedMap()` при необходимости)
+- Особенности:
+  - **компактность**: потребляет `O(n)` памяти, где n = количество констант в enum (не зависит от size())
+  - **быстродействие**: все операции — прямой доступ к массиву, без вычисления хэша
+  - **фиксированный тип**: все ключи должны быть одного enum-типа, заданного в конструкторе
+  - **ordinal-based**: использует `key.ordinal()` как индекс (не `hashCode()`, не `equals()`)
+  - **итерация по всем константам**: `keySet().iterator()` проходит по всему массиву, пропуская `null`
+    - даже если `size() = 1`, итератор проверит все `vals.length` ячеек
+  - **не поддерживает `null`-ключи**: enum не может быть `null` по контракту
+  - **сериализация**: сохраняет только присутствующие пары (не весь массив)
+  - **конструкторы**:
+    - `EnumMap(Class<K> keyType)` — пустая Map для заданного enum
+    - `EnumMap(EnumMap<K, ? extends V> m)` — копия другой EnumMap
+    - `EnumMap(Map<K, ? extends V> m)` — копия Map (выводит keyType из первого ключа; бросает `IllegalArgumentException`, если пуста)
+  - **итераторы**: fail-fast
+  - **типичные use cases**:
+    - конфигурация по enum: `EnumMap<ConfigKey, String>`
+    - состояние по enum: `EnumMap<State, Handler>`
+    - счётчики/статистика: `EnumMap<EventType, AtomicInteger>`
+    - флаги/опции: `EnumMap<Option, Boolean>` (хотя `EnumSet` эффективнее для булевых флагов)
+  - **преимущества перед `HashMap<Enum, V>`**:
+    - в ~2-3 раза быстрее (нет хэширования)
+    - компактнее (массив vs хэш-таблица)
+    - предсказуемый порядок итерации
+    - не требует переопределения `hashCode()`/`equals()` (хотя enum их и так имеет)
+  - **недостатки**:
+    - только для enum-ключей
+    - потребляет память под все константы enum (даже если используется 1 из 100)
+    - итерация O(n) от количества констант, а не от `size()`
+
+</details>
+
+<details>
+<summary>
+<code>Hashtable&lt;K, V&gt;</code>
+</summary>
+
+## `public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V>, Cloneable, Serializable`
+
+> **Legacy** синхронизированная хэш-таблица из Java 1.0 (до появления Collections Framework в Java 1.2).
+>
+> Фактически — `HashMap` с `synchronized` на всех методах, но с устаревшим API и худшей производительностью.
+>
+> **Не рекомендуется для нового кода** — используйте `ConcurrentHashMap` или `Collections.synchronizedMap(new HashMap<>())`.
+
+- Основа: массив бакетов (`Entry<K,V>[]`), каждый бакет — связный список (`Entry`):
+  ```java
+  private static class Entry<K,V> implements Map.Entry<K,V> {
+      final int hash;
+      final K key;
+      V value;
+      Entry<K,V> next;
+  }
+  ```
+  - **НЕТ treeification** (в отличие от `HashMap`) — при высоких коллизиях остаётся связный список → O(n) в худшем случае
+  - хэш вычисляется как `key.hashCode()` без дополнительного перемешивания (в `HashMap` есть `hash()` для защиты от плохих `hashCode()`)
+
+- Порядок: НЕГАРАНТИРОВАН (как в `HashMap`)
+- Дубликаты ключей: НЕТ; дубликаты значений: ДА
+- `null`: **НЕ ДОПУСКАЕТСЯ** ни для ключей, ни для значений (бросает `NullPointerException`)
+  - это ключевое отличие от `HashMap`, который разрешает один `null`-ключ и любое количество `null`-значений
+- Сложность:
+  - `get(key)`, `put(key, value)`, `remove(key)` — O(1) в среднем, **O(n) в худшем случае** (нет treeification)
+  - `containsKey(key)` — O(1) в среднем
+  - `containsValue(value)` — O(n) (полный обход таблицы)
+  - `size()` — O(1)
+- Потокобезопасность: **ДА** (все публичные методы `synchronized`)
+  - **глобальная блокировка**: каждый метод блокирует весь объект → низкая масштабируемость при конкурентности
+  - даже чтение (`get`) блокирует запись (`put`) и наоборот
+  - `ConcurrentHashMap` в ~10-100 раз быстрее при высокой конкурентности
+
+- Особенности:
+  - **наследует `Dictionary<K, V>`** — устаревший абстрактный класс (до появления `Map`)
+    - `Dictionary` объявляет методы `put`, `get`, `remove`, `size`, `isEmpty`, `keys()`, `elements()`
+    - `Hashtable` реализует и `Dictionary`, и `Map` → дублирование API
+  - **устаревшие методы из `Dictionary`**:
+    - `Enumeration<K> keys()` — возвращает `Enumeration` (устаревший аналог `Iterator`)
+    - `Enumeration<V> elements()` — возвращает `Enumeration` значений
+    - эти методы **НЕ fail-fast** (в отличие от `keySet().iterator()`)
+  - **начальная ёмкость и load factor**:
+    - default initial capacity: **11** (не степень двойки, в отличие от `HashMap` с 16)
+    - default load factor: **0.75** (как в `HashMap`)
+    - resize: `newCapacity = oldCapacity * 2 + 1` (в `HashMap` — `oldCapacity * 2`)
+  - **хэш-функция**:
+    - индекс бакета: `(hash & 0x7FFFFFFF) % table.length` (остаток от деления)
+    - в `HashMap`: `(n - 1) & hash` (битовая маска, работает только для степеней двойки)
+    - деление медленнее битовой маски → `Hashtable` медленнее даже в однопоточном режиме
+  - **нет дополнительного перемешивания хэша**:
+    - `HashMap` вызывает `hash(key)` для защиты от плохих `hashCode()`
+    - `Hashtable` использует `key.hashCode()` напрямую → уязвима к DoS при плохих хэш-функциях
+  - **итераторы**:
+    - `keySet().iterator()`, `values().iterator()`, `entrySet().iterator()` — **fail-fast**
+    - `keys()`, `elements()` (из `Dictionary`) — **НЕ fail-fast**, но могут бросить `ConcurrentModificationException` при структурной модификации
+  - **`clone()`**: shallow copy (новая таблица, но те же ключи/значения)
+  - **сериализация**: сохраняет capacity, load factor и все пары (в порядке обхода таблицы)
+  - **`equals()` и `hashCode()`**:
+    - переопределены в соответствии с контрактом `Map`
+    - `equals()` сравнивает по содержимому (все пары должны совпадать)
+    - `hashCode()` — сумма `hashCode()` всех `Entry`
+
+- Когда `Hashtable` ещё используется:
+  - **legacy код**: старые приложения, написанные до Java 1.2
+  - **`Properties`**: наследует `Hashtable` (для `.properties` файлов)
+  - **строгий контракт `null`**: если нужно гарантировать отсутствие `null` (но `ConcurrentHashMap` тоже не допускает `null`)
+  - **простая синхронизация**: если нужна базовая потокобезопасность без высокой нагрузки (но `Collections.synchronizedMap()` лучше)
+
+- Альтернативы:
+  - **Однопоточный код**: `HashMap` (в ~2 раза быстрее)
+  - **Многопоточный код с высокой нагрузкой**: `ConcurrentHashMap` (в ~10-100 раз быстрее при конкурентности)
+  - **Многопоточный код с низкой нагрузкой**: `Collections.synchronizedMap(new HashMap<>())` (аналог `Hashtable`, но с современным API)
+  - **Запрет `null`**: `ConcurrentHashMap` или валидация на уровне приложения
+
+</details>
 
 </details>
