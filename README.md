@@ -109,7 +109,7 @@
 `Gradle` `JSON` 
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md")
 <br>
-`Git` `GitHub` `CI/CD` `Postman`
+`Git` `GitHub` `CI/CD` 
 </details>
 
 
@@ -118,6 +118,10 @@
          <b>🧪 Q/A</b>
     </summary>
 
+[`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md")
+`Postman`
+[`OpenApi Specification`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md")
+<br>
 `JUnit` `Mockito` `TestContainers` `WireMock` `AssertJ`
 <br>
 `Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator`
