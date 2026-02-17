@@ -1,4 +1,4 @@
-# Swagger
+# Swagger / OpenAPI Specification
 
 > **Swagger** — набор инструментов для работы с **OpenAPI Specification** — стандартом описания REST API.
 
@@ -966,7 +966,7 @@ public class UserController {
 @RestController // ← обязательно должен быть @Controller или @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    
+
     @GetMapping("/search")
     public List<User> searchUsers(
             @Parameter(
@@ -1054,19 +1054,20 @@ public class User {
 #### `@ApiResponse` — описание ответов
 
 ```java
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
-@Operation(summary = "Create user")
-@ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "User created",
-                content = @Content(schema = @Schema(implementation = User.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input",
-                content = @Content(schema = @Schema(implementation = Error.class)))
-})
-@PostMapping("/users")
-public ResponseEntity<User> createUser(@RequestBody @Valid UserCreate dto) { /* ... */ }
+    @Operation(summary = "Create user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "User created",
+                    content = @Content(schema = @Schema(implementation = User.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input",
+                    content = @Content(schema = @Schema(implementation = Error.class)))
+    })
+    @PostMapping("/users")
+    public ResponseEntity<User> createUser(@RequestBody @Valid UserCreate dto) { /* ... */ }
 ```
 
 ---
@@ -1107,7 +1108,9 @@ public class Configuration {
 Глобальная безопасность (применяется ко всем endpoint-ам по умолчанию):
 
 ```java
-    .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+    .addSecurityItem(new SecurityRequirement().
+
+addList("bearerAuth"))
 ```
 
 ---
@@ -1132,3 +1135,602 @@ public class Configuration {
 
 ---
 
+## 5. Генерация кода и клиентов
+
+OpenAPI-спецификация может служить источником для автоматической генерации:
+
+- Клиентских SDK (Java, TypeScript, Python и др.)
+- Серверного шаблонного кода
+- Коллекций для Postman, Insomnia, HTTPie
+
+Это ускоряет интеграцию, снижает количество ошибок и обеспечивает согласованность между сервисами.
+
+> Автоматическая генерация кода из OpenAPI
+>
+> Это процесс создания готового кода на основе вашей OpenAPI-спецификации. Вместо того чтобы писать код вручную, вы "
+> скармливаете" YAML/JSON файл генератору, и он создаёт готовые классы, интерфейсы и методы.
+
+---
+
+### 1. Генерация клиентских SDK
+
+Представьте, у вас есть API с эндпоинтом:
+
+```yaml
+/user/{id}:
+  get:
+    operationId: getUserById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    responses:
+      200:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+```
+
+Генератор создаст готовый код, который можно сразу использовать:
+
+Для Java:
+
+```java
+// Сгенерированный клиент
+ApiClient client = new ApiClient();
+UserApi userApi = new UserApi(client);
+
+// Готовый метод для вызова API
+User user = userApi.getUserById(123); // ← просто вызываем!
+```
+
+Для TypeScript:
+
+```typescript
+// Сгенерированный клиент
+const api = new UserApi();
+const user = await api.getUserById({ id: 123 });
+```
+
+Что именно генерируется:
+
+- Методы для каждого эндпоинта — `getUserById()`, `createUser()`, `deleteUser()`
+- Модели данных — классы/интерфейсы для `User`, `Order`, `Product` и т.д.
+- Код для аутентификации — автоматическая подстановка токенов
+- Обработку ошибок — исключения для разных HTTP-статусов
+- Сериализацию/десериализацию — автоматическое преобразование JSON в объекты
+
+---
+
+### 2. Генерация серверного шаблонного кода
+
+Для того же эндпоинта генератор создаст скелет сервера:
+
+Для Spring Boot:
+
+```java
+
+@RestController
+public class UserApiController implements UserApi {
+
+    @Override
+    public ResponseEntity<User> getUserById(Long id) {
+        User user = userService.findById(id); // ❗ ВАМ ОСТАЁТСЯ НАПИСАТЬ ТОЛЬКО ЭТО
+        return ResponseEntity.ok(user); // ❗ ВАМ ОСТАЁТСЯ НАПИСАТЬ ТОЛЬКО ЭТО
+        // Весь остальной код (маппинг URL, параметры, статусы) уже готов!
+    }
+}
+```
+
+Что уже готово:
+
+- Контроллеры с правильными @GetMapping, @PostMapping
+- Интерфейсы с описанием методов
+- DTO классы (Data Transfer Objects)
+- Конфигурация для Spring/других фреймворков
+
+---
+
+## Выбор генератора
+
+---
+
+### `openapi-generator` (рекомендуется)
+
+- Активно поддерживается (более 200 генераторов)
+- Поддерживает OpenAPI 3.0/3.1
+- Гибкая настройка через конфигурационные файлы
+- Интеграция с Maven/Gradle, Docker, CLI
+
+GitHub: https://github.com/OpenAPITools/openapi-generator
+
+---
+
+### `swagger-codegen` (устаревает)
+
+- Оригинальный инструмент от SmartBear
+- Медленнее развивается, меньше поддержки OpenAPI 3.1
+- Не рекомендуется для новых проектов
+
+---
+
+### Генерация Java-клиента
+
+Пример команды (CLI):
+
+```text
+    npx @openapitools/openapi-generator-cli generate \
+      -i openapi.yaml \
+      -g java \
+      -o ./sdk/java-client \
+      --additional-properties=groupId=com.example,artifactId=api-client,javaPackage=com.example.client
+```
+
+Поддерживаемые HTTP-библиотеки через опцию `library`:
+
+- `webclient` (Spring WebFlux)
+- `feign` (Spring Cloud OpenFeign)
+- `retrofit2`
+- `native` (на базе `java.net.http.HttpClient`)
+
+Пример конфигурации (`config.json`):
+
+```json
+    {
+  "groupId": "com.example",
+  "artifactId": "user-api-client",
+  "javaPackage": "com.example.user.client",
+  "library": "webclient",
+  "dateLibrary": "java8",
+  "hideGenerationTimestamp": true
+}
+```
+
+Запуск с конфигурацией:
+
+```text
+    openapi-generator generate -i openapi.yaml -g java -c config.json -o ./client
+```
+
+---
+
+## Генерация коллекций для тестирования
+
+### Postman
+
+```text
+    openapi-generator generate -i openapi.yaml -g postman -o ./collections
+```
+
+Результат: `.json`-файл, который можно импортировать в Postman.  
+Все endpoint-ы, параметры, тела запросов и ожидаемые ответы переносятся автоматически.
+
+#### Insomnia
+
+Использует тот же формат или импорт напрямую через UI (Insomnia поддерживает OpenAPI из коробки).
+
+---
+
+### Управление версиями и breaking changes
+
+- **Семантическое версионирование**: если API меняет контракт (удаляет поле, меняет тип), это должно отражаться в версии
+  спецификации (`info.version`).
+- **Сравнение спецификаций**: используйте `openapi-diff` для выявления breaking изменений:
+
+  ```text
+  npx openapi-diff old.yaml new.yaml
+  ```
+
+- **Не перезаписывайте клиенты «вручную»**: все изменения должны вноситься в спецификацию, затем — регенерировать.
+- **Храните сгенерированный код в отдельном репозитории или модуле**, чтобы избежать смешения с бизнес-логикой.
+
+---
+
+### Best practices
+
+- **Генерируйте клиенты как часть CI/CD**, если они используются внутренними сервисами.
+- **Используйте `operationId` осмысленно**: он становится именем метода в SDK.
+- **Проверяйте качество сгенерированного кода**: иногда требуется кастомизация шаблонов (через `--template-dir`).
+- **Не коммитьте временные/локальные клиенты** — только production-версии с зафиксированной спецификацией.
+- **Документируйте процесс генерации** в README: какие команды, версии, параметры использовались.
+
+---
+
+## 6. Тестирование на основе OpenAPI
+
+> OpenAPI-спецификация — не только документация, но и **контракт**, который можно использовать для автоматизированного
+> тестирования: проверки корректности реализации, генерации данных, валидации безопасности и производительности.
+
+### Инструменты для тестирования
+
+---
+
+#### Dredd
+
+Выполняет HTTP-запросы на основе спецификации и сравнивает ответы с ожидаемыми:
+
+```text
+    dredd openapi.yaml http://localhost:8080 --hookfiles=hooks.js
+```
+
+Поддержка:
+
+- Аутентификации через hook-и (установка заголовков)
+- Подготовки/очистки данных (pre/post hooks)
+- Проверки структуры JSON (через JSON Schema)
+
+Ограничение: работает только с **синхронными** REST-эндпоинтами.
+
+---
+
+#### Prism (Stoplight)
+
+Работает как **валидирующий прокси**:
+
+```text
+    prism proxy openapi.yaml --target http://localhost:8080
+```
+
+Любой запрос через Prism проверяется на соответствие спецификации:
+
+- Запрос → валидируется по `requestBody`, параметрам
+- Ответ → валидируется по `responses`
+
+Если нарушение найдено — Prism возвращает ошибку валидации вместо проксирования.
+
+---
+
+#### Schemathesis
+
+Property-based testing framework на Python для OpenAPI:
+
+```text
+    schemathesis run openapi.yaml --base-url=http://localhost:8080
+```
+
+Особенности:
+
+- Автоматически генерирует сотни комбинаций входных данных
+- Проверяет не только статус-коды, но и **инварианты** (например, «ответ всегда содержит `id`»)
+- Поддерживает stateful-тестирование (цепочки запросов: create → get → delete)
+- Интегрируется с pytest
+
+Для Java нет прямого аналога, но можно использовать:
+
+- `RestAssured` + ручная генерация данных по схеме
+- `TestContainers` + запуск `Schemathesis` как внешнего процесса
+- `Schemathesis CLI` через `Docker` даже в Java-проектах (часто так и делают)
+
+### Интеграция в CI/CD
+
+Рекомендуется включать в pipeline:
+
+1. **Валидацию спецификации**: `swagger-cli validate`
+2. **Linting**: `spectral lint`
+3. **Contract tests**: запуск Dredd или Schemathesis против staging-окружения
+4. **Сравнение с предыдущей версией**: `openapi-diff` для выявления breaking изменений
+
+Пример шага в GitHub Actions:
+
+```text
+- name: Run contract tests
+  run: |
+  docker run --network=host stoplight/spectral lint openapi.yaml
+  npx dredd openapi.yaml http://localhost:8080
+```
+
+---
+
+## 7. Поддержка и эволюция спецификации в production
+
+> OpenAPI-спецификация — это живой артефакт, который должен развиваться вместе с API.
+>
+> В production-среде особенно важно управлять её жизненным циклом, чтобы избежать нарушения совместимости, сбоев
+> интеграций и потери доверия со стороны клиентов.
+
+---
+
+### Design-first vs Code-first: стратегии применения
+
+#### Design-first
+
+- Спецификация пишется **до реализации**.
+- Используется как контракт между командами (бэкенд, фронтенд, QA).
+- Позволяет параллельную разработку: фронтенд может использовать mock-сервер на основе спецификации.
+- Подходит для:
+    - Новых сервисов
+    - Public API
+    - Строгих регуляторных требований
+
+#### Code-first
+
+- Спецификация генерируется **из кода** (например, через `springdoc-openapi`).
+- Упрощает поддержку при частых изменениях.
+- Риск: спецификация может не отражать реальное поведение, если аннотации не обновлены.
+- Подходит для:
+    - Internal APIs
+    - Быстро меняющихся прототипов
+    - Микросервисов в единой экосистеме
+
+> **Рекомендация**: даже в code-first подходе проводите ревью сгенерированной спецификации перед мержем в main.
+
+---
+
+### Версионирование API и спецификации
+
+#### Версия в URL
+
+Наиболее надёжный и прозрачный способ:
+
+```yaml
+servers:
+  - url: https://api.example.com/v1
+```
+
+Все endpoint-ы относятся к одной версии. При breaking change — создаётся `/v2`.
+
+#### Версия в заголовке
+
+Менее наглядно, но позволяет избежать дублирования путей:
+
+```text
+GET /users
+Accept-Version: v2
+```
+
+Требует явной поддержки в коде и документации.
+
+#### Версия в OpenAPI (`info.version`)
+
+Это **версия спецификации**, а не API!  
+Не используйте её как единственное средство управления совместимостью.
+
+Пример:
+
+```yaml
+info:
+  title: User API
+  version: 1.2.0 # ← версия документа, не контракта
+```
+
+### Обработка breaking changes
+
+Breaking change — любое изменение, которое ломает существующих клиентов:
+
+- Удаление endpoint-а или поля
+- Изменение типа (`string` → `integer`)
+- Ужесточение валидации (`minLength: 3` → `minLength: 10`)
+
+#### Рекомендуемый процесс:
+
+- **Пометить старый endpoint как deprecated**:
+
+```yaml
+    paths:
+      /old-users:
+        get:
+          deprecated: true
+          summary: Use /v2/users instead
+```
+
+- **Задокументировать миграционный путь** в описании или changelog.
+- **Поддерживать обе версии параллельно** (обычно 3–6 месяцев).
+- **Уведомить клиентов** (email, developer portal, changelog).
+- **Удалить старую версию** только после подтверждения отсутствия трафика.
+
+---
+
+### Хранение спецификации
+
+#### Вариант 1: В том же репозитории, что и код
+
+- Плюсы: всегда синхронизирована с реализацией, легко включить в CI.
+- Минусы: сложнее для внешних потребителей.
+
+#### Вариант 2: Отдельный репозиторий («API registry»)
+
+- Плюсы: единая точка для всех API, удобно для design-first.
+- Минусы: риск рассинхронизации с кодом.
+
+> **Best practice**: храните спецификацию рядом с кодом, но публикуйте её в централизованном портале (например, через
+> Swagger UI + CI/CD).
+
+---
+
+### Документирование изменений
+
+Создайте файл `CHANGELOG.md` рядом со спецификацией:
+
+```md
+    ## [1.2.0] — 2026-02-15
+    ### Added
+    - POST /v1/orders — create new order
+    ### Changed
+    - `email` in User schema now requires format: email
+    ### Deprecated
+    - GET /v1/old-users → use /v1/users
+```
+
+Используйте семантическое версионирование:
+
+- `MAJOR` — breaking changes
+- `MINOR` — новые функции, обратно совместимые
+- `PATCH` — исправления ошибок в документации
+
+### Best practices
+
+- **Никогда не вносите breaking changes без предварительного deprecation**.
+- **Автоматизируйте сравнение спецификаций** между релизами (`openapi-diff`).
+- **Проверяйте, что все production-эндпоинты покрыты спецификацией** (можно через лог-анализ или middleware).
+- **Используйте Git tags или releases** для фиксации версий спецификации.
+- **Предоставляйте стабильный URL** к актуальной спецификации (например, `/api-docs/v1.yaml`), чтобы клиенты могли
+  автоматически обновлять SDK.
+
+---
+
+## 8. Расширенные возможности и best practices
+
+> Помимо базовой структуры и описания endpoint’ов, OpenAPI предоставляет ряд продвинутых возможностей, которые повышают
+> качество документации, упрощают тестирование и улучшают developer experience.
+
+---
+
+### Использование `examples` и `x-examples`
+
+#### Встроенные примеры (`example`)
+
+Можно указать пример значения для параметра, тела запроса или поля схемы:
+
+```yaml
+    components:
+      schemas:
+        User:
+          properties:
+            email:
+              type: string
+              format: email
+              example: alice@example.com # Пример
+```              
+
+#### Множественные примеры (`examples`)
+
+Позволяют показать разные сценарии (успешный, ошибочный, edge case):
+
+```yaml
+    paths:
+      /users:
+        post:
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/UserCreate'
+                examples:
+                  validUser:
+                    summary: Valid user
+                    value:
+                      username: alice
+                      email: alice@example.com
+                  invalidEmail:
+                    summary: Invalid email format
+                    value:
+                      username: bob
+                      email: not-an-email
+```
+
+Эти примеры отображаются в Swagger UI и могут использоваться как основа для автотестов.
+
+> Примечание: `x-examples` — нестандартное расширение, поддерживаемое некоторыми инструментами (например, устаревшие
+> версии
+> Swagger UI).
+>
+> Предпочтительнее использовать стандартное поле `examples`.
+
+---
+
+### Поддержка multipart/form-data и загрузки файлов
+
+Для endpoint-ов с загрузкой файлов:
+
+```yaml
+    paths:
+      /upload:
+        post:
+          requestBody:
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    file:
+                      type: string
+                      format: binary
+                    description:
+                      type: string
+          responses:
+            '201':
+              description: File uploaded
+```
+
+Swagger UI автоматически отображает форму с файловым input-ом.
+
+---
+
+### Описание асинхронных операций
+
+OpenAPI изначально ориентирован на синхронные REST-запросы, но можно описать асинхронное поведение:
+
+- Ответ `202 Accepted` + заголовок `Location`:
+
+```yaml
+    responses:
+      '202':
+        description: Task accepted
+        headers:
+          Location:
+            schema:
+              type: string
+              example: /tasks/123
+```
+
+- Дополнительно: ссылка на endpoint получения статуса задачи через `links` (OpenAPI 3.0+):
+
+```yaml
+    responses:
+      '202':
+        description: Task accepted
+        links:
+          GetTaskStatus:
+            operationId: getTask
+            parameters:
+              taskId: '$response.header.Location'
+```
+
+> Примечание: `links` редко поддерживаются генераторами кода, но полезны для документации.
+
+---
+
+### Производительность и масштабируемость
+
+- **Разбивайте большую спецификацию** на несколько файлов с помощью `$ref`:
+
+```yaml
+    paths:
+      /users:
+        $ref: './paths/users.yaml'
+```
+
+- **Избегайте глубокой вложенности** в схемах — это замедляет генерацию клиентов и парсинг.
+- **Ограничивайте размер файла**: >10k строк затрудняют навигацию в Swagger UI.
+- **Используйте lazy loading** в UI: Swagger UI поддерживает динамическую подгрузку при больших спецификациях (через
+  `configUrl`).
+
+---
+
+### Антипаттерны
+
+| Антипаттерн                                            | Риск                                           | Решение                              |
+|--------------------------------------------------------|------------------------------------------------|--------------------------------------|
+| Сплошной `type: object` без `properties`               | Невозможно сгенерировать клиент, нет валидации | Всегда описывайте структуру          |
+| Все поля опциональны                                   | Клиенты не знают, что обязательно              | Указывайте `required`                |
+| Отсутствие описания ошибок (`4xx`, `5xx`)              | Сложно обрабатывать исключения                 | Добавляйте все возможные `responses` |
+| Дублирование одинаковых ответов                        | Трудно поддерживать                            | Выносите в `components/responses`    |
+| Использование `application/octet-stream` без пояснений | Неясно, что ожидается                          | Указывайте `schema` и `example`      |
+
+---
+
+### Принципы production-grade спецификации:
+
+1. **Полнота**: все endpoint-ы, параметры, статусы, ошибки.
+2. **Точность**: соответствие реальному поведению API.
+3. **Согласованность**: единый стиль именования, форматов, тегов.
+4. **Поддерживаемость**: модульная структура, версионирование, changelog.
+5. **Тестируемость**: наличие примеров, валидных и невалидных сценариев.
+
+> Следуя этим принципам, вы превращаете OpenAPI из простой документации в **инженерный контракт**, который служит основой
+  для разработки, тестирования, мониторинга и интеграции в enterprise-среде.
+
+--- 
