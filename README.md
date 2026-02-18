@@ -146,15 +146,20 @@
          <b>📚 Theory</b>
       </summary>
 
-[`API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/API.md "API.md")
-[`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md")
-<br>
-[`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
+[`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md")
 [`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md")
-`Design Patterns` 
+`Design Patterns`
 [`GRASP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/GRASP.md "GRASP.md")
 <br>
-`HTTP` `Microservices` `DDD` `CQRS`
+[`API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/API.md "API.md")
+[`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md")
+`HTTP` 
+[`gRPC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/gRPC.md "gRPC.md") 
+[`SOAP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOAP.md "SOAP.md")
+<br>
+[`AGILE`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/AGILE.md "AGILE.md") 
+[`SCRUM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SCRUM.md "SCRUM.md") 
+[`SDLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SDLC.md "SDLC.md") 
 <br>
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md")
    </details>
