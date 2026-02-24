@@ -1179,7 +1179,7 @@ try {
 ## Асинхронная отправка и Callback
 
 Callback позволяет реагировать на успех/ошибку без блокировки основного потока.  
-Полезно для высоконагруженных producer’ов.
+Полезно для высоконагруженных producer-ов.
 
 ## Обработка исключений и retries
 
@@ -1562,4 +1562,145 @@ public void handleOrder(Order order) {
 Эта интеграция значительно упрощает работу с Kafka в Spring-приложениях, сохраняя при этом гибкость для тонкой настройки.
 
 ---
+
+# Spring Boot: Producer
+
+## Настройка KafkaTemplate
+
+Spring Boot автоматически создаёт бин `KafkaTemplate<K, V>`, если в classpath есть `spring-kafka` и указаны базовые настройки.
+
+Пример конфигурации в `application.yml`:
+
+```yaml
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      enable-idempotence: true
+      batch-size: 16384
+      linger-ms: 20
+```
+
+## Отправка сообщений с ключом и без
+
+### Без ключа:
+
+```java
+kafkaTemplate.send("demo-topic", "Hello from Spring!");
+```
+
+### С ключом:
+
+```java
+kafkaTemplate.send("user-events", "user-123", "Profile updated");
+```
+
+Ключ влияет на выбор партиции.
+
+## Асинхронная отправка и обработка результатов
+
+Метод `send()` возвращает `ListenableFuture<SendResult<K, V>>`, который можно использовать для реакции на успех/ошибку:
+
+```java
+ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("demo-topic", "msg");
+future.addCallback(new ListenableFutureCallback<>() {
+    @Override
+    public void onSuccess(SendResult<String, String> result) {
+        log.info("Sent to partition {}, offset {}",
+            result.getRecordMetadata().partition(),
+            result.getRecordMetadata().offset());
+    }
+
+    @Override
+    public void onFailure(Throwable ex) {
+        log.error("Failed to send message", ex);
+    }
+});
+
+```
+
+Альтернатива — использование `CompletableFuture` (начиная с Spring Kafka 2.5):
+
+
+```java
+kafkaTemplate.send("demo-topic", "msg")
+        .completable()
+        .thenAccept(result -> { 
+            /* success */ 
+        })
+        .exceptionally(ex -> { 
+            /* failure */; 
+            return null; 
+        });
+```
+
+## Настройка сериализаторов через конфигурацию
+
+Для JSON-объектов используйте:
+
+```yaml
+spring:
+  kafka:
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+```
+
+Теперь можно отправлять POJO напрямую:
+
+```java
+Order order = new Order("A1", "user-123", "CREATED");
+kafkaTemplate.send("orders", order);
+```
+
+Spring автоматически сериализует объект в JSON.
+
+> ⚠️ Убедитесь, что класс `Order` имеет публичный конструктор по умолчанию и геттеры/сеттеры (или использует Jackson-аннотации).
+
+## Обработка ошибок отправки
+
+Ошибки могут возникать из-за:
+- недоступности брокера,
+- проблем с сериализацией,
+- превышения квоты.
+
+Рекомендуется всегда регистрировать callback или обрабатывать исключения, особенно в асинхронных сценариях.
+
+Если вы используете транзакции, ошибки отправки будут частью общей транзакции.
+
+## Продвинутая настройка KafkaTemplate
+
+Если нужны разные шаблоны (например, один для строк, другой для JSON), объявите их вручную:
+
+```java
+@Bean
+@Primary
+public KafkaTemplate<String, String> stringKafkaTemplate(KafkaProperties properties) {
+    Map<String, Object> props = properties.buildProducerProperties();
+    return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
+}
+
+@Bean
+public KafkaTemplate<String, Order> orderKafkaTemplate(KafkaProperties properties) {
+    Map<String, Object> props = properties.buildProducerProperties();
+    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+    return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
+}
+
+```
+
+Используйте `@Qualifier`, если внедряете несколько шаблонов.
+
+## Лучшие практики
+
+- Всегда обрабатывайте ошибки отправки (через callback или exception handling).
+- Используйте idempotent producer (`enable-idempotence: true`) в production.
+- Для высокой пропускной способности настройте `batch-size` и `linger.ms`.
+- Не отправляйте большие сообщения (>1 МБ) без изменения `max.message.bytes` на брокере.
+
+---
+
 
