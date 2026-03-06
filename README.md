@@ -153,7 +153,7 @@
 <br>
 [`API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/API.md "API.md")
 [`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md")
-[`HTTP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/HTTP_HTTPS.md "HTTP_HTTPS.md") 
+[`HTTP/HTTPS`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/HTTP_HTTPS.md "HTTP_HTTPS.md") 
 [`gRPC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/gRPC.md "gRPC.md") 
 [`SOAP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOAP.md "SOAP.md")
 <br>
