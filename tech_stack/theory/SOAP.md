@@ -526,13 +526,13 @@ Content-Type: text/xml; charset=utf-8
 ```xml
 
 <soap:Envelope ...>
-<soap:Body>
-<soap:Fault>
-    <faultcode>soap:Client</faultcode>
-    <faultstring>Invalid userId</faultstring>
-</soap:Fault>
-</soap:Body>
-        </soap:Envelope>
+    <soap:Body>
+        <soap:Fault>
+            <faultcode>soap:Client</faultcode>
+            <faultstring>Invalid userId</faultstring>
+        </soap:Fault>
+    </soap:Body>
+</soap:Envelope>
 ```
 
 ## Правила именования
@@ -700,7 +700,7 @@ Content-Type: text/xml; charset=utf-8
 
 Если SOAP-парсер разрешает DTD, атакующий может внедрить:
 
-```text
+```xml
 <!DOCTYPE soap [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
 <GetUser>&xxe;</GetUser>
 ```
