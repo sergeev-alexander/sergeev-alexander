@@ -93,7 +93,10 @@
          <b>💾 SQL/NoSQL</b>
       </summary>
       
-`PostgreSQL` `MySQL` `Amazon DynamoDB` `H2`
+`PostgreSQL` `MySQL`
+<br>
+`Amazon DynamoDB`
+[`MongoDB`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/MongoDB.md "MongoDB.md")
 </details>
 
    <details open>
