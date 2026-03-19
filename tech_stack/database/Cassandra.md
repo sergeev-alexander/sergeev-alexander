@@ -380,8 +380,6 @@ future.thenAccept(resultSet -> {
 
 ## 4. CRUD Операции в CQL
 
----
-
 ### Create (Вставка)
 
 #### Простая вставка:
