@@ -97,6 +97,7 @@
 <br>
 `Amazon DynamoDB`
 [`MongoDB`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/MongoDB.md "MongoDB.md")
+[`Cassandra`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Cassandra.md "Cassandra.md")
 </details>
 
    <details open>
