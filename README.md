@@ -114,7 +114,8 @@
 `Gradle` `JSON` 
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md")
 <br>
-`Git` `GitHub` `CI/CD` 
+[`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md")
+`GitHub` `CI/CD` 
 </details>
 
 
