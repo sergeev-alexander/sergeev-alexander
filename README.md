@@ -108,10 +108,13 @@
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
 [`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md")
+`Gradle`
+<br>
+[`Jenkins`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Jenkins.md "Jenkins.md")
 <br>
 `Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok`
 <br>
-`Gradle` `JSON` 
+`JSON` 
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md")
 <br>
 [`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md")
