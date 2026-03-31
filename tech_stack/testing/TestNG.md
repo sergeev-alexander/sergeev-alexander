@@ -2351,3 +2351,825 @@ public class SpringFactoryTest {
 5. **`parallel = true` для скорости** — Параллельное выполнение параметризованных тестов
 6. **Spring-бины в DataProvider** — Доступ к репозиториям и сервисам для данных
 7. **Кэшируйте тяжёлые источники** — БД и API вызовы кэшируйте для производительности
+
+# 7. Группы, зависимости и порядок выполнения
+
+> Группировка и зависимости — ключевые возможности TestNG для управления порядком выполнения тестов.
+
+---
+
+## Группировка тестов
+
+`@Test(groups = {...})` позволяет маркировать тесты для выборочного запуска.
+
+### Базовое использование
+
+```java
+@Test(groups = {"smoke"})
+public void loginTest() {
+    // Быстрый тест для проверки базовой функциональности
+}
+
+@Test(groups = {"regression", "auth"})
+public void passwordResetTest() {
+    // Тест входит в две группы
+}
+
+@Test(groups = {"integration", "slow"})
+public void databaseIntegrationTest() {
+    // Медленный интеграционный тест
+}
+```
+
+### Запуск по группам
+
+```bash
+# Maven: запустить только smoke тесты
+mvn test -Dgroups=smoke
+
+# Maven: несколько групп
+mvn test -Dgroups="smoke,regression"
+
+# Maven: исключить группу
+mvn test -DexcludedGroups=slow
+```
+
+# Gradle
+
+```bash
+./gradlew test -Dgroups=smoke
+./gradlew test -DexcludedGroups=slow
+```
+
+### Конфигурация в `testng.xml`
+
+```xml
+<suite name="GroupedSuite">
+    <test name="SmokeTests">
+        <groups>
+            <run>
+                <include name="smoke"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.example.LoginTest"/>
+        </classes>
+    </test>
+
+    <test name="RegressionTests">
+        <groups>
+            <run>
+                <include name="regression"/>
+                <exclude name="slow"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.example.FullRegressionTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+---
+
+## Зависимости между методами
+
+`dependsOnMethods` указывает, что тест должен выполниться после других тестов.
+
+### Базовая зависимость
+
+```java
+@Test
+public void createDatabase() {
+    // Создаёт тестовую БД
+}
+
+@Test(dependsOnMethods = {"createDatabase"})
+public void insertData() {
+    // Запустится только если createDatabase успешен
+}
+
+@Test(dependsOnMethods = {"insertData"})
+public void queryData() {
+    // Запустится только если insertData успешен
+}
+```
+
+### Несколько зависимостей
+
+```java
+@Test
+public void setupEnvironment() { }
+
+@Test
+public void createUsers() { }
+
+@Test(dependsOnMethods = {"setupEnvironment", "createUsers"})
+public void runTests() {
+    // Запустится только если оба теста успешны
+}
+```
+
+### `alwaysRun` — запуск даже при падении
+
+`alwaysRun = true` — для cleanup, отчётов и логирования в @After* методах. 
+Для обычных тестов как правило не нужен.
+
+```java
+public class BaseTest {
+
+    protected WebDriver driver;
+    protected TestContext context;
+
+    @BeforeMethod(alwaysRun = true)
+    public void baseSetup() {
+        context = new TestContext();
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void baseTeardown(ITestResult result) {
+        // Скриншот при failure 
+        if (result.getStatus() == ITestResult.FAILURE) {
+            Screenshot.capture(driver, result.getName());
+        }
+        // Очистка
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+
+    @AfterClass(alwaysRun = true)
+    public void sendReport() {
+        ReportService.send(context.getReport());
+    }
+}
+```
+
+---
+
+## Зависимости между группами
+
+`dependsOnGroups` позволяет зависеть от целой группы тестов.
+
+```java
+@Test(groups = {"smoke"})
+public void smokeTest1() { }
+
+@Test(groups = {"smoke"})
+public void smokeTest2() { }
+
+@Test(dependsOnGroups = {"smoke"})
+public void regressionTest() {
+    // Запустится только если все smoke тесты прошли
+}
+
+@Test(dependsOnGroups = {"regression"}, alwaysRun = true)
+public void sendNotification() {
+    // Отправит уведомление о результатах
+}
+```
+
+---
+
+## Приоритет выполнения
+
+`priority` управляет порядком внутри класса (меньше = раньше).
+
+```java
+@Test(priority = 1)
+public void firstTest() { }
+
+@Test(priority = 2)
+public void secondTest() { }
+
+@Test(priority = -1)
+public void urgentTest() { } // Запустится первым
+
+@Test(priority = 100)
+public void lastTest() { } // Запустится последним
+```
+
+> Приоритет работает **только** внутри одного класса
+>
+> Для межклассового порядка используйте `dependsOnMethods`
+
+---
+
+## Практические сценарии
+
+### Smoke тесты
+
+```java
+// Быстрые тесты для проверки базовой функциональности
+@Test(groups = {"smoke", "auth"})
+public void validLogin() { }
+
+@Test(groups = {"smoke", "auth"})
+public void invalidLogin() { }
+
+@Test(groups = {"smoke", "dashboard"})
+public void dashboardLoads() { }
+```
+
+Запуск: `mvn test -Dgroups=smoke`
+
+Время: 2-5 минут
+
+### Regression тесты
+
+```java
+// Полная проверка функциональности
+@Test(groups = {"regression", "auth"})
+public void fullAuthFlow() { }
+
+@Test(groups = {"regression", "orders"})
+public void createOrder() { }
+
+@Test(groups = {"regression", "payments"})
+public void processPayment() { }
+```
+
+Запуск: `mvn test -Dgroups=regression`
+
+Время: 30-60 минут
+
+### E2E тесты
+
+```java
+// Сквозные тесты с зависимостями
+@Test(groups = {"e2e"})
+public void setupEnvironment() { }
+
+@Test(groups = {"e2e"}, dependsOnMethods = {"setupEnvironment"})
+public void createUser() { }
+
+@Test(groups = {"e2e"}, dependsOnMethods = {"createUser"})
+public void placeOrder() { }
+
+@Test(groups = {"e2e"}, dependsOnMethods = {"placeOrder"}, alwaysRun = true)
+public void cleanupEnvironment() { }
+```
+
+Запуск: `mvn test -Dgroups=e2e`
+
+Время: 1-2 часа
+
+---
+
+## Сводная таблица: управление порядком
+
+| Механизм           | Аннотация        | Уровень | Когда использовать                     |
+|:-------------------|------------------|---------|----------------------------------------|
+| Группы             | @Test(groups)    | Метод   | Категоризация (smoke/regression)       |
+| Зависимость метода | dependsOnMethods | Метод   | Порядок внутри класса                  |
+| Зависимость группы | dependsOnGroups  | Группа  | Порядок между группами                 |
+| Приоритет          | priority         | Метод   | Порядок внутри класса без зависимостей |
+| Всегда запускать   | alwaysRun        | Метод   | Cleanup, уведомления, логирование      |
+| Исключить группу   | excludedGroups   | Suite   | Пропустить медленные тесты             |
+
+---
+
+## Интеграция со Spring
+
+### Группы в Spring тестах
+
+```java
+@SpringBootTest
+@Listeners(SpringContextListener.class)
+public class SpringGroupedTest {
+
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private DatabaseCleaner databaseCleaner;
+    
+    @BeforeMethod
+    public void cleanDatabase() {
+        databaseCleaner.clean();
+    }
+    
+    @Test(groups = {"smoke", "integration"})
+    public void createUser_smoke() {
+        User user = userService.create("John", "john@test.com");
+        assertNotNull(user);
+    }
+    
+    @Test(groups = {"regression", "integration"})
+    public void updateUser_regression() {
+        User user = userService.create("Jane", "jane@test.com");
+        user.setName("Jane Updated");
+        userService.update(user);
+        assertEquals(userService.getById(user.getId()).getName(), "Jane Updated");
+    }
+    
+    @Test(groups = {"integration"}, dependsOnGroups = {"smoke"}, alwaysRun = true)
+    public void cleanup_afterTests() {
+        databaseCleaner.clean();
+    }
+}
+```
+
+### Mockito + Группы
+
+```java
+@SpringBootTest
+@Listeners(SpringContextListener.class)
+public class MockedGroupedTest {
+
+    @Mock
+    private ExternalApi externalApi;
+    
+    @InjectMocks
+    private UserService userService;
+    
+    @BeforeClass
+    public void initMocks() {
+        MockitoAnnotations.openMocks(this); // @BeforeClass — инициализируем моки ОДИН раз для всех тестов класса
+    }
+    
+    @BeforeMethod
+    public void resetMocks() {
+        reset(externalApi); // @BeforeMethod — сбрасываем состояние моков между тестами. Каждый тест получает "чистые" моки
+    }
+    
+    @Test(groups = {"unit", "fast"})
+    public void testWithMock() {
+        when(externalApi.getData()).thenReturn("test");
+        assertEquals(userService.processData(), "test");
+    }
+    
+    @Test(groups = {"unit", "fast"}, dependsOnMethods = {"testWithMock"})
+    public void testDependent() {
+        // Зависит от предыдущего теста
+    }
+}
+```
+---
+
+## Best Practices
+
+✅ Делайте:
+- Используйте группы для категоризации (smoke/regression/e2e/integration)
+- Применяйте `dependsOnMethods` только для интеграционных тестов
+- Всегда используйте `alwaysRun` для cleanup-методов
+- Документируйте группы в README проекта
+- Настройте CI для запуска разных групп в разных стадиях
+
+❌ Не делайте:
+- Не создавайте зависимости между unit-тестами (нарушает FIRST)
+- Не используйте `priority` вместо `dependsOnMethods` для критического порядка
+- Не создавайте циклические зависимости (`A` → `B` → `A`)
+- Не полагайтесь на порядок выполнения без явных зависимостей
+- Не используйте группы без документации (что входит в smoke/regression)
+
+---
+
+## Ключевые выводы
+
+1. **Группы для категоризации** — smoke/regression/e2e для выборочного запуска
+2. **`dependsOnMethods` для порядка** — Явное указание зависимостей между тестами
+3. **`dependsOnGroups` для масштаба** — Зависимость от целой группы тестов
+4. **`alwaysRun` для cleanup** — Очистка ресурсов даже при падении тестов
+5. **`priority` для простого порядка** — Внутри класса без сложных зависимостей
+6. **CI для разных групп** — Smoke в PR, regression в nightly build
+7. **Не зависимые unit-тесты** — Зависимости только для integration/e2e тестов
+
+# 8. Параллельное выполнение
+
+Параллельное выполнение тестов ускоряет прогон тестовых сьютов. TestNG имеет встроенную поддержку параллелизма на разных уровнях. В этом разделе — настройка параллелизма, thread-safety, ограничения и интеграция со Spring.
+
+---
+
+## Уровни параллелизма
+
+> TestNG поддерживает 5 уровней параллельного выполнения.
+
+### `parallel="methods"` — параллелизм на уровне методов
+
+```xml
+<suite name="ParallelSuite" parallel="methods" thread-count="4">
+    <test name="MethodParallel">
+        <classes>
+            <class name="com.example.TestClass"/>
+        </classes>
+    </test>
+</suite>
+```
+
+- Все `@Test` методы в классе выполняются параллельно
+- `thread-count` определяет максимальное количество потоков
+
+### `parallel="classes"` — параллелизм на уровне классов
+
+Используйте `parallel="classes"`, если:
+
+- У вас разные тестовые классы (AuthTest, OrderTest, PaymentTest).
+- Вы не используете `@Factory` или создаёте только один экземпляр класса.
+- Вам важна простота и предсказуемость.
+
+```xml
+<suite name="ParallelSuite" parallel="classes" thread-count="4">
+    <test name="ClassParallel">
+        <classes>
+            <class name="com.example.TestClass1"/>
+            <class name="com.example.TestClass2"/>
+            <class name="com.example.TestClass3"/>
+        </classes>
+    </test>
+</suite>
+```
+
+- Каждый тестовый класс выполняется в отдельном потоке
+- Методы внутри класса выполняются последовательно
+
+### `parallel="tests"` — параллелизм на уровне `<test>`
+
+```xml
+<suite name="ParallelSuite" parallel="tests" thread-count="3">
+    <test name="TestGroup1">
+        <classes>
+            <class name="com.example.TestClass1"/>
+        </classes>
+    </test>
+
+    <test name="TestGroup2">
+        <classes>
+            <class name="com.example.TestClass2"/>
+        </classes>
+    </test>
+
+    <test name="TestGroup3">
+        <classes>
+            <class name="com.example.TestClass3"/>
+        </classes>
+    </test>
+</suite>
+```
+
+- Каждая группа `<test>` выполняется в отдельном потоке
+
+### `parallel="instances"` — параллелизм на уровне экземпляров
+
+Используйте `parallel="instances"`, если:
+
+- Вы используете `@Factory` для создания нескольких экземпляров одного класса с разными параметрами.
+- Вы хотите параллельно запускать одни и те же тесты с разными данными (кросс-браузер, разные окружения, разные пользователи).
+
+```xml
+<suite name="ParallelSuite" parallel="instances" thread-count="4">
+    <test name="InstanceParallel">
+        <classes>
+            <class name="com.example.TestClass"/>
+        </classes>
+    </test>
+</suite>
+```
+
+- Разные экземпляры тестового класса выполняются параллельно
+- Полезно для `@Factory` с параметризацией
+
+### `parallel="none"` — последовательное выполнение
+
+```xml
+<suite name="SequentialSuite" parallel="none">
+    // Все тесты выполняются последовательно в одном потоке
+</suite>
+```
+---
+
+## Настройка `thread-count`
+
+> `thread-count` определяет максимальное количество потоков для параллельного выполнения.
+
+### Базовая настройка
+
+```xml
+<suite name="ParallelSuite" parallel="methods" thread-count="8">
+    <!-- До 8 потоков одновременно --> 
+</suite>
+```
+
+### Динамический `thread-count` через систему
+
+Запуск с переменным количеством потоков
+
+```bash
+mvn test -DthreadCount=8
+```
+
+В `testng.xml` через переменную
+
+```xml
+<suite name="ParallelSuite" parallel="methods" thread-count="${threadCount}">
+    <!-- через переменную окружения -->
+</suite>
+```
+
+### Рекомендуемые значения
+
+| Сценарий             | thread-count         | Обоснование                           |
+|:---------------------|----------------------|---------------------------------------|
+| CPU-bound тесты      | Количество ядер CPU  | Максимальное использование процессора |
+| I/O-bound тесты      | 2-4x количество ядер | Ожидание I/O освобождает потоки       |
+| Selenium тесты       | 4-8                  | Ограничено ресурсами браузера         |
+| Integration тесты    | 2-4                  | Ограничено подключениями к БД         |
+| Локальная разработка | 2-4                  | Не блокировать систему                |
+
+---
+
+## Thread-safety в тестах
+
+> Параллельные тесты требуют thread-safe кода.
+
+### Проблемы с общим состоянием
+
+```java
+// ❌ ОПАСНО: общее статическое состояние
+public class UnsafeTest {
+
+    private static List<String> sharedData = new ArrayList<>();
+
+    @Test
+    public void test1() {
+        sharedData.add("test1"); // Race condition!
+    }
+    
+    @Test
+    public void test2() {
+        sharedData.add("test2"); // Race condition!
+    }
+}
+
+// ✅ Безопасно: локальное состояние
+public class SafeTest {
+
+    @Test
+    public void test1() {
+        List<String> localData = new ArrayList<>();
+        localData.add("test1");
+    }
+
+    @Test
+    public void test2() {
+        List<String> localData = new ArrayList<>();
+        localData.add("test2");
+    }
+}
+```
+
+### ThreadLocal для изоляции
+
+```java
+public class ThreadSafeTest {
+
+    // Каждый поток видит своё значение, потому что ThreadLocal обращается к внутренней карте текущего потока
+    private static ThreadLocal<UserService> userService = 
+        ThreadLocal.withInitial(() -> new UserService()); 
+    
+    @BeforeMethod
+    public void setUp() {
+        // Каждый поток получает свой экземпляр
+        userService.get().reset();
+    }
+    
+    @Test
+    public void test1() {
+        userService.get().create("User1");
+    }
+    
+    @Test
+    public void test2() {
+        userService.get().create("User2");
+    }
+    
+    @AfterMethod
+    public void tearDown() {
+        userService.remove(); // Очистка ThreadLocal
+    }
+}
+```
+
+### @BeforeMethod(alwaysRun = true) для инициализации
+
+```xml
+<suite name="ParallelSuite" parallel="methods" thread-count="4">
+    <test name="ParallelTest">
+        <classes>
+            <class name="com.example.ParallelTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+```java
+public class ParallelTest {
+
+    private ThreadLocal<WebDriver> driver = ThreadLocal.withInitial(() -> new ChromeDriver());
+    
+    @BeforeMethod(alwaysRun = true)
+    public void setUp() {
+        // alwaysRun = true гарантирует вызов в каждом потоке
+        // ThreadLocal обеспечивает изоляцию между потоками
+        driver.get().manage().window().maximize();
+    }
+    
+    @Test
+    public void test1() {
+        driver.get().get("https://example.com");
+        // тест использует поток-специфичный WebDriver
+    }
+    
+    @Test
+    public void test2() {
+        driver.get().get("https://example.org");
+        // тест использует поток-специфичный WebDriver
+    }
+    
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
+        if (driver.get() != null) {
+            driver.get().quit();
+            driver.remove(); // Очистка ThreadLocal
+        }
+    }
+}
+```
+
+---
+
+## Параллелизм в DataProvider
+
+> `@DataProvider` может подавать данные параллельно.
+
+### Параллельный DataProvider
+
+```java
+@DataProvider(name = "parallelData", parallel = true)
+public Object[][] provideData() {
+    return new Object[][]{
+            {1}, {2}, {3}, {4}, {5},
+            {6}, {7}, {8}, {9}, {10}
+    };
+}
+
+@Test(dataProvider = "parallelData")
+public void testParallel1(int value) {
+    // Тесты выполнятся параллельно
+}
+
+@Test(dataProvider = "parallelData")
+public void testParallel2(int value) {
+    // Тесты выполнятся параллельно
+}
+```
+### Конфигурация в testng.xml
+
+```xml
+<suite name="DataProviderParallel" parallel="methods" thread-count="4">
+    <test name="ParallelDataTest">
+        <classes>
+            <class name="com.example.DataProviderTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+- (DataProvider с `parallel = true`) + (`<suite>` с `parallel = methods`) = максимальная параллелизация
+
+---
+
+## Интеграция со Spring
+
+### Spring контекст и параллелизм
+
+```java
+@SpringBootTest
+@Listeners(SpringContextListener.class)
+public class SpringParallelTest {
+
+    @Autowired
+    private UserService userService;
+    
+    // ⚠️ Внимание: Spring-контекст общий для всех потоков
+    // Бины должны быть thread-safe или использовать @Scope
+    
+    @BeforeMethod(alwaysRun = true)
+    public void resetState() {
+        // Сброс состояния перед каждым тестом
+        userService.deleteAll();
+    }
+    
+    @Test(groups = {"integration"})
+    public void test1() {
+        userService.create("User1");
+    }
+    
+    @Test(groups = {"integration"})
+    public void test2() {
+        userService.create("User2");
+    }
+}
+```
+
+### Prototype scope для thread-safety
+
+```java
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+public class UserService {
+    // Новый экземпляр для каждого потока
+}
+
+// В тесте
+@SpringBootTest
+public class PrototypeBeanTest {
+
+    @Autowired
+    private ApplicationContext context;
+    
+    private UserService userService;
+    
+    @BeforeMethod
+    public void setUp() {
+        // Получаем новый экземпляр для каждого теста
+        userService = context.getBean(UserService.class);
+    }
+    
+    @Test
+    public void testParallel() {
+        // Thread-safe: каждый тест имеет свой экземпляр
+    }
+}
+```
+
+### Mockito в параллельных тестах
+
+```java
+public class MockedParallelTest {
+
+    private UserService userService;
+    private UserRepository userRepository;
+    
+    @BeforeMethod
+    public void setUp() {
+        // Новые моки для каждого теста
+        userRepository = Mockito.mock(UserRepository.class);
+        userService = new UserService(userRepository);
+    }
+    
+    @Test
+    public void test1() {
+        when(userRepository.findById(1L)).thenReturn(new User("User1"));
+        assertEquals(userService.getById(1L).getName(), "User1");
+    }
+    
+    @Test
+    public void test2() {
+        when(userRepository.findById(2L)).thenReturn(new User("User2"));
+        assertEquals(userService.getById(2L).getName(), "User2");
+    }
+}
+```
+
+---
+
+## Сводная таблица: уровни параллелизма
+
+| Уровень   |  Когда использовать             | Thread-safety      |
+|:----------|---------------------------------|--------------------|
+| Methods   |  Unit-тесты, независимые методы | Высокие требования |
+| Classes   |  Несколько тестовых классов     | Средние требования |
+| Tests     |  Разные группы тестов           | Низкие требования  |
+| Instances |  @Factory с параметризацией     | Высокие требования |
+| None      |  Отладка, зависимые тесты       | Не требуется       |
+
+---
+
+## Best Practices
+
+✅ Делайте:
+- Начинайте с `parallel="classes"` для безопасного параллелизма
+- Используйте `ThreadLocal` для общего состояния
+- Применяйте `@BeforeMethod(alwaysRun = true)` для инициализации
+- Настраивайте `thread-count` под ресурсы системы
+- Используйте `prototype scope` для Spring-бинов в параллельных тестах
+
+❌ Не делайте:
+- Не используйте `static` поля для хранения состояния тестов
+- Не полагайтесь на порядок выполнения в параллельных тестах
+- Не устанавливайте `thread-count` выше доступных ресурсов
+- Не используйте `parallel` для тестов с зависимостями (`dependsOnMethods`)
+- Не забывайте про cleanup в `@AfterMethod` для каждого потока
+
+---
+
+## Ключевые выводы
+
+1. **5 уровней параллелизма** — `methods`, `classes`, `tests`, `instances`, `none`
+2. **`thread-count` ограничивает потоки** — Настраивайте под ресурсы системы
+3. **`ThreadLocal` для изоляции** — Каждый поток имеет своё состояние
+4. **`alwaysRun = true` для инициализации** — Гарантия вызова в каждом потоке
+5. **DataProvider с `parallel = true`** — Дополнительная параллелизация данных
+6. **Spring prototype scope** — Новые экземпляры бинов для каждого потока
+7. **Избегайте static состояния** — Главное правило thread-safe тестов
