@@ -1,92 +1,3 @@
-План шпаргалки: TestNG для профессиональной разработки
-
-Формат: тот же, что и для JUnit 5 — Markdown, обёртка ```text, примеры с отступами, буллиты, 7 ключевых выводов на
-раздел.
-
----
-
-## Обновлённая структура
-
-### Введение
-
-- Что такое TestNG: философия, основные возможности
-- Когда выбирать TestNG: data-driven, сложные зависимости, параллелизм, группы
-- Подключение зависимостей (Maven/Gradle)
-- Базовая настройка проекта
-
-### Раздел 1: Сравнение TestNG и JUnit 5
-
-- Ключевые отличия в философии и возможностях
-- Таблица соответствия аннотаций
-- Преимущества TestNG для интеграционных и e2e тестов
-- Когда оставаться на JUnit 5
-
-### Раздел 2: Конфигурация и запуск
-
-- testng.xml: структура, suites, tests, параметры
-- Запуск из IDE (IntelliJ, Eclipse)
-- Запуск из CLI: Maven/Gradle, фильтры по группам/классам
-- Конфигурационные файлы (pom.xml, build.gradle)
-
-### Раздел 3: Аннотации и жизненный цикл тестов
-
-- Все аннотации TestNG: @BeforeSuite, @BeforeTest, @BeforeClass, @BeforeMethod, @Test, @After*
-- Порядок выполнения и уровни иерархии
-- Параметры аннотаций: enabled, dependsOnMethods, groups, invocationCount, timeOut
-- @TestInstance и управление жизненным циклом
-
-### Раздел 4: Assertions и проверки
-
-- Hard assertions: assertEquals, assertTrue, assertThrows
-- Soft assertions: SoftAssert, collectAll(), assertAll()
-- Custom assertions и интеграция с AssertJ
-- Best Practices: когда использовать soft vs hard
-
-### Раздел 5: Параметризация и Data Providers
-
-- @DataProvider: методы, фабрики данных, параллельная подача
-- @Parameters: передача из testng.xml
-- @Factory: динамическое создание экземпляров тестов
-- Примеры: CSV, JSON, БД как источники данных
-
-### Раздел 6: Группы, зависимости и порядок выполнения
-
-- @Test(groups = {...}): маркировка и фильтрация
-- dependsOnMethods / dependsOnGroups: управление порядком
-- alwaysRun: запуск даже при падении зависимостей
-- Практические сценарии: smoke, regression, e2e
-
-### Раздел 7: Параллельное выполнение
-
-- Уровни параллелизма: methods, classes, tests, instances
-- Настройка в testng.xml и через аннотации
-- Thread-safety: @BeforeMethod(alwaysRun = true), ThreadLocal
-- Ограничения и рекомендации
-
-### Раздел 8: Listeners и отчётность
-
-- Встроенные listeners: IInvokedMethodListener, ITestListener
-- Кастомные listeners: логирование, скриншоты, алерты
-- Отчёты: emailable-report.html, index.html, интеграция с Allure
-- Интеграция с CI/CD: артефакты, JUnit-формат для Jenkins/GitHub
-
-### Раздел 9: Интеграция с экосистемой
-
-- TestNG + Mockito: mocking в тестах
-- TestNG + Spring: @SpringBootTest, @MockBean, контекст
-- TestNG + Selenium: Page Object, параллельные браузеры
-- TestNG + Database: @BeforeSuite для миграций, in-memory БД
-
-### Раздел 10: Best Practices
-
-- Принципы FIRST/CLEAN в контексте TestNG
-- Что тестировать: юниты, интеграции, e2e
-- Избегание антипаттернов: избыточные зависимости, хрупкие группы
-- Рефакторинг тестов: вынос данных, хелперы, фабрики
-- Покрытие кода: интерпретация, инструменты (JaCoCo)
-
----
-
 # TestNG
 
 ## Содержание
@@ -101,7 +12,6 @@
 8. [Параллельное выполнение](#8-параллельное-выполнение)
 9. [Listeners и отчётность](#9-listeners-и-отчётность)
 10. [Интеграция с экосистемой](#10-интеграция-с-экосистемой)
-11. [Best Practices](#11-best-practices)
 
 ---
 
@@ -773,18 +683,18 @@ void testUser() {
 </dependencies>
 
 <build>
-<plugins>
-    <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.2.5</version>
-        <configuration>
-            <suiteXmlFiles>
-                <suiteXmlFile>testng.xml</suiteXmlFile>
-            </suiteXmlFiles>
-        </configuration>
-    </plugin>
-</plugins>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.2.5</version>
+            <configuration>
+                <suiteXmlFiles>
+                    <suiteXmlFile>testng.xml</suiteXmlFile>
+                </suiteXmlFiles>
+            </configuration>
+        </plugin>
+    </plugins>
 </build>
 ```
 
@@ -869,7 +779,6 @@ TestNG работает с Spring Boot, но требует дополнител
 ### Зависимости
 
 ```xml
-
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-test</artifactId>
@@ -889,10 +798,10 @@ TestNG работает с Spring Boot, но требует дополнител
 </dependency>
 
 <dependency>
-<groupId>org.testng</groupId>
-<artifactId>testng</artifactId>
-<version>7.10.0</version>
-<scope>test</scope>
+    <groupId>org.testng</groupId>
+    <artifactId>testng</artifactId>
+    <version>7.10.0</version>
+    <scope>test</scope>
 </dependency>
 ```
 
@@ -958,7 +867,6 @@ public class UserServiceIntegrationTest {
         User result = userService.getById(existing.getId());
         assertEquals(result.getEmail(), existing.getEmail());
     }
-
 }
 ```
 
@@ -1064,13 +972,11 @@ public class ServiceWithMockTest {
 Пример: инициализация БД для всех тестов
 
 ```java
-
 @BeforeSuite
 public void setUpDatabase() {
     // Подключение к тестовой БД
     // Миграции схемы
 }
-
 
 @AfterSuite
 public void tearDownDatabase() {
@@ -1087,7 +993,6 @@ public void tearDownDatabase() {
 Пример: настройка для группы тестов
 
 ```java
-
 @BeforeTest
 public void setUpTestGroup() {
     // Инициализация для конкретной группы тестов
@@ -1102,7 +1007,6 @@ public void setUpTestGroup() {
 Пример: создание сервиса для всех тестов класса
 
 ```java
-
 @BeforeClass
 public void setUpClass() {
     userService = new UserService();
@@ -1122,7 +1026,6 @@ public void tearDownClass() {
 Пример: сброс состояния между тестами
 
 ```java
-
 @BeforeMethod
 public void setUpMethod() {
     // Очистка кэша
@@ -1183,7 +1086,6 @@ public void tearDownMethod() {
 ### `enabled` — включение/отключение теста
 
 ```java
-
 @Test(enabled = false)
 public void disabledTest() {
     // Тест будет пропущен
@@ -1193,7 +1095,6 @@ public void disabledTest() {
 ### `timeOut` — таймаут выполнения в миллисекундах
 
 ```java
-
 @Test(timeOut = 5000)
 public void timeoutTest() {
     // Должен завершиться за 5 секунд
@@ -1204,7 +1105,6 @@ public void timeoutTest() {
 ### `invocationCount` — количество запусков теста
 
 ```java
-
 @Test(invocationCount = 10)
 public void repeatedTest() {
     // Запустится 10 раз
@@ -1214,7 +1114,6 @@ public void repeatedTest() {
 ### `invocationTimeOut` — таймаут для всех запусков
 
 ```java
-
 @Test(invocationCount = 100, invocationTimeOut = 10000)
 public void performanceTest() {
     // 100 запусков за 10 секунд
@@ -1224,7 +1123,6 @@ public void performanceTest() {
 ### `groups` — маркировка тестов
 
 ```java
-
 @Test(groups = {"smoke", "auth"})
 public void loginTest() {
     // Принадлежит двум группам
@@ -1234,7 +1132,6 @@ public void loginTest() {
 ### `dependsOnMethods` — зависимость от других методов
 
 ```java
-
 @Test
 public void createData() {
 }
@@ -1248,7 +1145,6 @@ public void processData() {
 ### `dependsOnGroups` — зависимость от групп
 
 ```java
-
 @Test(dependsOnGroups = {"smoke"})
 public void regressionTest() {
     // Запустится только если все smoke тесты прошли
@@ -1258,7 +1154,6 @@ public void regressionTest() {
 ### `alwaysRun` — запуск даже при падении зависимостей
 
 ```java
-
 @Test(dependsOnMethods = {"createData"}, alwaysRun = true)
 public void cleanup() {
     // Запустится даже если createData упал
@@ -1268,7 +1163,6 @@ public void cleanup() {
 ### `description` — описание теста
 
 ```java
-
 @Test(description = "Проверка входа с валидными данными")
 public void loginTest() {
 }
@@ -1277,7 +1171,6 @@ public void loginTest() {
 ### `priority` — приоритет выполнения (меньше = раньше); можно указать как на классе, так и на методе
 
 ```java
-
 @Test(priority = 1)
 public class UserServiceTest {
 
@@ -1319,7 +1212,6 @@ public class OrderServiceTest {
 - Проверить текст ошибки через expectedExceptionsMessageRegExp
 
 ```java
-
 @Test(expectedExceptions = RuntimeException.class)
 public void testException() {
     throw new RuntimeException("Ожидаемое исключение");
@@ -1342,7 +1234,6 @@ public void testMultipleExceptions() {
 ### `dataProvider` — поставщик данных
 
 ```java
-
 @DataProvider(name = "userData")
 public Object[][] provideUserData() {
     return new Object[][]{
@@ -1434,16 +1325,19 @@ public void testWithFlakyBehavior() {
 ### `expectedExceptionsMessageRegExp` — регулярное выражение для сообщения
 
 ```java
-
-@Test(expectedExceptions = IllegalArgumentException.class,
-        expectedExceptionsMessageRegExp = ".*email.*invalid.*")
+@Test(
+        expectedExceptions = IllegalArgumentException.class, 
+        expectedExceptionsMessageRegExp = ".*email.*invalid.*"
+)
 public void testInvalidEmail() {
     userService.createUser("John", "not-an-email");
 }
 
 // Более сложное регулярное выражение
-@Test(expectedExceptions = ValidationException.class,
-        expectedExceptionsMessageRegExp = "(Email|Password) is (invalid|required)")
+@Test(
+        expectedExceptions = ValidationException.class,
+        expectedExceptionsMessageRegExp = "(Email|Password) is (invalid|required)"
+)
 public void testValidationMessage() {
     userService.validateCredentials("", "");
 }
@@ -1520,7 +1414,6 @@ public class SpringContextListener implements IBeforeSuiteListener, IAfterSuiteL
 ### Тест с Spring контекстом
 
 ```java
-
 @SpringBootTest
 @Listeners(SpringContextListener.class)
 public class SpringIntegrationTest {
@@ -1556,7 +1449,6 @@ public class SpringIntegrationTest {
 ### Mockito + Spring + TestNG
 
 ```java
-
 @SpringBootTest
 @Listeners(SpringContextListener.class)
 public class ServiceWithMockTest {
@@ -1645,7 +1537,6 @@ public class ServiceWithMockTest {
 ### Проверка исключений
 
 ```java
-
 @Test(expectedExceptions = IllegalArgumentException.class)
 public void testInvalidEmail() {
     userService.create("", "invalid");
@@ -1797,7 +1688,6 @@ public void testCollectionsWithAssertJ() {
 ### AssertJ для исключений
 
 ```java
-
 @Test
 public void testExceptionWithAssertJ() {
     assertThatThrownBy(() -> {
@@ -3656,4 +3546,553 @@ pipeline {
 5. **test-output — стандартные отчёты** — `index.html` и `emailable-report.html`
 6. **CI артефакты обязательны** — Сохраняйте отчёты для анализа после пайплайна
 7. **ThreadLocal в listeners** — Избегайте состояния при параллельном запуске
+
+# 10. Интеграция с экосистемой
+> TestNG работает в составе Java-экосистемы вместе с Mockito, Spring, Selenium и базами данных.
+
+---
+
+## TestNG + Mockito
+
+Mockito для создания mock-объектов в TestNG-тестах.
+
+### Подключение зависимостей
+
+```xml
+<dependency>
+    <groupId>org.mockito</groupId>
+    <artifactId>mockito-core</artifactId>
+    <version>5.10.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+### Базовое использование
+
+```java
+public class UserServiceTest {
+
+    @Mock
+    private UserRepository userRepository;
+    
+    @InjectMocks
+    private UserService userService;
+    
+    @BeforeClass
+    public void initMocks() {
+        MockitoAnnotations.openMocks(this);
+    }
+    
+    @BeforeMethod
+    public void resetMocks() {
+        reset(userRepository);
+    }
+    
+    @Test(groups = {"unit"})
+    public void createUser_shouldReturnUser() {
+        when(userRepository.findByEmail("john@test.com")).thenReturn(null);
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+        
+        User user = userService.create("John", "john@test.com");
+        
+        assertNotNull(user);
+        assertEquals(user.getName(), "John");
+        verify(userRepository).save(any(User.class));
+    }
+    
+    @Test(groups = {"unit"})
+    public void getUser_shouldReturnExisting() {
+        User existing = new User(1L, "John", "john@test.com");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        
+        User result = userService.getById(1L);
+        
+        assertEquals(result.getName(), "John");
+    }
+}
+```
+
+### Mockito + DataProvider
+
+```java
+@DataProvider(name = "userData")
+public Object[][] provideUserData() {
+    return new Object[][]{
+            {"John", "john@test.com", true},
+            {"Jane", "jane@test.com", true},
+            {"", "invalid", false}
+    };
+}
+
+@Test(dataProvider = "userData", groups = {"unit"})
+public void testUserCreation(String name, String email, boolean shouldSucceed) {
+    if (shouldSucceed) {
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+        User user = userService.create(name, email);
+        assertNotNull(user);
+    } else {
+        assertThrows(IllegalArgumentException.class, () -> {
+            userService.create(name, email);
+        });
+    }
+}
+```
+
+---
+
+## TestNG + Spring
+
+Интеграция с Spring Boot для интеграционных тестов.
+
+### Подключение зависимостей
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+    <exclusions>
+        <exclusion>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+        </exclusion>
+        <exclusion>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+
+<dependency>
+    <groupId>org.testng</groupId>
+    <artifactId>testng</artifactId>
+    <version>7.10.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+### Кастомный listener для Spring контекста
+
+```java
+public class SpringContextListener implements IBeforeSuiteListener, IAfterSuiteListener {
+
+    private static ConfigurableApplicationContext context;
+    
+    @Override
+    public void onBeforeSuite(ISuite suite) {
+        context = SpringApplication.run(Application.class);
+    }
+    
+    @Override
+    public void onAfterSuite(ISuite suite) {
+        if (context != null) {
+            context.close();
+        }
+    }
+    
+    public static <T> T getBean(Class<T> clazz) {
+        return context.getBean(clazz);
+    }
+}
+```
+
+### Интеграционный тест со Spring
+
+```java
+@SpringBootTest
+@Listeners(SpringContextListener.class)
+public class UserServiceIntegrationTest {
+
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private DatabaseCleaner databaseCleaner;
+    
+    @BeforeMethod
+    public void cleanDatabase() {
+        databaseCleaner.clean();
+    }
+    
+    @AfterMethod
+    public void logResult(ITestResult result) {
+        System.out.println("Test: " + result.getName() + " - " + 
+            (result.isSuccess() ? "PASS" : "FAIL"));
+    }
+    
+    @Test(groups = {"integration"})
+    public void createUser_shouldPersistToDatabase() {
+        User user = userService.create("John", "john@test.com");
+        
+        assertNotNull(user.getId());
+        assertEquals(user.getName(), "John");
+        
+        User fromDb = userRepository.findById(user.getId()).orElse(null);
+        assertNotNull(fromDb);
+        assertEquals(fromDb.getEmail(), user.getEmail());
+    }
+    
+    @Test(groups = {"integration"})
+    public void updateUser_shouldReflectInDatabase() {
+        User user = userService.create("Jane", "jane@test.com");
+        user.setName("Jane Updated");
+        
+        userService.update(user);
+        
+        User updated = userRepository.findById(user.getId()).orElse(null);
+        assertEquals(updated.getName(), "Jane Updated");
+    }
+    
+    @Test(groups = {"integration"}, dependsOnMethods = {"createUser_shouldPersistToDatabase"})
+    public void deleteUser_shouldRemoveFromDatabase() {
+        User user = userService.create("Temp", "temp@test.com");
+        userService.delete(user.getId());
+        
+        Optional<User> deleted = userRepository.findById(user.getId());
+        assertFalse(deleted.isPresent());
+    }
+}
+```
+### MockBean вручную (TestNG не поддерживает @MockBean)
+
+```java
+@SpringBootTest
+@Listeners(SpringContextListener.class)
+public class ServiceWithManualMockTest {
+
+    @Autowired
+    private ApplicationContext context;
+    
+    private UserService userService;
+    
+    @Mock
+    private ExternalApi externalApi;
+    
+    @BeforeClass
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        // Создаём сервис вручную с моком
+        userService = new UserService(externalApi);
+    }
+    
+    @Test(groups = {"integration"})
+    public void testWithExternalApiMock() {
+        when(externalApi.getData()).thenReturn("mocked data");
+        
+        String result = userService.processExternalData();
+        
+        assertEquals(result, "mocked data");
+        verify(externalApi).getData();
+    }
+}
+```
+
+---
+
+## TestNG + Selenium
+
+> UI-тестирование с Page Object и параллельными браузерами.
+
+### Подключение зависимостей
+
+```xml
+<dependency>
+    <groupId>org.seleniumhq.selenium</groupId>
+    <artifactId>selenium-java</artifactId>
+    <version>4.18.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+### ThreadLocal WebDriver
+
+```java
+public class DriverContext {
+
+    private static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
+    
+    public static void setDriver(WebDriver webDriver) {
+        driver.set(webDriver);
+    }
+    
+    public static WebDriver getDriver() {
+        return driver.get();
+    }
+    
+    public static void removeDriver() {
+        if (driver.get() != null) {
+            driver.get().quit();
+            driver.remove();
+        }
+    }
+}
+```
+
+### Page Object классы
+
+```java
+public class LoginPage {
+
+    private WebDriver driver;
+    
+    @FindBy(id = "email")
+    private WebElement emailField;
+    
+    @FindBy(id = "password")
+    private WebElement passwordField;
+    
+    @FindBy(id = "loginBtn")
+    private WebElement loginButton;
+    
+    public LoginPage(WebDriver driver) {
+        this.driver = driver;
+        PageFactory.initElements(driver, this);
+    }
+    
+    public void login(String email, String password) {
+        emailField.sendKeys(email);
+        passwordField.sendKeys(password);
+        loginButton.click();
+    }
+    
+    public boolean isLoggedIn() {
+        return driver.findElement(By.id("logoutBtn")).isDisplayed();
+    }
+}
+
+public class DashboardPage {
+
+    private WebDriver driver;
+    
+    @FindBy(id = "welcomeMsg")
+    private WebElement welcomeMessage;
+    
+    public DashboardPage(WebDriver driver) {
+        this.driver = driver;
+        PageFactory.initElements(driver, this);
+    }
+    
+    public String getWelcomeMessage() {
+        return welcomeMessage.getText();
+    }
+}
+```
+
+### Базовый тестовый класс
+
+```java
+@Listeners(ScreenshotListener.class)
+public class BaseSeleniumTest {
+
+    @BeforeMethod
+    public void setUp() {
+        WebDriver driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        DriverContext.setDriver(driver);
+    }
+    
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
+        DriverContext.removeDriver();
+    }
+    
+    protected LoginPage getLoginPage() {
+        return new LoginPage(DriverContext.getDriver());
+    }
+    
+    protected DashboardPage getDashboardPage() {
+        return new DashboardPage(DriverContext.getDriver());
+    }
+}
+```
+
+### UI тесты
+
+```java
+public class LoginUiTest extends BaseSeleniumTest {
+
+    @Test(groups = {"ui", "smoke"})
+    public void validLogin_shouldRedirectToDashboard() {
+        LoginPage loginPage = getLoginPage();
+        DriverContext.getDriver().get("https://example.com/login");
+        
+        loginPage.login("user@test.com", "password123");
+        
+        DashboardPage dashboard = getDashboardPage();
+        assertTrue(dashboard.getWelcomeMessage().contains("Welcome"));
+    }
+    
+    @Test(groups = {"ui", "smoke"})
+    public void invalidLogin_shouldShowError() {
+        LoginPage loginPage = getLoginPage();
+        DriverContext.getDriver().get("https://example.com/login");
+        
+        loginPage.login("invalid@test.com", "wrong");
+        
+        WebElement error = DriverContext.getDriver().findElement(By.className("error"));
+        assertTrue(error.isDisplayed());
+    }
+}
+```
+
+### Параллельный запуск Selenium тестов
+
+`testng.xml`:
+
+```xml
+<suite name="SeleniumSuite" parallel="tests" thread-count="4">
+    
+    <test name="ChromeTests">
+        <parameter name="browser" value="chrome"/>
+        <classes>
+            <class name="com.example.LoginUiTest"/>
+        </classes>
+    </test>
+    
+    <test name="FirefoxTests">
+        <parameter name="browser" value="firefox"/>
+        <classes>
+            <class name="com.example.LoginUiTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+---
+
+## TestNG + Database
+
+Управление тестовыми данными и миграциями.
+
+### H2 in-memory база для тестов
+
+```xml
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+`application-test.properties`:
+
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+spring.datasource.driver-class-name=org.h2.Driver
+spring.jpa.hibernate.ddl-auto=create-drop
+```
+
+### Миграции в @BeforeSuite
+
+```java
+@Listeners(SpringContextListener.class)
+public class DatabaseTest {
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private Flyway flyway;
+
+    @BeforeSuite
+    public void migrateDatabase() {
+        flyway.migrate();
+    }
+
+    @BeforeMethod
+    public void cleanData() {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM users");
+            stmt.execute("DELETE FROM orders");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test(groups = {"integration", "database"})
+    public void testDatabaseOperations() {
+        // Тесты с чистой БД перед каждым запуском
+    }
+}
+```
+
+### DataProvider из БД
+
+```java
+@DataProvider(name = "usersFromDb")
+public Object[][] getUsersFromDatabase() {
+    List<Object[]> data = new ArrayList<>();
+
+    try (Connection conn = dataSource.getConnection(); 
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT id, name, email FROM test_users")) {
+        
+        while (rs.next()) {
+            data.add(new Object[]{
+                    rs.getLong("id"),
+                    rs.getString("name"),
+                    rs.getString("email")
+            });
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException(e);
+    }
+
+    return data.toArray(new Object[0][]);
+}
+
+@Test(dataProvider = "usersFromDb", groups = {"integration"})
+public void testUserFromDatabase(Long id, String name, String email) {
+    User user = userService.getById(id);
+    assertEquals(user.getName(), name);
+    assertEquals(user.getEmail(), email);
+}
+```
+---
+
+## Сводная таблица: интеграции
+
+| Интеграция  | Зависимости              | Конфигурация                | Когда использовать   |
+|:------------|--------------------------|-----------------------------|----------------------|
+| Mockito     | mockito-core             | @BeforeClass initMocks()    | Unit-тесты с моками  |
+| Spring      | spring-boot-starter-test | Кастомный listener          | Integration-тесты    |
+| Selenium    | selenium-java            | ThreadLocal WebDriver       | UI/E2E тесты         |
+| H2 Database | h2                       | application-test.properties | Тесты с in-memory БД |
+| Flyway      | flyway-core              | @BeforeSuite migrate()      | Миграции схемы БД    |
+
+---
+
+## Best Practices
+
+✅ Делайте:
+
+- Используйте `MockitoAnnotations.openMocks()` в `@BeforeClass`
+- Сбрасывайте моки в `@BeforeMethod` через `reset()`
+- Применяйте ThreadLocal для WebDriver в параллельных тестах
+- Очищайте БД в `@BeforeMethod` для изоляции тестов
+- Выносите Page Object в отдельные классы
+
+❌ Не делайте:
+
+- Не создавайте WebDriver в каждом тесте (используйте `@BeforeMethod`)
+- Не храните состояние БД между тестами
+- Не смешивайте реальные и mock-зависимости без необходимости
+- Не забывайте закрывать WebDriver в `@AfterMethod`
+
+---
+
+## Ключевые выводы
+
+1. **Mockito требует ручной инициализации** — `MockitoAnnotations.openMocks()` в `@BeforeClass`
+2. **Spring требует кастомного listener** — Для управления жизненным циклом контекста
+3. **ThreadLocal для WebDriver** — Изоляция между потоками в параллельных тестах
+4. **Page Object для UI-тестов** — Отделение логистики от тестовой логики
+5. **H2 для изоляции БД** — In-memory база для быстрых интеграционных тестов
+6. **Очистка в `@BeforeMethod`** — Чистое состояние перед каждым тестом
+7. **Миграции в `@BeforeSuite`** — Один раз для всех тестов suite
 
