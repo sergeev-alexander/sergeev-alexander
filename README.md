@@ -45,24 +45,24 @@
       </summary>
          
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
-[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md") 
-[`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
-[`NIO`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md")
-[`Reflection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Reflection.md "Reflection.md")
-[`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md")
+[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md")  
+[`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md") 
+[`NIO`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md") 
+[`Reflection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Reflection.md "Reflection.md") 
+[`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md") 
 <br>
-[`Stream API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Stream_API.md "Stream_API.md")
-[`Collectios`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Collections.md "Collections.md")
-[`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md")
-[`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md")
+[`Stream API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Stream_API.md "Stream_API.md") 
+[`Collectios`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Collections.md "Collections.md") 
+[`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md") 
+[`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md") 
 `Date/Time API` 
-[`Generics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Generics.md "Generics.md")
-[`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md")
-[`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md")
+[`Generics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Generics.md "Generics.md") 
+[`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md") 
+[`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md") 
 <br>
-`Multithreading` `Concurrency` `ExecutorService` `CompletableFuture`
+`Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
 <br>
-`JDBC` `JPA` `Log4j`
+`JDBC` `JPA` `Log4j` 
 </details>
 
    <details open>
@@ -95,10 +95,10 @@
       
 `PostgreSQL` `MySQL`
 <br>
-[`Redis`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Redis.md "Redis.md")
-`Amazon DynamoDB`
-[`MongoDB`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/MongoDB.md "MongoDB.md")
-[`Cassandra`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Cassandra.md "Cassandra.md")
+[`Redis`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Redis.md "Redis.md") 
+`Amazon DynamoDB` 
+[`MongoDB`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/MongoDB.md "MongoDB.md") 
+[`Cassandra`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Cassandra.md "Cassandra.md") 
 </details>
 
    <details open>
@@ -106,18 +106,18 @@
          <b>⚙️ Tools & Infrastructure</b>
       </summary>
    
-[`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md")
-[`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md")
-`Gradle`
+[`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md") 
+[`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md") 
+`Gradle` 
 <br>
-[`Jenkins`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Jenkins.md "Jenkins.md")
+[`Jenkins`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Jenkins.md "Jenkins.md") 
 <br>
-`Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok`
+`Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok` 
 <br>
 `JSON` 
-[`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md")
+[`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md") 
 <br>
-[`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md")
+[`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md") 
 `GitHub` 
 [`CI/CD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/CI_CD.md "CI_CD.md") 
 </details>
@@ -128,30 +128,30 @@
          <b>🧪 Q/A</b>
     </summary>
 
-[`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md")
-`Postman`
-[`OpenApi Specification`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md")
+[`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
+`Postman` 
+[`OpenApi Specification`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 <br>
-[`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md")
-['TestNG](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md")
-[`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md#8-mocking-%D0%B2-%D1%82%D0%B5%D1%81%D1%82%D0%B0%D1%85 "Mockito")
-`TestContainers` `AssertJ`
+[`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md") 
+[`TestNG`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md") 
+[`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "Mockito") 
+`TestContainers` `AssertJ` 
 <br>
-`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator`
+`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator` 
 <br>
-[`Test Design`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md")
-[`STLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/STLC.md "STLC.md")
-[`Test Documentation And Metrics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_documentation.md "Test_documentation.md")
-[`Defects and Errors`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Defects_and_Errors.md "Defects_and_Errors.md")
+[`Test Design`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md") 
+[`STLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/STLC.md "STLC.md") 
+[`Test Documentation And Metrics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_documentation.md "Test_documentation.md") 
+[`Defects and Errors`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Defects_and_Errors.md "Defects_and_Errors.md") 
 <br>
-[`Functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md")
-[`Non-functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md")
-[`Change-related Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md")
+[`Functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md") 
+[`Non-functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md") 
+[`Change-related Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md") 
 <br>
-[`Static Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md")
-[`Dynamic Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Dynamic_testing.md "Dynamic_testing.md")
-[`Risk-based Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md")
-[`Root Cause Analysis`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Root_cause_analysis.md "Root_cause_analysis.md")
+[`Static Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md") 
+[`Dynamic Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Dynamic_testing.md "Dynamic_testing.md") 
+[`Risk-based Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md") 
+[`Root Cause Analysis`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Root_cause_analysis.md "Root_cause_analysis.md") 
 </details>
 
    <details open>
@@ -159,16 +159,16 @@
          <b>📚 Theory</b>
       </summary>
 
-[`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md")
-[`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md")
+[`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
+[`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md") 
 `Design Patterns`
-[`GRASP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/GRASP.md "GRASP.md")
+[`GRASP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/GRASP.md "GRASP.md") 
 <br>
-[`API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/API.md "API.md")
-[`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md")
+[`API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/API.md "API.md") 
+[`REST`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/REST.md "REST.md") 
 [`HTTP/HTTPS`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/HTTP_HTTPS.md "HTTP_HTTPS.md") 
 [`gRPC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/gRPC.md "gRPC.md") 
-[`SOAP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOAP.md "SOAP.md")
+[`SOAP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOAP.md "SOAP.md") 
 <br>
 [`AGILE`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/AGILE.md "AGILE.md") 
 [`SCRUM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SCRUM.md "SCRUM.md") 
