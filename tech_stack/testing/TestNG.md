@@ -3173,3 +3173,487 @@ public class MockedParallelTest {
 5. **DataProvider с `parallel = true`** — Дополнительная параллелизация данных
 6. **Spring prototype scope** — Новые экземпляры бинов для каждого потока
 7. **Избегайте static состояния** — Главное правило thread-safe тестов
+
+# 9. Listeners и отчётность
+
+> Listeners позволяют перехватывать события тестирования и расширять функциональность TestNG.
+
+---
+
+## Встроенные listeners
+
+TestNG предоставляет интерфейсы для перехвата событий жизненного цикла тестов.
+
+### `ITestListener` — основной listener для тестов
+
+```java
+public class CustomTestListener implements ITestListener {
+
+    @Override
+    public void onTestStart(ITestResult result) {
+        System.out.println("Тест начался: " + result.getName());
+    }
+    
+    @Override
+    public void onTestSuccess(ITestResult result) {
+        System.out.println("Тест успешен: " + result.getName());
+    }
+    
+    @Override
+    public void onTestFailure(ITestResult result) {
+        System.out.println("Тест упал: " + result.getName());
+        System.out.println("Ошибка: " + result.getThrowable().getMessage());
+    }
+    
+    @Override
+    public void onTestSkipped(ITestResult result) {
+        System.out.println("Тест пропущен: " + result.getName());
+    }
+    
+    @Override
+    public void onFinish(ITestContext context) {
+        System.out.println("Все тесты завершены");
+        System.out.println("Успешно: " + context.getPassedTests().size());
+        System.out.println("Провалено: " + context.getFailedTests().size());
+    }
+}
+```
+
+### `IInvokedMethodListener` — перехват вызовов методов
+
+```java
+public class MethodListener implements IInvokedMethodListener {
+
+    @Override
+    public void beforeInvocation(IInvokedMethod method, ITestResult testResult) {
+        if (method.isTestMethod()) {
+            System.out.println("Перед тестом: " + method.getTestMethod().getMethodName());
+        }
+    }
+    
+    @Override
+    public void afterInvocation(IInvokedMethod method, ITestResult testResult) {
+        if (method.isTestMethod()) {
+            System.out.println("После теста: " + method.getTestMethod().getMethodName());
+        }
+    }
+}
+```
+
+### `ISuiteListener` — события уровня suite
+
+```java
+public class SuiteListener implements ISuiteListener {
+
+    @Override
+    public void onStart(ISuite suite) {
+        System.out.println("Suite начался: " + suite.getName());
+    }
+    
+    @Override
+    public void onFinish(ISuite suite) {
+        System.out.println("Suite завершён: " + suite.getName());
+    }
+}
+```
+
+---
+
+## Подключение listeners
+
+### Через аннотацию @Listeners
+
+```java
+@Listeners(CustomTestListener.class)
+public class MyTest {
+
+    @Test
+    public void test1() {
+        // Listener будет применяться ко всем тестам класса
+    }
+}
+```
+
+На всё приложение — на базовый класс
+
+```java
+@Listeners(CustomTestListener.class)
+public class BaseTest {
+    // Все наследники получат listener
+}
+
+public class LoginTest extends BaseTest {
+    
+    @Test
+    public void loginTest() { }
+}
+```
+
+### Через `testng.xml`
+
+```xml
+<suite name="MySuite">
+    <listeners>
+        <listener class-name="com.example.CustomTestListener"/>
+        <listener class-name="com.example.MethodListener"/>
+    </listeners>
+
+    <test name="MyTest">
+        <classes>
+            <class name="com.example.MyTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+### Через ServiceLoader (автоматическое обнаружение)
+
+> `java.util.ServiceLoader` — это механизм в JDK для динамического обнаружения реализаций интерфейсов в classpath
+
+Принцип работы:
+- Вы создаёте файл-контракт в `META-INF/services/` с именем интерфейса.
+- В файле перечисляете полные имена классов-реализаций.
+- При запуске `ServiceLoader.load(Interface.class)` сканирует classpath, находит этот файл и автоматически инстанцирует указанные классы.
+
+TestNG использует этот механизм для интерфейсов, наследующих org.testng.ITestNGListener
+
+### 1. Создайте ваш Listener
+
+```java
+public class MySuiteListener implements ISuiteListener {
+    
+    @Override
+    public void onStart(ISuite suite) {
+        System.out.println(">>> Suite started: " + suite.getName());
+    }
+    
+    @Override
+    public void onFinish(ISuite suite) {
+        System.out.println(">>> Suite finished: " + suite.getName());
+    }
+}
+```
+
+### 2. Создайте файл конфигурации SPI
+
+Путь: `src/main/resources/META-INF/services/org.testng.ITestNGListener`
+
+```text
+com.example.MySuiteListener
+com.example.AnotherTestListener
+```
+
+### 3. Соберите в JAR и добавьте в classpath
+
+```bash
+# Структура JAR должна быть такой:
+$ jar tf my-testng-listeners.jar
+META-INF/services/org.testng.ITestNGListener
+com/example/MySuiteListener.class
+
+# Запуск тестов с вашим JAR в classpath:
+java -cp "my-tests.jar:my-testng-listeners.jar:testng.jar" org.testng.TestNG testng.xml
+```
+
+### 4. Запустите тесты
+
+Listener подключится автоматически без `@Listeners` и `<listeners>` в `testng.xml`
+
+---
+
+## Кастомные listeners
+
+### Логирование результатов
+
+```java
+public class LoggingListener implements ITestListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoggingListener.class);
+    
+    @Override
+    public void onTestSuccess(ITestResult result) {
+        logger.info("PASS: {}.{} - {}", 
+            result.getTestClass().getName(),
+            result.getName(),
+            result.getEndMillis() - result.getStartMillis() + "ms");
+    }
+    
+    @Override
+    public void onTestFailure(ITestResult result) {
+        logger.error("FAIL: {}.{} - {}", 
+            result.getTestClass().getName(),
+            result.getName(),
+            result.getThrowable().getMessage());
+    }
+}
+```
+
+### Скриншоты при падении (Selenium)
+
+```java
+public class ScreenshotListener implements ITestListener {
+
+    @Override
+    public void onTestFailure(ITestResult result) {
+        WebDriver driver = getDriver(); // Получить WebDriver из контекста
+        if (driver != null) {
+            File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            String path = "screenshots/" + result.getName() + "_" + System.currentTimeMillis() + ".png";
+            try {
+                FileUtils.copyFile(screenshot, new File(path));
+                System.out.println("Скриншот сохранён: " + path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    private WebDriver getDriver() {
+        // Получить WebDriver из ThreadLocal или контекста
+        return DriverContext.getDriver();
+    }
+}
+```
+
+### Уведомления (Email, Slack)
+
+```java
+public class NotificationListener implements ITestListener {
+
+    @Override
+    public void onFinish(ITestContext context) {
+        int passed = context.getPassedTests().size();
+        int failed = context.getFailedTests().size();
+        int total = passed + failed;
+        
+        String subject = String.format("Test Report: %d passed, %d failed", passed, failed);
+        String body = String.format("Total: %d\nPassed: %d\nFailed: %d", total, passed, failed);
+        
+        sendEmail(subject, body);
+        sendSlackMessage(subject, body);
+    }
+    
+    private void sendEmail(String subject, String body) {
+        // Отправка email через SMTP
+    }
+    
+    private void sendSlackMessage(String subject, String body) {
+        // Отправка в Slack через webhook
+    }
+}
+```
+
+---
+
+## Встроенные отчёты TestNG
+
+TestNG генерирует отчёты автоматически после запуска.
+
+### Расположение отчётов
+
+После запуска в test-output/:
+
+```text
+test-output/
+├── index.html              // Полный HTML отчёт
+├── emailable-report.html   // Упрощённый отчёт для email
+├── testng-results.xml      // XML результаты
+├── TEST-*.xml              // JUnit-формат для CI
+├── DefaultSuite/           // Отчёты по suite
+│   └── DefaultTest.html
+└── junitreports/           // JUnit XML отчёты
+    └── TEST-*.xml
+```
+
+### Структура HTML отчёта
+
+- Сводка по всем тестам (`passed` / `failed` / `skipped`)
+- Детали по каждому тесту с временем выполнения
+- Стек-трейсы для упавших тестов
+- Группировка по классам и методам
+- Хронология выполнения
+
+---
+
+## Интеграция с Allure
+
+Allure предоставляет красивые интерактивные отчёты с графиками.
+
+### Подключение зависимости
+
+```xml
+<dependency>
+    <groupId>io.qameta.allure</groupId>
+    <artifactId>allure-testng</artifactId>
+    <version>2.25.0</version>
+</dependency>
+```
+
+### Настройка Maven
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-maven</artifactId>
+            <version>2.12.0</version>
+        </plugin>
+    </plugins>
+</build>
+```
+
+### Аннотации Allure
+
+```java
+
+@AllureId("1234")
+@Feature("Авторизация")
+@Story("Вход по email")
+@Severity(SeverityLevel.CRITICAL)
+@Test
+public void loginTest() {
+    
+    Allure.step("Ввод email", () -> {
+    // шаг теста
+    });
+    
+    Allure.step("Ввод пароля", () -> {
+    // шаг теста
+    });
+    
+    Allure.addAttachment("Скриншот", new File("screenshot.png"));
+}
+```
+
+### Генерация отчёта
+
+# После тестов
+
+```bash
+mvn allure:report
+
+# Открыть отчёт
+mvn allure:serve
+```
+
+Отчёт будет в `target/site/allure-maven-plugin/`
+
+---
+
+## Интеграция с CI/CD
+
+### GitHub Actions
+
+```yaml
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin' }
+      - name: Run tests
+        run: mvn test
+      - name: Upload TestNG reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: testng-reports
+          path: test-output/
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: target/allure-results/
+```
+
+### GitLab CI
+
+```yaml
+test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-17
+  script:
+    - mvn test
+  artifacts:
+    when: always
+    paths:
+      - test-output/
+      - target/allure-results/
+    reports:
+      junit: test-output/junitreports/TEST-*.xml
+```
+
+### Jenkins Pipeline
+
+```text
+pipeline {
+    agent any
+    stages {
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+    post {
+        always {
+            publishHTML(target: [
+                reportDir: 'test-output',
+                reportFiles: 'index.html',
+                reportName: 'TestNG Report'
+            ])
+            allure([includeProperties: false, jdk: '', results: [[path: 'target/allure-results']]])
+        }
+    }
+}
+```
+
+---
+
+## Сводная таблица: listeners
+
+| Listener  | Интерфейс               | Когда использовать                              |
+|:----------|-------------------------|-------------------------------------------------|
+| Тесты     | ITestListener           | Логирование, скриншоты, уведомления             |
+| Методы    | IInvokedMethodListener  | Перехват вызовов `@Before` / `@After` / `@Test` |
+| Suite     | ISuiteListener          | Инициализация/очистка уровня `<suite>`          |
+| Порядок   | IExecutionListener      | Глобальная настройка перед всеми тестами        |
+| Аннотации | IAnnotationTransformer  | Модификация аннотаций на лету                   |
+| Агрегация | IReporter               | Кастомные отчёты                                |
+| Индекс    | IExcludedMethodListener | Пропущенные методы                              |
+
+---
+
+## Best Practices
+
+✅ Делайте:
+
+- Используйте `ITestListener` для логирования и скриншотов
+- Подключайте listeners через `testng.xml` для централизации
+- Сохраняйте артефакты отчётов в CI для анализа
+- Интегрируйте Allure для красивых интерактивных отчётов
+- Используйте ServiceLoader для автоматического подключения
+
+❌ Не делайте:
+- Не создавайте listeners с тяжёлой логикой (замедляют тесты)
+- Не полагайтесь на порядок вызова listeners
+- Не храните состояние в listeners без ThreadLocal
+- Не забывайте про cleanup в `onFinish` / `onTestFailure`
+- Не игнорируйте отчёты в CI — настройте уведомления о падении
+
+---
+
+## Ключевые выводы
+
+1. **`ITestListener` для тестов** — Перехват `onTestSuccess` / `Failure` / `Skipped`
+2. **`@Listeners` или `testng.xml`** — Два способа подключения listeners
+3. **Скриншоты при падении** — Автоматическое сохранение в `onTestFailure`
+4. **Allure для красоты** — Интерактивные отчёты с шагами и графиками
+5. **test-output — стандартные отчёты** — `index.html` и `emailable-report.html`
+6. **CI артефакты обязательны** — Сохраняйте отчёты для анализа после пайплайна
+7. **ThreadLocal в listeners** — Избегайте состояния при параллельном запуске
+
