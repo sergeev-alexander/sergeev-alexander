@@ -133,8 +133,9 @@
 [`OpenApi Specification`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md")
 <br>
 [`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md")
+['TestNG](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md")
 [`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md#8-mocking-%D0%B2-%D1%82%D0%B5%D1%81%D1%82%D0%B0%D1%85 "Mockito")
-`TestContainers` `WireMock` `AssertJ`
+`TestContainers` `AssertJ`
 <br>
 `Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator`
 <br>
