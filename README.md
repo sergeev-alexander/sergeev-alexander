@@ -134,7 +134,8 @@
 <br>
 [`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md") 
 [`TestNG`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md") 
-[`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "Mockito") 
+[`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "Mockito")
+[`Allure`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Allure.md "Allure.md")
 `TestContainers` `AssertJ` 
 <br>
 `Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator` 
