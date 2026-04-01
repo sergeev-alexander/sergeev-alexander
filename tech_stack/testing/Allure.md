@@ -2,16 +2,16 @@
 
 ## Содержание
 
-1. [Основы](#1-основы)
-2. [Быстрое подключение](#2-быстрое-подключение)
+1. [Что такое Allure](#1-что-такое-allure)
+2. [Подключение](#2-подключение)
 3. [Аннотации Allure](#3-аннотации-allure)
 4. [Интеграция в CI/CD](#4-интеграция-в-cicd)
-5. [Полезные мелочи](#5-полезные-мелочи)
+5. [Практические советы](#5-практические-советы)
 6. [Allure TestOps](#6-allure-testops)
 
 ---
 
-## Что такое Allure
+# 1. Что такое Allure
 
 > Allure — фреймворк для генерации детализированных визуальных отчётов о результатах тестирования.
 >
@@ -663,6 +663,136 @@ stage('Allure Report') {
 2. **`allure-results` — первичный артефакт**, отчёт вторичен и может быть сгенерирован позже
 3. **Публикация отчёта должна быть гарантирована** даже при падении тестов (для анализа ошибок)
 4. **Docker-образы с предустановленным Allure** ускоряют пайплайн на 30-60 секунд
+
+---
+
+# 5. Практические советы
+
+## Где лежат результаты
+
+| Фреймворк        | Путь по умолчанию       | Как изменить                                   |
+|:-----------------|:------------------------|:-----------------------------------------------|
+| Maven (Surefire) | `target/allure-results` | `<allureDirectory>` в плагине                  |
+| Gradle           | `build/allure-results`  | `allure.results.directory` в свойствах         |
+| TestNG           | `target/allure-results` | `allure.results.directory` в system properties |
+| JUnit 5          | `target/allure-results` | `allure.results.directory` в system properties |
+
+```bash
+# Проверка наличия результатов
+ls target/allure-results
+
+# Очистка перед новым запуском
+rm -rf target/allure-results
+
+## Локальный запуск отчёта
+```
+
+### Быстрый старт
+
+```bash
+# Запуск тестов
+mvn clean test
+
+# Просмотр отчёта (автоматически откроет браузер)
+allure serve target/allure-results
+```
+
+### Работа с несколькими запусками
+
+```bash
+# Объединение результатов из разных папок
+allure generate output/report --clean target/run1 target/run2 target/run3
+
+# Открытие конкретного отчёта
+allure open output/report
+```
+
+> `allure serve` создаёт временный отчёт и удаляет его после закрытия терминала.
+> `allure generate` создаёт статический HTML, который можно захостить на любом веб-сервере.
+
+## Фильтрация и навигация в интерфейсе
+
+### Панель фильтров
+
+- **Behaviors** — Группировка по Epic/Feature/Story
+- **Packages** — Группировка по пакетам Java
+- **Suites** — Группировка по тестовым классам
+- **Severity** — Фильтр по приоритету (Blocker, Critical...)
+- **Owner** — Фильтр по владельцу теста
+- **Status** — `Passed`, `Failed`, `Broken`, `Skipped`
+
+### Категории дефектов (Categories)
+
+> Позволяют группировать падения по типу ошибки (например, "Ошибки сети", "Баги продукта", "Проблемы окружения").
+
+Пример файла `categories.json` (в `src/test/resources/allure`)
+
+```json
+[
+  {
+    "name": "Infrastructure Issues",
+    "matchedStatuses": ["broken"],
+    "messageRegex": ".*Connection refused.*"
+  },
+  {
+    "name": "Product Bugs",
+    "matchedStatuses": ["failed"],
+    "messageRegex": ".*AssertionError.*"
+  }
+]
+```
+
+## Частые проблемы и решения
+
+| Проблема            | Причина                       | Решение                                              |
+|:--------------------|-------------------------------|------------------------------------------------------|
+| Пустой отчёт        | Нет файлов в `allure-results` | Проверить наличие адаптера и `aspectjweaver`         |
+| Не работают `@Step` | Отсутствует JavaAgent         | Добавить `-javaagent:...aspectjweaver.jar` в argLine |
+| Битые ссылки        | Не настроены URL трекеров     | Настроить `allure.link.issue.pattern` в properties   |
+| Нет скриншотов      | Ошибка в методе `@Attachment` | Убедиться, что метод возвращает данные и вызывается  |
+
+### Настройка ссылок (Maven)
+
+```xml
+<configuration>
+    <properties>
+        
+        <property>
+            <name>allure.link.issue.pattern</name>
+            <value>https://jira.company.com/browse/{}</value>
+        </property>
+        
+        <property>
+            <name>allure.link.tms.pattern</name>
+            <value>https://testrail.company.com/cases/{}</value>
+        </property>
+    </properties>
+</configuration>
+```
+
+## Best Practices
+
+✅ Делайте:
+
+- Настройте `categories.json` для автоматической классификации ошибок
+- Используйте `allure serve` для локальной отладки, `generate` для CI
+- Добавляйте `@Owner` для распределения ответственности за тесты
+- Очищайте `allure-results` перед важным релизом, чтобы не смешивать данные
+
+❌ Не делайте:
+
+- Не храните историю `allure-results` в Git (только в CI артефактах)
+- Не генерируйте отчёт на каждом локальном коммите (только перед пушем)
+- Не игнорируйте статус `broken` (часто это проблемы окружения, а не кода)
+
+---
+
+## Ключевые выводы
+
+1. **`allure serve` — лучший друг разработчика** для быстрого анализа локальных прогонов
+2. **Категории дефектов** экономят часы ручной сортировки падений
+3. **Настройка паттернов ссылок** делает отчёт связным с Jira/TestRail
+4. **Чистота директории результатов** гарантирует корректность статистики
 
 ---
 
