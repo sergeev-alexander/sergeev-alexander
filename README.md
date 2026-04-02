@@ -114,7 +114,8 @@
 <br>
 `Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok` 
 <br>
-`JSON` 
+[`JsonPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/JsonPath.md "JsonPath.md") 
+[`JsonSchema`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/JsonSchema.md "JsonSchema.md") 
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md") 
 <br>
 [`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md") 
