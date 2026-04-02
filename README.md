@@ -73,7 +73,6 @@
 `Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
 [`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security")
 [`JWT`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/Spring/JVT.md "JWT.md") 
-[`Jackson`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Jackson.md "Jackson.md")
 <br>
 `DI` `IoC` `Bean Lifecycle` `Application Properties` `Profiles` `Configuration`
 <br>
@@ -114,6 +113,7 @@
 <br>
 `Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok` 
 <br>
+[`Jackson`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Jackson.md "Jackson.md")
 [`JsonPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/JsonPath.md "JsonPath.md") 
 [`JsonSchema`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/JsonSchema.md "JsonSchema.md") 
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md") 
