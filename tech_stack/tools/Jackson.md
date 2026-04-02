@@ -1,17 +1,14 @@
 # Jackson
 
-**Jackson** - это самая популярная библиотека для работы с JSON в Java. Она позволяет **преобразовывать Java-объекты в JSON** (сериализация) и **собирать объекты из JSON** (десериализация) с минимальными усилиями. 
+> **Jackson** - это самая популярная библиотека для работы с JSON в Java. Она позволяет **преобразовывать Java-объекты в JSON** (сериализация) и **собирать объекты из JSON** (десериализация) с минимальными усилиями. 
+>
+> Благодаря гибкой системе аннотаций и настроек, Jackson даёт полный контроль над форматом, структурой и содержимым JSON - от простых DTO до сложных полиморфных иерархий.  
+>
+> Jackson является основой JSON-поддержки в Spring Boot, но также отлично работает и в standalone-приложениях.
 
-Благодаря гибкой системе аннотаций и настроек, Jackson даёт полный контроль над форматом, структурой и содержимым JSON - от простых DTO до сложных полиморфных иерархий.  
+---
 
-Jackson является основой JSON-поддержки в Spring Boot, но также отлично работает и в standalone-приложениях.
-
-<details>
-    <summary>
-        <b>ObjectMapper</b>
-    </summary>
-
-### `ObjectMapper` Основной инструмент для сериализации и десериализации
+## `ObjectMapper` Основной инструмент для сериализации и десериализации
 
 `ObjectMapper` - это **сердце Jackson**. Он отвечает за:
 
@@ -20,6 +17,8 @@ Jackson является основой JSON-поддержки в Spring Boot, 
 - настройку глобального поведения (формат дат, обработка null, стратегии именования и т.д.).
 
 > 💡 В Spring Boot `ObjectMapper` создаётся автоматически и доступен через DI. В standalone-приложениях - создаётся вручную.
+
+---
 
 ### Основные методы
 
@@ -34,16 +33,11 @@ Jackson является основой JSON-поддержки в Spring Boot, 
 | `setPropertyNamingStrategy(...)`                 | Задаёт глобальную стратегию именования                    | `mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);`      |
 | `registerModule(...)`                            | Подключает расширения (например, для Java Time)           | `mapper.registerModule(new JavaTimeModule());`                                |
 
+---
+
 ### Типичная настройка `ObjectMapper` (standalone)
 
 ```java
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 public class ObjectMapperConfig {
 
     public static ObjectMapper createConfiguredMapper() {
@@ -75,6 +69,8 @@ public class ObjectMapperConfig {
     }
 }
 ```
+
+---
 
 ### Практические советы
 - Не создавайте ObjectMapper на каждый запрос! 
@@ -135,12 +131,9 @@ public class JacksonConfig {
     }
 }
 ```
-</details>
+---
 
-<details>
-    <summary>
-        <b>Базовые аннотации</b>
-    </summary>
+## Базовые аннотации
 
 ## `@JsonProperty`
 
@@ -174,6 +167,8 @@ public class User {
 - `access` - уровень доступа (READ_ONLY, WRITE_ONLY, READ_WRITE)
 - `index` - порядок сериализации
 
+---
+
 ## `@JsonIgnore`
 
 ### Игнорирование полей
@@ -201,6 +196,8 @@ public class SecureData {
     }
 }
 ```
+
+---
 
 ## `@JsonView`
 
@@ -251,6 +248,8 @@ public class EmployeeController {
     public Employee getInternalInfo() { /* ... */ }
 }
 ```
+
+---
 
 ## `@JsonInclude`
 
@@ -308,6 +307,8 @@ class InternalDataFilter {
 - `NON_DEFAULT` - исключать значения по умолчанию
 - `NON_BLANK` - исключать null, "", и строки из одних пробелов
 
+---
+
 ## `@JsonFormat`
 
 ### Форматирование дат и чисел
@@ -330,6 +331,8 @@ public class Event {
     private BigDecimal price;
 }
 ```
+
+---
 
 ## `@JsonSerialize` / `@JsonDeserialize`
 
@@ -403,6 +406,8 @@ public class UsdAmountReader extends StdConverter<String, BigDecimal> {
     }
 }
 ```
+
+---
 
 ## `@JsonCreator`
 
@@ -478,6 +483,8 @@ public class Person {
 }
 ```
 
+---
+
 ## `@JsonSetter`
 
 ### Настройка сеттеров для десериализации
@@ -518,16 +525,13 @@ public class Product {
 - `Nulls.AS_EMPTY` - Заменить null на «пустое» значение (например, пустой список, 0, "")
 - `Nulls.SET` (по умолчанию) Вызвать сеттер с null
 
+---
+
 ## `@JsonAnySetter`
 
 ### Обработка неизвестных свойств
 
 ```java
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Класс FlexibleObject - "гибкий" объект, который может принимать
  * ЛЮБЫЕ дополнительные поля из JSON, даже если они не описаны явно в классе.
@@ -581,6 +585,8 @@ public class FlexibleObject {
 - Для сериализации (объект → JSON) используется @JsonAnyGetter - чтобы записать содержимое Map обратно в JSON.
 - Поля, которые явно описаны в классе (например, name), никогда не попадают в @JsonAnySetter.
 
+---
+
 ## `@JsonFormat`
 
 ### Работа с датами и временем
@@ -615,12 +621,13 @@ public class TimeData {
 }
 ```
 
+---
+
 ## `@JsonNaming`
 
 ### Стратегии именования
 
 ```java
-
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class NamingExample {
     private Long userId;          // → user_id
@@ -639,14 +646,13 @@ public class NamingExample {
 - `KebabCaseStrategy` - camelCase → kebab-case
 - `UpperCamelCaseStrategy` - первая буква заглавная
 
+---
+
 ## `@JsonTypeInfo`
 
 ### Обработка полиморфных типов
 
 ```java
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 /**
  * ЗАЧЕМ НУЖЕН @JsonTypeInfo?
  *
@@ -770,18 +776,13 @@ public abstract class Person {
  */
 ```
 
+---
+
 ## `@JsonFilter`
 
 ### Динамическая фильтрация полей
 
 ```java
-import com.fasterxml.jackson.annotation.JsonFilter;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ser.FilterProvider;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-
 /**
  * ЗАЧЕМ НУЖЕН @JsonFilter?
  *
@@ -885,6 +886,8 @@ public class JsonFilterExample {
   как альтернативу.
 - Работает только при сериализации (объект → JSON), не при десериализации.
 
+---
+
 ## `@JsonUnwrapped`
 
 ### "Разворачивание" вложенных объектов
@@ -892,10 +895,6 @@ public class JsonFilterExample {
 Он устраняет ненужный уровень вложенности, делая структуру данных более плоской и удобной - без изменения модели в коде.
 
 ```java
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * ЗАЧЕМ НУЖЕН @JsonUnwrapped?
  *
@@ -982,6 +981,8 @@ public class JsonUnwrappedExample {
 }
 ```
 
+---
+
 ### ⚠️ Важные нюансы
 
 - Имена полей не должны конфликтовать!
@@ -992,10 +993,9 @@ public class JsonUnwrappedExample {
 Можно задать префикс/суффикс (если нужно избежать конфликтов):
 
 ```java
-
 @JsonUnwrapped(prefix = "addr_")
 private Address address;
 // → {"addr_street": "...", "addr_city": "..."}
 ```
 
-</details>
+---
