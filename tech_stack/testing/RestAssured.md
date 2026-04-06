@@ -1572,3 +1572,401 @@ public class LoggingTestNG {
 - При работе с бинарными ответами (изображения, PDF) отключайте `prettyPrintingLogging` и используйте `.log().ifValidationFails()`, чтобы избежать попыток форматирования бинарных данных в текст, что приводит к кракозябрам в логах.
 - Не полагайтесь на `.log()` как на механизм аудита. Для production-аудита используйте `Filter` с записью в централизованную систему логирования (ELK, Datadog), а `.log()` оставляйте исключительно для тестовой отладки.
 
+## 11. Асинхронность и Продвинутые фичи
+
+> Механизмы работы с асинхронными API, долгоживущими запросами (long-polling), сложными multipart-форматами и управлением редиректами. 
+
+---
+
+### Асинхронные запросы и Ожидание (async, poll, await)
+
+- `async()` — переключает выполнение в неблокирующий режим, возвращая объект для поллинга или `CompletableFuture`.
+- `.await().pollInterval(long, TimeUnit)` — интервал между повторными проверками состояния ресурса.
+- `.await().pollDelay(long, TimeUnit)` — задержка перед первым запуском поллинга (оптимизация нагрузки на API).
+- `.await().timeout(long, TimeUnit)` — максимальное время ожидания. Превышение вызывает `TimeoutException`.
+
+  ```java
+  given()
+    .async()
+    .await()
+    .pollInterval(1, TimeUnit.SECONDS)
+    // ❌ НЕТ .timeout()
+    .until(() -> false);  // Всегда возвращает false
+
+  // Результат: тест будет висеть ВЕЧНО, пока не прибьете процесс JVM
+  // Нет дефолтного таймаута - бесконечное ожидание!
+  ```
+- `.await().until(Runnable/Callable<Boolean>)` — блокирующий вызов, ожидающий выполнения лямбда-условия до достижения таймаута.
+
+  Callable<Boolean> — возвращает true (успех) или false (повторить)
+
+  ```java
+  // 1. Callable<Boolean> - возвращает true/false (основной вариант)
+  .until(() -> {
+      return checkStatus();  // boolean
+  });
+  ```
+
+  Runnable — успех = нормальное завершение (без исключений), исключение = повтор
+
+  ```java
+  // 2. Runnable - никогда не возвращает true, только выбрасывает исключение
+  .until(() -> {
+      // Если дошел до конца без исключения - считаем успехом
+      int status = getStatus();
+      if (status != 200) {
+          throw new RuntimeException("Still processing");  // Продолжаем поллинг
+      }
+  // Дошли до конца - успех (нет исключения)
+  });
+  ```
+  Но обычно используют Callable<Boolean> - понятнее:
+  ```java
+  given()
+    .async()
+    .await()
+    .pollInterval(1, TimeUnit.SECONDS)   // Каждую секунду
+    .timeout(10, TimeUnit.SECONDS)       // Максимум 10 секунд
+    .until(() -> {
+        // Этот код выполняется МНОГОКРАТНО
+        boolean condition = checkSomething();
+        
+        if (condition) {
+            return true;   // ✅ Успех! Выходим из ожидания, продолжаем тест
+        } else {
+            return false;  // ❌ Не готово. Будем пробовать снова через pollInterval
+        }
+    });
+
+  // Когда until() вернул true - выполнение продолжается здесь
+  System.out.println("Условие выполнено, продолжаем тест");
+  ```
+
+---
+
+Пример использования:
+
+```java
+@Test
+public void testAsyncJobPolling() {
+  // 1. Запускаем асинхронную задачу
+  String jobId = given()
+          .body("{\"task\":\"export\"}")
+          .post("/jobs")
+          .then().extract().path("jobId");
+
+  // Первый запрос синхронный, но запускает асинхронный процесс на сервере. async().await().until() - это клиентский механизм ожидания этого серверного процесса.
+
+  // 2. Ожидаем завершения с поллингом
+  given()
+          .async()                            // Неблокирующий режим
+          .await()                            // Блокируемся до условия
+          .pollDelay(2, TimeUnit.SECONDS)     // Подождать 2с перед первым запросом
+          .pollInterval(1, TimeUnit.SECONDS)  // Проверять каждую секунду
+          .timeout(30, TimeUnit.SECONDS)      // Максимум 30с ожидания
+          .until(() -> {                      // Условие завершения
+
+            // Далее until() делает МНОГО GET запросов в цикле:
+            // Запрос №2: GET /jobs/123/status → вернул "PENDING"
+            // Запрос №3: GET /jobs/123/status → вернул "PROCESSING"  
+            // Запрос №4: GET /jobs/123/status → вернул "PROCESSING"
+            // Запрос №5: GET /jobs/123/status → вернул "COMPLETED" ← стоп
+
+            // Запрос №6: GET /jobs/123/result (получение результата)
+            
+            Response resp = given()
+                    .get("/jobs/{id}/status", jobId)
+                    .then().extract().response();
+
+            return resp.statusCode() == 200 &&
+                    "COMPLETED".equals(resp.path("status"));
+          });
+
+  // 3. Получаем результат
+  given()
+          .get("/jobs/{id}/result", jobId)
+          .then()
+          .statusCode(200)
+          .body("data", notNullValue());
+}
+```
+
+---
+
+### Детали Multipart-запросов
+
+> Multipart — это способ отправки смешанных данных в одном HTTP запросе, где каждая часть имеет свой тип и содержимое.
+
+- `multiPart(String controlName, Object content, String mimeType)` — явная передача данных с указанием MIME-типа.
+- `multiPart(String controlName, String fileName, Object content)` — указание имени файла при потоковой передаче (`InputStream`, `byte[]`, `File`).
+- `multiPart(String controlName, File file)` — автоматическое определение имени и типа из файловой системы.
+- Нюансы RA: автоматическая генерация `boundary` согласно RFC 2046, ленивая отправка `InputStream` (без полного чтения в RAM), корректная обработка кодировок полей формы.
+
+```java
+given()
+    .multiPart("metadata", new File("config.json"), "application/json")
+    .multiPart("archive", "logs.zip", new FileInputStream("logs.zip"), "application/zip")
+    .multiPart("comment", "Test upload", "text/plain")
+    .contentType(ContentType.MULTIPART)
+.when()
+    .post("/api/v1/uploads");
+```
+
+### Управление Редиректами (RedirectConfig)
+
+- `redirects().follow()` — автоматическое следование 3xx редиректам (по умолчанию `true`).
+- `redirects().dontFollow()` — отключение следования для валидации статусов `301`/`302`/`307` и заголовка `Location`.
+- `redirects().follow(RedirectConfig)` — тонкая настройка поведения: `maxRedirects(int)`, `allowCircularRedirects(boolean)`, `followRelative(boolean)`.
+- Защита от петель: настройка `maxRedirects` предотвращает `InfiniteLoopException` при некорректных серверных ответах.
+
+```java
+given()
+    .redirects().follow(RedirectConfig.redirectConfig()
+        .maxRedirects(3)
+        .allowCircularRedirects(false)
+        .printRedirectLog(false))
+.when()
+    .get("/api/v1/legacy/redirect")
+.then()
+    .statusCode(is(200));
+```
+
+### Примеры интеграции (JUnit 5 vs TestNG)
+
+```java
+// JUnit 5: Асинхронный поллинг и изоляция ресурсов
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)  // ← Создает новый экземпляр класса для КАЖДОГО теста
+class AsyncAdvancedTestJUnit5 {
+
+  @Test
+  void testLongRunningJobWithParallelSafeStreams() throws Exception {
+
+    // ByteArrayInputStream НЕ потокобезопасен - два потока не могут читать его одновременно.
+    // Создавая НОВЫЙ экземпляр в каждом тесте, мы избегаем гонок данных.
+    byte[] data = "async-payload-v1".getBytes(StandardCharsets.UTF_8);
+
+    // ШАГ 1: ОТПРАВКА АСИНХРОННОЙ ЗАДАЧИ
+    String jobId = given()
+                // Multipart часть: имя "file", имя файла "data.bin", поток с данными, MIME-тип "application/octet-stream" (бинарные данные)
+                .multiPart("file", "data.bin", new ByteArrayInputStream(data), "application/octet-stream")
+            .when()
+                .post("/api/v1/processor/submit")  // Отправляем задачу на сервер
+            .then()
+                .statusCode(202)  // 202 Accepted - задача принята, но еще не выполнена
+                .extract().path("job_id");  // Извлекаем ID задачи из ответа сервера
+
+    // ШАГ 2: ОЖИДАНИЕ ЗАВЕРШЕНИЯ ЗАДАЧИ С ПОЛЛИНГОМ
+    given()
+            .async()  // Включаем асинхронный режим (неблокирующий)
+            .await()  // Блокируем текущий поток до выполнения условия
+            .pollInterval(2, TimeUnit.SECONDS)  // Каждые 2 секунды проверяем статус
+            .timeout(60, TimeUnit.SECONDS)      // Максимум 60 секунд ожидания
+            .until(() -> {  // Условие, при котором ожидание прекращается
+
+              // Выполняем GET запрос для проверки статуса задачи
+              int status = given()
+                      .get("/api/v1/processor/status/{id}", jobId)  // Подставляем jobId в URL
+                      .then()
+                      .extract().statusCode();  // Получаем HTTP статус код
+
+              return status == 200;  // Ждем, пока статус не станет 200 (OK - задача выполнена)
+            });
+
+    // ШАГ 3: (ОПЦИОНАЛЬНО) ПОЛУЧЕНИЕ РЕЗУЛЬТАТА
+    // После выхода из until() задача завершена, можно забрать результат
+    given()
+            .get("/api/v1/processor/result/{id}", jobId)
+            .then()
+            .statusCode(200)
+            .body("status", equalTo("COMPLETED"));
+  }
+}
+```
+
+```java
+// TestNG: Управление редиректами и проверка миграции API
+public class RedirectAdvancedTestNG {
+
+  @Test
+  public void testRedirectChainValidation() {
+    // Отключаем автоматическое следование редиректам
+    // По умолчанию Rest Assured сам переходит по Location (301 → новая страница)
+    // Мы отключаем, чтобы проверить сам редирект
+    given()
+            .redirects().dontFollow()  // ← НЕ переходить автоматически
+            .when()
+            .get("/api/v1/users/old-endpoint")  // Запрос к старому URL
+            .then()
+            .statusCode(is(301))  // Проверяем, что вернулся именно редирект
+            .header("Location", containsString("/api/v2/users/new-endpoint"));  // Проверяем правильность нового URL
+  }
+  // Цель: убедиться, что миграция API работает (старый URL правильно редиректит на новый)
+
+    @Test
+    public void testAsyncPollingWithConfig() {
+        // Параметризованная настройка редиректов внутри асинхронного контекста
+        RedirectConfig cfg = RedirectConfig.redirectConfig()
+            .maxRedirects(5)
+            .followRelative(true);
+
+        given()
+            .config(RestAssuredConfig.config().redirectConfig(cfg))
+            .async()
+            .await()
+            .pollInterval(1, TimeUnit.SECONDS)
+            .timeout(30, TimeUnit.SECONDS)
+            .until(() -> given()
+                    .get("/api/v1/health")
+                .then()
+                    .statusCode(is(200)));
+    }
+}
+```
+
+---
+
+## Best Practices
+
+- **Изоляция `InputStream` при параллелизме**: Никогда не передавайте один экземпляр `InputStream` в несколько потоков. Он имеет внутренний курсор и не является thread-safe. Создавайте новые `ByteArrayInputStream` или `FileInputStream` для каждого теста.
+- **Управление пулом соединений**: При запуске `@Execution(CONCURRENT)` (JUnit 5) или `parallel="methods"` (TestNG) статический `HttpClient` может исчерпать лимиты. Настройте `httpClientConfig().setParam("http.max-connections-per-route", 50)` в `@BeforeAll`/`@BeforeClass`.
+- **Stateless лямбды в `await().until()`**: Внутри условия `until()` создавайте новые `given().get()` запросы. Не переиспользуйте внешние объекты `Response` или `RequestSpecification`, так как это приводит к блокировкам и `ConcurrentModificationException` в параллельных сьютах.
+- **Оптимальный `pollInterval` и `timeout`**: Устанавливайте `pollInterval` исходя из SLA бэкенда (обычно `1000`–`5000` ms). `timeout` должен превышать ожидаемое время выполнения на 20–30% для компенсации лагов CI-агентов.
+- **Валидация редиректов без следования**: Для тестирования API-шлюзов, CDN или миграций всегда используйте `redirects().dontFollow()`. Проверяйте `statusCode(is(301))` или `is(307)` и заголовок `Location`, чтобы гарантировать корректность маршрутизации.
+- **Глобальная конфигурация vs Локальная**: В параллельных тестах не мутируйте `RestAssured.config` на лету. Передавайте `RedirectConfig`, `HttpClientConfig` или `LogConfig` локально через `.config()` или используйте `RequestSpecBuilder`, чтобы избежать состояния гонки (race condition).
+- **Мониторинг асинхронных отказов**: Тестируйте сценарии, когда `async().await()` падает по таймауту или получает `500 Internal Server Error`. Убедитесь, что тест выбрасывает понятное `AssertionError` или `TimeoutException`, а не "подвешивает" пул потоков.
+- **Освобождение ресурсов**: Асинхронные поллеры и большие `multiPart` загрузки могут оставлять открытые дескрипторы. Вызывайте `RestAssured.reset()` в `@AfterAll`/`@AfterClass` или используйте `try-with-resources` для внешних `File`/`InputStream`.
+- **Логирование поллинг-запросов**: Отключайте `.log().all()` внутри `await().until()`. Тысячи повторных запросов переполнят диски CI-агентов. Используйте `.log().ifValidationFails()` или кастомный `Filter`, логирующий только финальную попытку.
+- **Multipart границы**: Не задавайте `boundary` вручную. RA генерирует его автоматически. Ручная установка приводит к `400 Bad Request` или некорректному парсингу на стороне сервера из-за нарушения RFC 2046.
+
+## 12. Паттерны интеграции с JUnit 5 / TestNG
+
+> Интеграция Rest Assured с фреймворками тестирования требует строгого управления жизненным циклом конфигурации, изоляции состояний при параллельном запуске и грамотного использования параметризации. 
+
+---
+
+### Инициализация и Управление жизненным циклом
+
+- **JUnit 5**: Использует `@BeforeAll` (static метод) для инициализации глобальных настроек `RestAssured.*`. Жизненный цикл теста по умолчанию `PER_METHOD`, что гарантирует изоляцию на уровне класса.
+- **TestNG**: Использует `@BeforeClass` (instance метод) для аналогичной инициализации. По умолчанию создает один экземпляр класса на все `@Test` методы, требуя ручной изоляции через `@BeforeMethod`/`@AfterMethod`.
+- **Teardown**: Обязательный вызов `RestAssured.reset()` в `@AfterAll`/`@AfterClass` для очистки статических полей (`baseURI`, `authentication`, `filters`, `config`), предотвращающий утечку состояния между классами.
+
+### Параметризация тестов
+
+- **JUnit 5**: `@ParameterizedTest` в связке с `@ValueSource`, `@CsvSource` или `@MethodSource`. RA запросы строятся внутри тела метода, используя параметры как входные данные для `pathParam`, `queryParam` или тела запроса.
+- **TestNG**: `@DataProvider` возвращает `Iterator<Object[]>` или `Object[][]`. Метод теста аннотируется `@Test(dataProvider = "name")`. Позволяет передавать сложные объекты (POJO, `RequestSpecification`) напрямую в тест.
+- **Интеграция с RA**: Параметризация идеально подходит для контрактного тестирования (разные статус-коды, валидация граничных значений, проверка идемпотентности).
+
+### Изоляция спецификаций (Thread-Safe)
+
+- Глобальные `RestAssured.*` поля не являются потокобезопасными. При параллельном запуске (`parallel="methods"` или `@Execution(CONCURRENT)`) их мутация приводит к гонкам данных.
+- **Паттерн `ThreadLocal<RequestSpecification>`**: Создает уникальную спецификацию для каждого потока. Инициализируется в `@BeforeMethod`/`@BeforeEach`, очищается в `@AfterMethod`/`@AfterEach`.
+- **Паттерн Factory/Builder**: Использование `new RequestSpecBuilder()` внутри каждого теста полностью исключает общие состояния, ценой небольшого увеличения boilerplate.
+
+### Минимальные шаблоны структуры теста
+
+```java
+// JUnit 5: Изоляция + Параметризация + Lifecycle
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class ApiTestJUnit5 {
+
+    private static final String BASE_URI = "https://api.staging.com";
+
+    @BeforeAll
+    static void globalSetup() {
+        RestAssured.baseURI = BASE_URI;
+        RestAssured.config = RestAssuredConfig.config()
+            .httpClient(HttpClientConfig.httpClientConfig()
+                .setParam("http.max-connections-per-route", 50));
+    }
+
+    @AfterAll
+    static void globalTeardown() {
+        RestAssured.reset();
+    }
+
+    @ParameterizedTest(name = "Validate user {0} creation")
+    @CsvSource({
+        "admin, admin@example.com",
+        "guest, guest@example.com"
+    })
+    void testUserCreation(String role, String email) {
+        RequestSpecification spec = new RequestSpecBuilder()
+            .setContentType(ContentType.JSON)
+            .build();
+
+        given()
+            .spec(spec)
+            .body(Map.of("role", role, "email", email))
+        .when()
+            .post("/api/v1/users")
+        .then()
+            .statusCode(is(201))
+            .body("role", equalTo(role))
+            .body("email", equalTo(email));
+    }
+}
+```
+
+```java
+// TestNG: DataProvider + ThreadLocal Isolation
+public class ApiTestNG {
+    
+    private ThreadLocal<RequestSpecification> threadSpec = new ThreadLocal<>();
+
+    @DataProvider(name = "apiEndpoints")
+    public Object[][] provideEndpoints() {
+        return new Object[][]{
+            {"/api/v1/health", 200, "GET"},
+            {"/api/v1/admin/config", 403, "GET"},
+            {"/api/v1/users", 200, "GET"}
+        };
+    }
+
+    @BeforeMethod
+    public void setupThread() {
+        RequestSpecification spec = new RequestSpecBuilder()
+            .setBaseUri("https://api.prod.com")
+            .setPort(443)
+            .addHeader("Accept", "application/json")
+            .build();
+        threadSpec.set(spec);
+    }
+
+    @AfterMethod
+    public void cleanupThread() {
+        threadSpec.remove();
+    }
+
+    @Test(dataProvider = "apiEndpoints")
+    public void testEndpointValidation(String endpoint, int expectedStatus, String method) {
+        RequestSpecification spec = threadSpec.get();
+
+        given()
+            .spec(spec)
+        .when()
+            .request(method, endpoint)
+        .then()
+            .statusCode(expectedStatus);
+    }
+
+    @AfterClass
+    public void resetRestAssured() {
+        RestAssured.reset();
+    }
+}
+```
+
+---
+
+## Best Practices
+
+- Всегда используйте `@BeforeAll` (JUnit 5) или `@BeforeClass` (TestNG) только для **чтения** внешних конфигураций и установки неизменяемых глобальных параметров (`baseURI`, `port`). Никогда не модифицируйте `RestAssured.authentication` или `RestAssured.filters` в этих методах при параллельном запуске.
+- Для параметризованных тестов предпочитайте `@MethodSource` (JUnit 5) или `@DataProvider` с ленивой загрузкой (TestNG), чтобы не инициализировать тяжелые объекты до начала теста.
+- Применяйте `ThreadLocal<RequestSpecification>` или локальный `new RequestSpecBuilder()` в `@BeforeEach`/`@BeforeMethod`. Это гарантирует 100% изоляцию состояний при запуске с `parallel="methods"` или `forkCount` в Surefire/Failsafe.
+- Не используйте `TestInstance(Lifecycle.PER_CLASS)` в JUnit 5 совместно с мутацией статических полей `RestAssured.*`. Если это необходимо для кэширования тяжелых ресурсов, выносите спецификации в `ThreadLocal` или создавайте новые экземпляры в каждом `@Test`.
+- В TestNG всегда сбрасывайте `RestAssured` в `@AfterClass`. В отличие от JUnit 5, TestNG может переиспользовать раннер между классами, и статические поля `auth` или `config` могут "просочиться" в соседний тестовый класс.
+- Для сложной параметризации (например, передача целых POJO-объектов или `MultiValueMap`) используйте `@DataProvider` (TestNG) или `@CsvFileSource`/`@MethodSource` (JUnit 5), а не хардкод в теле теста. Это отделяет данные от логики проверки.
+- При интеграции с CI/CD (Maven Surefire, TestNG XML) передавайте `baseUrl` и `environment` через `System.getProperty()` или `@Parameters`, чтобы один и тот же тестовый код работал против DEV, STAGE и PROD без перекомпиляции.
+- Избегайте создания `RestAssured` инстансов внутри `static {}` блоков. Инициализация должна быть явно привязана к жизненному циклу тестового фреймворка для корректной обработки исключений и отчетов.
+- Для продвинутой изоляции в микросервисных тестах используйте кастомные `TestExtension` (JUnit 5) или `IInvokedMethodListener` (TestNG) для автоматического внедрения и очистки `RequestSpecification` без boilerplate в каждом классе.
+- Всегда валидируйте входные параметры параметризованных тестов на `null` или некорректный формат до вызова `given()`, чтобы падение теста было информативным (`IllegalArgumentException`), а не маскировалось под `NullPointerException` внутри HTTP-клиента.
