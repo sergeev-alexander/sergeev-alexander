@@ -1358,3 +1358,217 @@ public class SpecFilterTestNG {
   }
   ```
 
+## 10. Логирование (LogSpecification)
+
+> Встроенный механизм логирования Rest Assured позволяет детализировано выводить запросы и ответы в консоль или файлы. 
+> 
+> Поддерживает условное логирование, фильтрацию чувствительных заголовков и кастомизацию формата вывода, 
+> что критически важно для отладки интеграционных тестов и анализа CI/CD логов без загрязнения вывода избыточной информацией.
+
+---
+
+### Основные методы логирования (.log())
+- `.log().all()` — вывод всех частей запроса/ответа: URI, заголовки, параметры, cookies, тело.
+- `.log().body()` — только тело запроса или ответа (полезно для больших payload).
+- `.log().headers()` — только HTTP-заголовки.
+- `.log().params()` — query, path и form параметры.
+- `.log().cookies()` — отправляемые или полученные cookies.
+- Размещение: вызывается в фазе `given()` для логов запроса, или в `then()` для логов ответа.
+
+```java
+given()
+    .log().headers()
+    .header("X-Auth", "secret")
+    .log().body()
+    .body("{\"key\": \"value\"}")
+.when()
+    .post("/api/data")
+.then()
+    .log().all(); // Логирует весь ответ
+```
+
+---
+
+### Условное логирование
+
+- `.log().ifValidationFails()` — печатает лог только если проверка `then()` не прошла. Идеально для CI/CD.
+- `.log().ifError()` — логирует только при статус-кодах 4xx/5xx.
+- `.log().ifStatusCodeIsEqualTo(int)` / `.ifStatusCodeMatches(Matcher)` — кастомные условия по статусу.
+- `.log().ifRootPath("path")` — логирует, если JSON/XPath путь существует в ответе.
+
+```java
+given()
+    .body("{\"user\": \"test\"}")
+.when()
+    .post("/api/register")
+.then()
+    .log().ifValidationFails()
+    .statusCode(201);
+```
+
+Инвертирование условий при помощи Hamcrest:
+
+```java
+import static org.hamcrest.Matchers.*;
+
+given()
+    .get("/api/users")
+.then()
+    // ✅ Логировать если НЕ 200
+    .log().ifStatusCodeMatches(not(200))
+    
+    // ✅ Логировать если НЕ 2xx
+    .log().ifStatusCodeMatches(not(anyOf(
+        is(200), is(201), is(204)
+    )))
+    
+    // ✅ Логировать если статус НЕ в диапазоне 200-299
+    .log().ifStatusCodeMatches(not(between(200, 299)))
+    
+    // ✅ Логировать если НЕ успешный (не 2xx)
+    .log().ifStatusCodeMatches(not(isSuccessful()))
+    
+    // ✅ Логировать если статус НЕ 200 и НЕ 201
+    .log().ifStatusCodeMatches(allOf(not(200), not(201)))
+    
+    // ✅ Логировать если статус НЕ соответствует шаблону
+    .log().ifStatusCodeMatches(not(anyOf(is(200), is(404))));
+```
+---
+
+### Глобальное логирование
+
+- `RestAssured.enableLoggingOfRequestAndResponseIfValidationFails()` — включает `.log().ifValidationFails()` для всех тестов в JVM.
+- `RestAssured.enableLoggingOfRequestAndResponseIfValidationFails(LogDetail)` — ограничивает глобальный лог только заголовками или телом.
+- Вызывается один раз в `@BeforeAll` / `@BeforeClass`.
+
+---
+
+### LogConfig: Тонкая настройка
+
+- `prettyPrintingLogging(true)` — включает форматирование JSON/XML в читаемый вид с отступами.
+- `blacklistHeader(String... headers)` / `blacklistHeaders(Map)` — маскирует чувствительные данные (токены, пароли) в логах.
+- `defaultStream(PrintStream)` — перенаправляет вывод в `FileOutputStream` или кастомный `PrintStream` вместо `System.out`.
+- `enableLoggingOfRequestAndResponseIfValidationFails(false)` — явное отключение глобального флага.
+
+```java
+RestAssured.config = RestAssuredConfig.config()
+    .logConfig(LogConfig.logConfig()
+        .defaultStream(new PrintStream(new FileOutputStream("logs/rest-api.log", true)))
+        .enablePrettyPrinting(true)
+        .blacklistHeaders(Map.of("Authorization", "Bearer ***", "X-API-Key", "***")));
+```
+
+---
+
+### Примеры интеграции (JUnit 5 vs TestNG)
+
+```java
+// JUnit 5: Условное логирование и маска заголовков
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class LoggingTestJUnit5 {
+    @BeforeAll
+    static void setupGlobalLogging() {
+        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails(LogDetail.BODY);
+        RestAssured.config = RestAssuredConfig.config()
+            .logConfig(LogConfig.logConfig()
+                .enablePrettyPrinting(true)
+                .blacklistHeaders(List.of("Authorization", "Cookie")));
+    }
+
+    @AfterAll
+    static void cleanup() {
+        RestAssured.reset();
+    }
+
+    @Test
+    @Order(1)
+    void testConditionalLoggingOnSuccess() {
+        given()
+            .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secret")
+        .when()
+            .get("/api/v1/health")
+        .then()
+            .log().ifStatusCodeIsEqualTo(200) // Сработает, статус 200
+            .statusCode(200);
+    }
+
+    @Test
+    @Order(2)
+    void testFailLogging() {
+        given()
+        .when()
+            .get("/api/v1/not-found")
+        .then()
+            .log().ifValidationFails() // Выведет ответ, так как проверка упадет
+            .statusCode(200); // Ожидается 200, придет 404 -> лог активируется
+    }
+}
+```
+
+```java
+// TestNG: Кастомный поток вывода и детализация параметров
+public class LoggingTestNG {
+    
+    private static PrintStream logStream;
+
+    @BeforeClass
+    public void initLogConfig() throws FileNotFoundException {
+        logStream = new PrintStream(new FileOutputStream("target/test-logs/rest-assured-output.log", true));
+        RestAssured.config = RestAssuredConfig.config()
+            .logConfig(LogConfig.logConfig()
+                .defaultStream(logStream)
+                .prettyPrintingLogging(true));
+    }
+
+    @AfterClass
+    public void closeStream() {
+        if (logStream != null) logStream.close();
+    }
+
+    @Test
+    public void testParamAndBodyLogging() {
+        given()
+            .log().params() // Логирует query/form/path params
+            .queryParam("search", "admin")
+            .log().body()   // Логирует тело запроса
+            .body("{\"action\": \"fetch\"}")
+        .when()
+            .post("/api/v1/search")
+        .then()
+            .log().all()    // Полный лог ответа
+            .statusCode(200);
+    }
+
+    @Test
+    public void testGlobalFailLoggingOverride() {
+        given()
+        .when()
+            .delete("/api/v1/users/999")
+        .then()
+            .log().ifError()
+            .statusCode(404);
+    }
+}
+```
+
+> Порядок вызова `.log().*()` и добавления параметров/заголовков/тела не имеет значения - всё будет залогировано правильно. 
+> 
+> Это особенность реализации через фильтры, которые срабатывают только в момент выполнения запроса.
+
+---
+
+## Best Practices
+
+- Используйте `.log().ifValidationFails()` по умолчанию в CI/CD пайплайнах. Полное логирование (`.log().all()`) генерирует огромные объемы данных, замедляя выполнение и усложняя поиск ошибок.
+- Всегда применяйте `blacklistHeaders()` в `LogConfig` для маскирования `Authorization`, `Cookie`, `X-Api-Key` и других чувствительных полей, чтобы не попадать секреты в логи системы контроля версий или CI.
+- Перенаправляйте логи через `defaultStream(new PrintStream(new FileOutputStream(...)))` в отдельные файлы для интеграционных тестов, сохраняя `System.out` для отладки IDE.
+- В `LogConfig` включайте `prettyPrintingLogging(true)` только если объем ответа не превышает 50-100 КБ. Для огромных payload это создает нагрузку на CPU и память.
+- Избегайте вызова `.log().all()` внутри циклов или параметризованных тестов с большим количеством итераций. Заменяйте на `.log().ifError()` или `.log().ifValidationFails()`.
+- Глобальный флаг `enableLoggingOfRequestAndResponseIfValidationFails()` должен устанавливаться строго в `@BeforeAll`/`@BeforeClass` и сбрасываться в `@AfterAll`/`@AfterClass`, чтобы не влиять на другие тестовые сьюты.
+- Для отладки специфичных сценариев комбинируйте фазы: `.log().headers()` в `given()` и `.log().body()` в `then()`, чтобы изолировать проблемный участок (сетевые заголовки vs полезная нагрузка).
+  
+  Логируйте заголовки в `given()`, тело в `then()` - так вы быстро поймете, проблема в запросе (сеть/авторизация) или в ответе (данные/бизнес-логика).
+- При работе с бинарными ответами (изображения, PDF) отключайте `prettyPrintingLogging` и используйте `.log().ifValidationFails()`, чтобы избежать попыток форматирования бинарных данных в текст, что приводит к кракозябрам в логах.
+- Не полагайтесь на `.log()` как на механизм аудита. Для production-аудита используйте `Filter` с записью в централизованную систему логирования (ELK, Datadog), а `.log()` оставляйте исключительно для тестовой отладки.
+
