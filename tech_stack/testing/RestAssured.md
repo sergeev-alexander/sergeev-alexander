@@ -9,7 +9,7 @@
 5. [Аутентификация (AuthConfig)](#5-аутентификация-authconfig)
 6. [POJO-интеграция (Фокус на RA-обвязке)](#6-pojo-интеграция-фокус-на-ra-обвязке)
 7. [Обработка и извлечение ответа (Response / ExtractableResponse)](#7-обработка-и-извлечение-ответа-response--extractableresponse)
-8. [Валидация (Интеграция с вашими шпаргалками)](#8-валидация-интеграция-с-вашими-шпаргалками)
+8. [Валидация](#8-валидация)
 9. [Спецификации и Фильтры](#9-спецификации-и-фильтры)
 10. [Логирование (LogSpecification)](#10-логирование-logspecification)
 11. [Асинхронность и Продвинутые фичи](#11-асинхронность-и-продвинутые-фичи)
@@ -963,4 +963,398 @@ public void testResponseExtractionTestNg() {
 - Для бинарных файлов (изображения, PDF, архивы) используйте `contentAsBytes()` или `response.downloadTo(new File("path"))`, а не `asString()`, чтобы избежать повреждения данных из-за некорректного декодирования в UTF-8.
 - Изолируйте извлечение данных от бизнес-логики: создавайте вспомогательные методы `extractUserId(response)`, `extractToken(response)`, чтобы сохранить тесты читаемыми и соответствующими принципу единственной ответственности.
 - При параллельном запуске тестов не кэшируйте объекты `Response` в статических полях. Каждый HTTP-вызов должен обрабатываться в рамках своего потока, так как `Response` содержит внутренние буферы и указатели потоков.
+
+## 8. Валидация
+
+> Механизм валидации ответов в Rest Assured построен на глубокой интеграции с библиотекой Hamcrest. 
+> 
+> Он позволяет декларативно описывать ожидаемые статус-коды, заголовки и содержимое тела ответа, используя читаемые матчеры и цепочечные вызовы. 
+> 
+> При несоответствии контракту автоматически генерируются детализированные исключения с указанием ожидаемых и фактических значений.
+
+### Цепочки валидации: `.and()` и `.assertThat()`
+
+- `.and()` — опциональный разделитель для улучшения читаемости длинных цепочек проверок. Не влияет на логику выполнения, служит только синтаксическим сахаром.
+- `.assertThat()` — явное начало блока валидаций. Рекомендуется использовать для разделения фаз извлечения и проверки, а также для интеграции с кастомными Hamcrest-матчерами.
+
+### Статус-коды и Заголовки
+
+- `statusCode(is(200))` / `statusCode(equalTo(201))` — проверка HTTP-статуса.
+- `statusLine(containsString("OK"))` — валидация полной строки статуса.
+- `header("Content-Type", containsString("application/json"))` — проверка заголовка.
+- `headers("X-Req-Id", not(emptyOrNullString()))` — проверка на null и empty.
+
+```java
+given()
+    .when()
+        .get("/api/v1/status")
+    .then()
+        .assertThat()
+        .statusCode(is(200))
+        .and()
+        .header("X-Response-Time", not(emptyOrNullString()));
+```
+
+### Тело + JsonPath
+
+- `body("$.field", equalTo("value"))` — точное совпадение.
+- `body("$.list", hasSize(3))` — проверка размера коллекции.
+- `body("$.users.age", everyItem(greaterThan(18)))` — проверка каждого элемента списка.
+- `body("data.items[0].id", notNullValue())` — проверка на null.
+- Комбинирование условий: `body("id", equalTo(1), "name", startsWith("Admin"))`.
+
+### JSON Schema Validation
+
+- `body(matchesJsonSchemaInClasspath("schema.json"))` — валидация структуры ответа на JSON Schema.
+- Требует зависимости `io.rest-assured:json-schema-validator`.
+- Поддержка внешних файлов, URL или строкового представления схемы.
+
+### Множественные проверки и Кастомные матчеры
+
+- RA позволяет перечислять несколько path-matcher пар в одном вызове `body()`.
+- Кастомные матчеры интегрируются через `assertThat(actualValue, customMatcher)`, часто используемые после `extract().path()`.
+- `TypeSafeMatcher<T>` из Hamcrest позволяет создать строгую типизированную проверку с кастомным описанием ошибки.
+
+### Примеры интеграции (JUnit 5 vs TestNG)
+
+```java
+// JUnit 5: Комплексная валидация с JsonPath и JSON Schema
+@Test
+void testValidationChainJUnit5() {
+    given()
+        .queryParam("role", "admin")
+    .when()
+        .get("/api/v1/users")
+    .then()
+        .assertThat()
+        .statusCode(is(200))
+        .and()
+        .header("Content-Type", containsString("application/json"))
+        .and()
+        .body("$", hasKey("data"))
+        .body("data", hasSize(greaterThan(0)))
+        .body("data[0].id", notNullValue())
+        .body(matchesJsonSchemaInClasspath("schemas/user-list-schema.json"))
+        .time(lessThan(2000L), TimeUnit.MILLISECONDS);
+}
+```
+
+```java
+// TestNG: Множественные проверки и кастомный Hamcrest-матчер
+@Test
+public void testValidationChainTestNg() {
+    Response response = given().get("/api/v1/config").then().extract().response();
+    String configVersion = response.jsonPath().getString("version");
+
+    // Кастомный матчер для проверки формата версии (SemVer)
+    Matcher<String> semVerMatcher = new TypeSafeMatcher<String>() {
+        
+        @Override
+        protected boolean matchesSafely(String version) {
+            return version.matches("\\d+\\.\\d+\\.\\d+");
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("a valid Semantic Version string");
+        }
+    };
+
+    // Интеграция с Hamcrest
+    org.hamcrest.MatcherAssert.assertThat("Config version must be valid SemVer", configVersion, semVerMatcher);
+
+    // Валидация в стиле RA
+    given()
+        .get("/api/v1/config")
+    .then()
+        .assertThat()
+        .statusCode(equalTo(200))
+        .body("features[0].enabled", is(true))
+        .body("features", hasSize(greaterThanOrEqualTo(3)))
+        .body(matchesJsonSchemaInClasspath("schemas/config-schema.json"));
+}
+```
+
+## Best Practices
+
+- Всегда используйте `.assertThat()` перед первой проверкой для явного отделения фазы выполнения от фазы валидации. Это улучшает читаемость стека вызовов при падении теста.
+- Группируйте проверки логически: сначала статус-коды и заголовки, затем структура тела, и только потом содержимое полей. Это ускоряет отладку, так как ошибки структуры не будут маскировать ошибки данных.
+- Для JSON-схем используйте `matchesJsonSchemaInClasspath()` с вынесенными в отдельный ресурс `.json` файлами. Не храните схемы прямо в коде теста.
+- При проверке списков избегайте хардкода индексов (`body("items[0].id")`) для бизнес-логики. Используйте `hasItem()`, `everyItem()` или `collectionItemIn()` для устойчивости к изменению порядка.
+- Кастомные матчеры создавайте в отдельных утилитарных классах (`MatchersUtils`), чтобы переиспользовать их между тестами и поддерживать принцип DRY.
+- Не смешивайте валидацию `body("$.path", matcher)` с извлечением `extract().path()` в одной цепочке `then()`. Валидация должна завершаться до вызова `extract()`, иначе RA может материализовать ответ раньше времени.
+- Для числовых сравнений всегда используйте `is()`, `greaterThan()`, `closeTo()` из `org.hamcrest.Matchers`, а не операторы `==` или `>`, чтобы получать детализированные сообщения об ошибках.
+- При работе с `matchesJsonSchemaInClasspath()` убедитесь, что схема совместима с версией спецификации (Draft 4/6/7), используемой в зависимости `json-schema-validator`. Для кастомных валидаторов используйте `SchemaFactory` напрямую.
+- В параллельных тестах избегайте мутации глобальных статических матчеров. Все проверки должны быть stateless или инициализироваться локально в методе теста.
+
+## 9. Спецификации и Фильтры
+
+> Спецификации (Specifications) и Фильтры (Filters) предоставляют мощные механизмы повторного использования конфигурации запросов/ответов и перехвата сетевого трафика. 
+> 
+> Они позволяют централизовать базовые настройки, внедрять кастомную логику обработки и логирования, сохраняя код тестов чистым и соответствующим принципам DRY.
+
+### RequestSpecBuilder / ResponseSpecBuilder
+
+- `RequestSpecBuilder` — билдер для создания `RequestSpecification`. Поддерживает: 
+  - `.setBaseUri()` 
+  - `.setBasePath()`
+  - `.addHeader()` 
+  - `.setContentType()`
+  - `.addQueryParam()`
+  - `.setAuth()`.
+- `ResponseSpecBuilder` — билдер для создания `ResponseSpecification`. Позволяет задать ожидаемые значения по умолчанию: 
+  - `.expect().statusCode(200)`
+  - `.expect().contentType(ContentType.JSON)` 
+  - `.expect().header("Server", "nginx")`.
+- `.build()` — финализирует построение и возвращает готовую спецификацию.
+
+```java
+RequestSpecification apiSpec = new RequestSpecBuilder()
+    .setBaseUri("https://api.staging.com")
+    .setBasePath("/v2")
+    .setContentType(ContentType.JSON)
+    .addHeader("X-Client-Id", "test-client")
+    .addQueryParam("version", "2.0")
+    .build();
+
+ResponseSpecification successSpec = new ResponseSpecBuilder()
+    .expectStatusCode(200)
+    .expectContentType(ContentType.JSON)
+    .expectHeader("X-Request-Id", not(emptyString()))
+    .build();
+```
+
+### Применение спецификаций
+
+- `.spec(spec)` — применение к конкретному запросу. Переопределяет конфликтующие параметры из глобальных настроек.
+- `RestAssured.requestSpecification = spec` / `RestAssured.responseSpecification = spec` — глобальное применение ко всем запросам в текущей JVM.
+
+```java
+given()
+    .spec(apiSpec)
+    .pathParam("id", 10)
+.when()
+    .get("/users/{id}")
+.then()
+    .spec(successSpec);
+```
+
+### Наследование и слияние
+
+- Спецификации наследуются и объединяются. Параметры из `.spec()` мержатся с локальными вызовами `given()`.
+- `.no()` — метод-префикс, отменяющий применение спецификации или сбрасывающий её параметры. Например, `no().basePath()` или `no().headers()`.
+- При конфликте локальные параметры в `given()` всегда приоритетнее параметров из `.spec(spec)`.
+
+```java
+given()
+    .spec(apiSpec) // содержит basePath="/v2"
+    .no().basePath() // отменяет наследование basePath
+    .queryParam("debug", true)
+.when()
+    .get("/health"); // запрос уйдет на корень baseURI, без /v2
+```
+
+- `.basePath("/new")` - Переопределяет значение (если было в spec)
+- `.no().basePath()` - Сбрасывает унаследованное значение
+- `.no().basePath().basePath("/new")` - Сброс + новое значение
+
+> Используйте `.no().something()` когда нужно полностью отказаться от унаследованного параметра, а не просто переопределить его. 
+> 
+> Для простой замены достаточно `.basePath("/new") без .no()`.
+
+### Фильтры (Filter Interface)
+
+- `Filter` — интерфейс для перехвата запроса/ответа до и после отправки. Метод `Response filter(FilterableRequestSpecification requestSpec, FilterableResponseSpecification responseSpec, FilterContext ctx)`.
+- `RequestFilter` / `ResponseFilter` — функциональные интерфейсы (SAM) для лаконичной записи логики только до отправки или после получения.
+- `LoggingFilter` — встроенный фильтр для логирования всего запроса/ответа (альтернатива `.log().all()`).
+- Порядок выполнения: фильтры применяются в порядке добавления. Цепочка: Filter 1 (Request) -> Filter 2 (Request) -> HTTP Call -> Filter 2 (Response) -> Filter 1 (Response).
+- `.filter(Filter)` / `.filters(Collection<Filter>)` — добавление фильтров на уровень запроса или глобально (на все запросы во всех тестах) через `RestAssured.filters()`.
+  ```java
+  // 1. Глобальные применяются ко всем запросам
+  RestAssured.filters(filter1, filter2);
+
+  // 2. Локальные ДОБАВЛЯЮТСЯ к глобальным (не заменяют)
+  given().filter(localFilter).get("/test"); // filter1, filter2, localFilter
+
+  // 3. Очистка глобальных фильтров
+  RestAssured.filters(); // пустой список
+
+  // 4. Порядок: сначала глобальные, потом локальные
+  RestAssured.filters(globalA, globalB);
+  given().filter(localC).get("/test"); // globalA -> globalB -> localC
+  ```
+
+Примеры:
+
+```java
+// Кастомный RequestFilter для добавления динамического заголовка
+RequestFilter dynamicHeaderFilter = (requestSpec, responseSpec, ctx) -> {
+    requestSpec.header("X-Trace-ID", UUID.randomUUID().toString());
+    return requestSpec;
+};
+
+// ResponseFilter для автоматического извлечения и логирования времени ответа
+ResponseFilter perfLogger = (responseSpec, ctx) -> {
+    long elapsed = responseSpec.getTime();
+    if (elapsed > 1000) {
+        System.out.println("WARNING: Slow response detected: " + elapsed + "ms");
+    }
+};
+
+given()
+    .filter(new LoggingFilter(true))
+    .filter(dynamicHeaderFilter)
+    .filter(perfLogger)
+.when()
+    .get("/api/slow-endpoint");
+```
+
+### Примеры интеграции (JUnit 5 vs TestNG)
+
+```java
+// JUnit 5: Изоляция спеков и кастомный Filter
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class SpecFilterTestJUnit5 {
+    
+    private RequestSpecification sharedReqSpec;
+    private ResponseSpecification sharedRespSpec;
+
+    @BeforeAll
+    static void init() {
+        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+    }
+
+    @BeforeEach
+    void setupSpecs() {
+        sharedReqSpec = new RequestSpecBuilder()
+            .setBaseUri("https://api.test.local")
+            .addHeader("Accept", "application/json")
+            .build();
+        sharedRespSpec = new ResponseSpecBuilder()
+            .expectStatusCode(200)
+            .build();
+    }
+
+    @Test
+    @Order(1)
+    void testSpecAndFilterApplication() {
+        RequestFilter authFilter = (req, res, ctx) -> {
+            req.header("Authorization", "Bearer test-token-" + System.currentTimeMillis());
+            return req;
+        };
+
+        given()
+            .spec(sharedReqSpec)
+            .filter(authFilter)
+        .when()
+            .get("/v1/resource")
+        .then()
+            .spec(sharedRespSpec)
+            .body("status", equalTo("OK"));
+    }
+}
+```
+
+```java
+// TestNG: Глобальные фильтры и наследование спеков с .no()
+public class SpecFilterTestNG {
+    
+    private RequestSpecification baseSpec;
+
+    @BeforeClass
+    public void initGlobalConfig() {
+        baseSpec = new RequestSpecBuilder()
+            .setBaseUri("https://api.prod.local")
+            .setBasePath("/api/v2")
+            .setContentType(ContentType.JSON)
+            .addHeader("X-Env", "qa")
+            .build();
+
+        RestAssured.filters(
+            new LoggingFilter(false),
+            (req, res, ctx) -> {
+                req.queryParam("timestamp", System.currentTimeMillis());
+                return req;
+            }
+        );
+    }
+
+    @AfterClass
+    public void cleanup() {
+        RestAssured.reset();
+    }
+
+    @Test
+    public void testSpecOverrideAndNoInheritance() {
+        given()
+            .spec(baseSpec) // наследует basePath="/api/v2"
+            .no().basePath() // отменяет его для этого запроса
+            .queryParam("sync", true)
+        .when()
+            .get("/legacy/endpoint") // запрос уйдет на корень
+        .then()
+            .statusCode(200);
+    }
+}
+```
+
+## Best Practices
+
+- Используйте `RequestSpecBuilder` / `ResponseSpecBuilder` для выноса повторяющихся заголовков, базовых URI и ожидаемых статусов в отдельные конфигурационные классы.
+- Применяйте `.no()` осторожно: он сбрасывает параметр на уровень по умолчанию, а не удаляет его. Для полной очистки используйте `new RequestSpecBuilder().build()`.
+- Фильтры выполняются строго в порядке добавления. Помещайте `LoggingFilter` в конец цепочки или используйте `.log().all()`, чтобы видеть финальный запрос после всех модификаций другими фильтрами.
+- Для динамической аутентификации или генерации nonce/timestamp используйте `RequestFilter`, а не хардкод в `@BeforeMethod`.
+- `ResponseSpecBuilder` идеально подходит для контрактного тестирования: задавайте ожидаемые заголовки и статусы один раз, чтобы тесты падали сразу при отклонении API от SLA.
+- При работе с `.spec()` помните: локальные вызовы `given()` (`header()`, `queryParam()`) всегда переопределяют спецификацию. Если нужно добавить, а не заменить, используйте кастомную логику слияния или билдеры.
+- Отключайте `LoggingFilter` в production/CI пайплайнах или используйте `.log().ifValidationFails()` для экономии дискового пространства и ускорения вывода логов.
+- Избегайте мутации статических `RestAssured.filters()` в параллельных тестах. Передавайте фильтры локально через `.filter()` или используйте `ThreadLocal<RequestSpecification>`.
+  Если тесты могут выполняться параллельно, никогда не используйте глобальные RestAssured.filters() - только локальные через .filter() или изолированные спецификации.
+  ```java
+  // Для параллельных тестов:
+  
+  // Для большинства случаев: локальные фильтры
+  given().filter(myFilter).get("/api");
+
+  // Для повторного использования: спецификации (не глобальные)
+  RequestSpecification spec = new RequestSpecBuilder()
+      .addFilter(myFilter)
+      .build();
+
+  given().spec(spec).get("/api");
+  ```
+
+  Использование спецификаций вместо глобальных фильтров:
+
+  ```java
+  // Создаем разные спецификации для разных сценариев
+  class TestSpecs {
+
+      static RequestSpecification authSpec = new RequestSpecBuilder()
+          .addFilter(new AuthFilter())
+          .build();
+
+      static RequestSpecification loggingSpec = new RequestSpecBuilder()
+          .addFilter(new LoggingFilter())
+          .build();
+    
+      static RequestSpecification retrySpec = new RequestSpecBuilder()
+          .addFilter(new RetryFilter())
+          .build();
+  }
+
+  // Использование в параллельных тестах
+  @Test
+  void parallelTest1() {
+      given()
+          .spec(TestSpecs.authSpec) // ✅ каждый поток использует свою
+          .get("/user/1");
+  }
+
+  @Test
+  void parallelTest2() {
+      given()
+          .spec(TestSpecs.loggingSpec) // ✅ независимые объекты
+          .get("/user/2");
+  }
+  ```
 
