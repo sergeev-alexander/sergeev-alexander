@@ -314,3 +314,156 @@ $(By.cssSelector("form#login")).$(By.cssSelector("input[name='password']")).setV
 // Использование data-testid для стабильности
 $(By.cssSelector("[data-testid='submit-button']")).click();
 ```
+
+# 3. Комбинаторы и навигация по DOM
+
+> Как строить цепочки поиска без осей. 
+> 
+> В отличие от XPath, CSS не поддерживает прямую навигацию «вверх» или «назад», но компенсирует это чёткими комбинаторами, 
+> которые работают быстрее за счёт нативной оптимизации браузерных движков.
+
+## Комбинаторы вложенности: пробел и `>`
+
+- ` ` (пробел) — descendant combinator. Находит элемент на любом уровне вложенности внутри родительского. Аналог `//` в XPath.
+- `>` — child combinator. Находит только непосредственных дочерних элементов. Аналог `/` в XPath.
+
+В CSS между комбинаторами пробелы можно ставить или не ставить — на работу селектора это не влияет:
+
+```css
+form>input       /* без пробелов — ок */
+form > input     /* с пробелами — ок */
+form> input      /* пробел только справа — ок */
+form >input      /* пробел только слева — ок */
+```
+
+```html
+<!-- Поиск по любому уровню вложенности (descendant) -->
+<!-- CSS: form input -->
+<!-- XPath: //form//input -->
+<form id="login">
+    <div class="field">
+        <input name="username"> <!-- Найден: form input -->
+        <div class="nested">
+            <input name="token"> <!-- Также найден: form input -->
+        </div>
+    </div>
+</form>
+
+<!-- Поиск только прямых потомков (child) -->
+<!-- CSS: form > input -->
+<!-- XPath: //form/input -->
+<form id="register">
+    <input name="email"> <!-- Найден: form > input -->
+    <div>
+        <input name="confirm"> <!-- Не найден: вложен в div, а не в form -->
+    </div>
+</form>
+```
+
+## Комбинаторы соседей: `+` и `~`
+
+- `+` (adjacent sibling) — выбирает первый элемент, идущий сразу после указанного. Аналог `following-sibling::*[1]` в XPath.
+- `~` (general sibling) — выбирает все последующие элементы одного уровня вложенности. Аналог `following-sibling::*` в XPath.
+
+```html
+<!-- Точный следующий сосед (adjacent sibling) -->
+<!-- CSS: label[for='pwd'] + input -->
+<!-- XPath: //label[@for='pwd']/following-sibling::input[1] -->
+<div class="field-row">
+    <label for="pwd">Пароль:</label>
+    <input type="password" id="pwd"> <!-- Найден -->
+    <span class="hint">Подсказка</span> <!-- Не найден -->
+</div>
+
+<!-- Любой последующий сосед (general sibling) -->
+<!-- CSS: label[for='email'] ~ * -->
+<!-- XPath: //label[@for='email']/following-sibling::* -->
+<div class="field-row">
+    <label for="email">Email:</label>
+    <input type="email" id="email"> <!-- Найден -->
+    <span class="error">Неверный формат</span> <!-- Найден -->
+    <button type="submit">Отправить</button> <!-- Найден -->
+</div>
+
+<!-- Практический кейс: поиск поля по лейблу -->
+<!-- CSS: .form-group > label[for='fname'] + input -->
+<div class="form-group">
+    <label for="fname">Имя</label>
+    <input id="fname" name="first_name"> <!-- Найден -->
+    <div class="extra">Лишний элемент</div> <!-- Не найден -->
+</div>
+```
+
+## Компенсация отсутствия оси `parent::`
+
+В CSS нет прямой навигации «вверх» по DOM. Для решения этой задачи используются три стратегии:
+- Поиск «сверху вниз» через известные родительские контейнеры.
+- Использование псевдо-класса `:has()` (современные браузеры, Selenium 4.2+).
+- Компенсация в коде автотеста через методы `.parent()` / `.closest()` (Selenide):
+  
+  ```java
+  // Находим кнопку, затем поднимаемся к ближайшему предку с классом "card"
+  SelenideElement card = $("button.delete-btn").closest(".card");
+
+  // Или через parent() — только на один уровень вверх
+  SelenideElement parentDiv = $("button.delete-btn").parent();
+  ```
+
+```html
+<!-- Задача: найти контейнер <div class="card"> по кнопке внутри него -->
+<!-- XPath (просто): //button[text()='Удалить']/ancestor::div[@class='card'] -->
+<!-- CSS (через :has()): div.card:has(> button.delete-btn) -->
+<div class="card">
+    <h3>Товар А</h3>
+    <button class="delete-btn">Удалить</button> <!-- Контекст -->
+</div>
+
+<!-- Задача: найти родительскую форму по полю ввода -->
+<!-- XPath: //input[@name='q']/ancestor::form -->
+<!-- CSS (обходной путь): form:has(> input[name='q']) -->
+<form action="/search">
+    <div class="search-box">
+        <input name="q"> <!-- Контекст -->
+    </div>
+</form>
+
+<!-- Задача: найти соседний элемент в другом контейнере -->
+<!-- CSS не позволяет прыгнуть на уровень вверх, поэтому ищем от общего предка -->
+<!-- CSS: .container > .panel:first-child + .panel -->
+<!-- XPath: //div[@class='container']/div[@class='panel'][1]/following-sibling::div[@class='panel'] -->
+<div class="container">
+    <div class="panel left">...</div>
+    <div class="panel right">Цель поиска</div>
+</div>
+```
+
+## Сравнение комбинаторов CSS и XPath
+
+| Тип навигации        | CSS синтаксис | XPath аналог                      | Поведение                             |
+|:---------------------|---------------|-----------------------------------|---------------------------------------|
+| Любой потомок        | `A B`         | `A//B`                            | Рекурсивный поиск на всех уровнях     |
+| Прямой потомок       | `A > B`       | `A/B`                             | Только один уровень вложенности       |
+| Следующий сосед      | `A + B`       | `A/following-sibling::B[1]`       | Первый элемент того же уровня         |
+| Все следующие соседи | `A ~ B`       | `A/following-sibling::B`          | Все элементы того же уровня после `A` |
+| Родитель             | ❌ Нет         | `B/parent::A` или `B/ancestor::A` | Требуется `:has()` или обход в коде   |
+
+## Best Practices
+
+- **Избегайте `> ` без необходимости**: селектор `.container button` работает быстрее и устойчивее к изменениям вёрстки, чем `.container > div > button`, если структура может меняться.
+- **Используйте `+` для связанных элементов**: идеален для пар `label` + `input`, `input` + `span.error`, `button` + `tooltip`.
+- **Проверяйте `~` на точность**: поиск всех соседей может вернуть много элементов; уточняйте селектором класса или атрибута, например `label ~ span.error`.
+- **Компенсируйте `parent::` на уровне фреймворка**: в Selenide используйте `$(By.cssSelector("input#pwd")).parent()`, а не пытайтесь эмулировать это сложным CSS, если браузер не поддерживает `:has()`.
+- **Тестируйте комбинаторы в DevTools**: введите `$$('A + B')` в консоли, чтобы убедиться, что выбран только целевой элемент, а не случайный сосед.
+
+```java
+// Пример использования комбинаторов в Selenium
+WebElement submitBtn = driver.findElement(By.cssSelector("form#checkout > button[type='submit']"));
+
+// Пример в Selenide: навигация от соседа к родителю
+SelenideElement passwordField = $("label[for='pwd']").sibling(1); // input рядом
+SelenideElement formContainer = passwordField.closest("form"); // компенсация parent::
+
+// Использование :has() для поиска родителя (Selenium 4.2+, Chrome 105+)
+By cardSelector = By.cssSelector("div.card:has(> button.delete-btn)");
+WebElement card = driver.findElement(cardSelector);
+```
