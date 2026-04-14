@@ -103,3 +103,214 @@
 - **Тестируйте локаторы в DevTools**: перед внедрением проверьте `$$('ваш_селектор')` в консоли браузера — это покажет количество и точность совпадений.
 
 ---
+
+## 2. Базовый синтаксис и селекторы
+
+> Фундаментальные токены для построения локаторов. 
+> Эти базовые конструкции покрывают 80% задач автоматизации и служат основой для более сложных выражений.
+
+- **Селектор по тегу** — поиск всех элементов указанного типа; полезен для массовых операций, но требует уточнения контекстом.
+- **Селектор по классу (`.class`)** — обращение к элементам по CSS-классу; помните, что у элемента может быть несколько классов.
+- **Селектор по ID (`#id`)** — самый быстрый и точный способ найти уникальный элемент; используйте, когда ID стабилен.
+- **Атрибутные селекторы** — гибкая фильтрация по значениям атрибутов: точное совпадение, префикс, суффикс, содержание слова или подстроки.
+- **Комбинаторы вложенности** — пробел (` `) для любого уровня вложенности, `>` для прямых потомков; позволяют строить точные цепочки без осей.
+- **Экранирование спецсимволов** — классы с двоеточиями, точками или другими спецсимволами требуют экранирования обратным слэшем.
+
+В CSS можно использовать и двойные, и одинарные кавычки — разницы нет. Это дело вкуса и стиля.
+
+---
+
+## Селекторы по тегу, классу и ID
+
+```html
+<!-- Поиск по тегу: все <button> на странице -->
+<!-- CSS: button -->
+<!-- XPath: //button -->
+<div class="toolbar">
+    <button>Новый</button>
+    <button>Сохранить</button>
+    <button disabled>Удалить</button>
+</div>
+
+<!-- Поиск по классу: элементы с классом 'btn-primary' -->
+<!-- CSS: .btn-primary -->
+<!-- XPath: //*[@class='btn-primary'] (хрупко!) или //*[contains(concat(' ', @class, ' '), ' btn-primary ')] -->
+<button class="btn btn-primary">Отправить</button>
+<span class="btn-primary icon">✓</span>
+
+<!-- Поиск по нескольким классам: элемент должен иметь ОБА класса -->
+<!-- CSS: .btn.btn-primary — элемент с классами 'btn' И 'btn-primary' -->
+<!-- XPath: //*[contains(@class, 'btn') and contains(@class, 'btn-primary')] -->
+<button class="btn btn-primary btn-lg">Большая кнопка</button>
+
+<!-- Поиск по ID: уникальный элемент -->
+<!-- CSS: #submit-btn -->
+<!-- XPath: //*[@id='submit-btn'] -->
+<button id="submit-btn" type="submit">Готово</button>
+
+<!-- Комбинация: тег + класс -->
+<!-- CSS: input.error — <input> с классом 'error' -->
+<!-- XPath: //input[contains(@class, 'error')] -->
+<input type="text" class="error" name="username">
+```
+
+## Атрибутные селекторы: полный справочник
+
+```html
+<!-- [attr] — наличие атрибута (любое значение) -->
+<!-- CSS: input[required] -->
+<!-- XPath: //input[@required] -->
+<input type="text" name="email" required>
+
+<!-- [attr=value] — точное совпадение значения -->
+<!-- CSS: input[type='password'] -->
+<!-- XPath: //input[@type='password'] -->
+<input type="password" name="pwd">
+
+<!-- [attr~=word] — атрибут содержит слово (разделённое пробелами), полезно для классов -->
+<!-- CSS: [class~='btn'] — элемент имеет класс 'btn' среди прочих -->
+<!-- XPath: //*[contains(concat(' ', @class, ' '), ' btn ')] -->
+<button class="btn btn-primary disabled">Кнопка</button>
+
+<!-- [attr^=start] — значение начинается с подстроки -->
+<!-- CSS: [id^='user_'] — id начинается с 'user_' -->
+<!-- XPath: //*[starts-with(@id, 'user_')] -->
+<div id="user_123_profile">Профиль</div>
+<div id="user_456_settings">Настройки</div>
+
+<!-- [attr$=end] — значение заканчивается подстрокой -->
+<!-- CSS: [href$='.pdf'] — ссылка на PDF -->
+<!-- CSS: [src$='.png'] — изображение PNG -->
+<!-- XPath: //*[substring(@href, string-length(@href)-3) = '.pdf'] -->
+<a href="/docs/manual.pdf">Инструкция</a>
+<img src="/img/logo.png" alt="Logo">
+
+<!-- [attr*=substring] — значение содержит подстроку в любом месте -->
+<!-- CSS: [class*='error'] — класс содержит 'error' (например, 'field-error', 'error-msg') -->
+<!-- XPath: //*[contains(@class, 'error')] -->
+<span class="field-error">Неверный формат</span>
+<div class="error-msg highlight">Ошибка сервера</div>
+
+<!-- [attr|='value'] — значение равно 'value' или начинается с 'value-' (для языковых кодов) -->
+<!-- CSS: [lang|='en'] — lang='en' или lang='en-US' -->
+<!-- XPath: //*[starts-with(@lang, 'en')] -->
+<html lang="en-US">
+```
+
+## Комбинаторы вложенности: пробел и `>`
+
+```html
+<!-- Пробел ( ) — любой уровень вложенности (descendant) -->
+<!-- CSS: form input — любой <input> внутри <form>, на любой глубине -->
+<!-- XPath: //form//input -->
+<form id="login">
+    <div class="field">
+        <input name="username"> <!-- Найден: form input -->
+        <div class="nested">
+            <input name="token"> <!-- Также найден: form input -->
+        </div>
+    </div>
+</form>
+
+<!-- > — только прямые потомки (child) -->
+<!-- CSS: form > input — только <input>, которые являются прямыми детьми <form> -->
+<!-- XPath: //form/input -->
+<form id="register">
+    <input name="email"> <!-- Найден: form > input -->
+    <div>
+        <input name="confirm"> <!-- Не найден: не прямой потомок -->
+    </div>
+</form>
+
+<!-- Комбинация: точный путь к элементу -->
+<!-- CSS: div.container > ul > li.active — прямой потомок с классом -->
+<!-- XPath: //div[@class='container']/ul/li[contains(@class, 'active')] -->
+<div class="container">
+    <ul>
+        <li>Обычный элемент</li>
+        <li class="active">Активный шаг</li> <!-- Найден -->
+    </ul>
+</div>
+
+<!-- Разница между пробелом и > на практике -->
+<!-- CSS: .modal button — любая кнопка внутри модального окна -->
+<!-- CSS: .modal > button — только кнопка, лежащая напрямую в .modal -->
+<!-- XPath: //div[@class='modal']//button -->
+<!-- XPath: //div[@class='modal']/button -->
+<div class="modal">
+    <button class="close">✕</button> <!-- Найден обоими селекторами -->
+    <div class="content">
+        <button>Действие</button> <!-- Найден только .modal button -->
+    </div>
+</div>
+```
+
+## Экранирование спецсимволов в селекторах
+
+```html
+<!-- Классы с двоеточием: требуют экранирования обратным слэшем -->
+<!-- CSS: .w\:text-center — экранируем двоеточие -->
+<!-- XPath: //*[@class='w:text-center'] -->
+<div class="w:text-center">Центрированный текст</div>
+
+<!-- Классы с точкой: точка внутри имени класса тоже экранируется -->
+<!-- CSS: .version\.2\.0 -->
+<!-- XPath: //*[@class='version.2.0'] -->
+<span class="version.2.0">Версия 2.0</span>
+
+<!-- Классы с пробелами: пробел разделяет классы, поэтому 'my class' — это два класса -->
+<!-- CSS: .my.class — элемент с классами 'my' И 'class' -->
+<!-- Для класса с буквальным пробелом (редко) используйте экранирование: .my\ class -->
+<div class="my class">Два отдельных класса</div>
+
+<!-- ID с точкой или двоеточием: тоже требуют экранирования -->
+<!-- CSS: #user\:123 -->
+<!-- XPath: //*[@id='user:123'] -->
+<div id="user:123">Профиль пользователя</div>
+```
+
+Практический совет: если экранирование становится сложным, используйте атрибутные селекторы
+
+Квадратные скобки `[]` делают селектор атрибутным
+
+```html
+<!-- CSS: [class='w:text-center'] вместо .w\:text-center -->
+<!-- CSS: [id='user:123'] вместо #user\:123 -->
+```
+
+## Сводная таблица базовых селекторов
+
+| Тип селектора         | Синтаксис CSS         | Пример             | Эквивалент XPath                                      |
+|:----------------------|-----------------------|--------------------|-------------------------------------------------------|
+| По тегу               | `tag`                 | `input`            | `//input`                                             |
+| По классу             | `.class`              | `.btn-primary`     | `//*[contains(@class, 'btn-primary')]`                |
+| По ID                 | `#id`                 | `#submit`          | `//*[@id='submit']`                                   |
+| По атрибуту (наличие) | `[attr]`              | `[required]`       | `//*[@required]`                                      |
+| По атрибуту (точное)  | `[attr=val]`          | `[type='text']`    | `//*[@type='text']`                                   |
+| По слову в атрибуте   | `[attr~=word]`        | `[class~='btn']`   | `//*[contains(concat(' ',@class,' '),' btn ')]`       |
+| По префиксу           | `[attr^=start]`       | `[id^='user_']`    | `//*[starts-with(@id,'user_')]`                       |
+| По суффиксу           | `[attr$=end]`         | `[href$='.pdf']`   | `//*[substring(@href,string-length(@href)-3)='.pdf']` |
+| По подстроке          | `[attr*=sub]`         | `[class*='error']` | `//*[contains(@class,'error')]`                       |
+| Прямой потомок        | `parent > child`      | `form > input`     | `//form/input`                                        |
+| Любой потомок         | `ancestor descendant` | `form input`       | `//form//input`                                       |
+
+---
+
+## Best Practices для базовых селекторов
+
+- **Приоритет уникальности**: `#id` > `[data-testid]` > `[name]` > `.class` — чем уникальнее атрибут, тем стабильнее локатор.
+- **Избегайте хрупких классов**: классы вида `btn-primary disabled active` могут меняться; предпочитайте `data-*` атрибуты для тестов.
+- **Используйте `~=` для классов**: `[class~='btn']` надёжнее, чем `[class*='btn']`, так как не совпадёт с `submit-btn`.
+- **Тестируйте в консоли**: перед внедрением проверьте селектор через `$$('ваш_селектор')` в DevTools — это покажет точное количество совпадений.
+- **Документируйте сложные случаи**: если селектор требует экранирования или неочевидной комбинации, добавьте комментарий в коде теста.
+
+```java
+// Пример использования в Selenium
+WebElement emailInput = driver.findElement(By.cssSelector("input[name='email']:not([disabled])"));
+
+// Пример в Selenide: цепочка селекторов
+$(By.cssSelector("form#login")).$(By.cssSelector("input[name='password']")).setValue("secret");
+
+// Использование data-testid для стабильности
+$(By.cssSelector("[data-testid='submit-button']")).click();
+```
