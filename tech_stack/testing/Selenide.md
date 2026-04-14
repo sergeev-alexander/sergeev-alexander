@@ -250,3 +250,209 @@ class DynamicConfigTest {
 
 ---
 
+# 2. Core API: поиск и действия с элементами
+
+> Core API Selenide предоставляет лаконичный Fluent-интерфейс для поиска, взаимодействия и проверки веб-элементов, 
+> скрывая сложность нативного Selenium WebDriver и обеспечивая встроенные автоматические ожидания.
+
+## Базовый синтаксис и Fluent API
+
+- `$()` — поиск одного элемента, возвращает `SelenideElement`
+- `$$()` — поиск коллекции элементов, возвращает `ElementsCollection`
+- `$x()` — поиск по XPath-выражению
+- Цепочки вызовов — последовательное применение методов без промежуточных переменных
+- Lazy evaluation — элементы не ищутся до момента вызова действия или проверки
+
+### Пример базового использования
+
+```java
+// Поиск и действие в одну строку
+$("#submit-btn").click(); // Поиск по CSS Selector
+
+// Цепочка Fluent API
+$(".user-card").find(".name")
+        .shouldHave(text("Иванов"))
+        .parent().find(".status")
+        .shouldBe(visible);
+
+// Работа с коллекцией
+$$(".list-item").first().click();
+```
+
+---
+
+## Селекторы и локаторы
+
+- **CSS-селекторы** — приоритетный способ, быстрее и читаемее: `.class`, `#id`, `[attr=value]`
+- **XPath** — используется для сложной навигации или поиска по тексту/иерархии: `$x("//div[contains(text(),'Login')]")`
+- **Поиск по тексту** — встроенные методы `byText()`, `withText()`
+- **Комбинированные локаторы** — объединение атрибутов и классов: `input[name='email'][type='text']`
+
+### Примеры селекторов
+
+```java
+// CSS
+$("form#login input[type='password']")
+
+// XPath
+$x("//table//tr[td[text()='Admin']]/td[2]")
+
+// Поиск по точному тексту
+$(byText("Сохранить"))
+
+// Поиск по частичному тексту
+$(withText("Загрузка..."))
+
+// Комбинированный атрибут
+$("button[data-action='submit'].btn-primary")
+
+---
+
+## Навигация по DOM и коллекции
+
+- **Поиск внутри родителя** — `parent()`, `ancestor()`, `sibling()`, `closest()`
+- **Фильтрация коллекций** — `filterBy()`, `excludeWith()`, `findBy()`
+- **Доступ по индексу** — `first()`, `last()`, `get(int index)`
+- **Счётчики и состояния** — `size()`, `isEmpty()`, `areDisplayed()`
+
+### Навигация и фильтрация
+
+```java
+import static com.codeborne.selenide.CollectionCondition.size;
+import static com.codeborne.selenide.Selenide.$$;
+
+ElementsCollection rows = $$(".data-table tbody tr");
+
+// Фильтрация по условию
+rows.filterBy(text("Активен")).shouldHave(size(3));
+
+// Навигация от элемента
+$(".highlighted-item").ancestor(".main-container").click();
+
+// Работа с индексами (0-based)
+$$(".menu-items").get(2).hover();
+
+---
+
+## Извлечение данных
+
+- `getText()` / `getOwnText()` — полный текст элемента / текст без дочерних элементов
+- `getAttribute("name")` — значение атрибута
+- `getCssValue("property")` — значение CSS-свойства
+- `getValue()` / `getSelectedOption()` / `isSelected()` — состояния форм и элементов
+
+### Извлечение значений
+
+```java
+// Текст
+String header = $(".page-title").getText();
+
+// Атрибут
+String href = $("a.download-link").getAttribute("href");
+
+// CSS-свойство
+String color = $(".alert-danger").getCssValue("background-color");
+
+// Значение инпута
+String email = $("input[name='email']").getValue();
+
+// Состояние чекбокса
+boolean isChecked = $("input#terms").isSelected();
+
+---
+
+## Действия с элементами
+
+- `click()` / `doubleClick()` / `contextClick()` — различные типы кликов
+- `setValue()` / `clear()` — ввод и очистка полей
+- `pressEnter()` / `pressEscape()` — отправка спецклавиш
+- `hover()` — наведение курсора
+- `dragAndDropTo()` — перетаскивание
+
+### Взаимодействие и ввод
+
+```java
+import static com.codeborne.selenide.Selenide.*;
+
+// Быстрый ввод (без эмуляции нажатий клавиш, если включён fastSetValue)
+$("#username").setValue("admin");
+
+// Очистка и ввод
+$("#search").clear().setValue("Selenide").pressEnter();
+
+// Двойной клик
+$("li.item").doubleClick();
+
+// Правый клик (контекстное меню)
+$(".editable-area").contextClick();
+
+// Наведение для появления тултипа
+$(".tooltip-trigger").hover();
+
+---
+
+## Работа с формами
+
+- **Выпадающие списки** — `selectOption()`, `selectOptionContainingText()`
+- **Чекбоксы** — `setSelected(true)`, `setSelected(false)`
+- **Радио-кнопки** — `click()` или `setValue()` для выбора
+- **Загрузка файлов** — `uploadFromClasspath()`, `uploadFile()`
+
+### Примеры работы с формами
+
+```java
+import java.io.File;
+import static com.codeborne.selenide.Selenide.$;
+
+// Выпадающий список (select)
+$("#country").selectOption("Россия");
+$("#role").selectOptionContainingText("Менеджер");
+
+// Чекбокс
+$("input#agree").setSelected(true);
+
+// Радио-кнопка
+$("[name='gender']").findBy(value("female")).click();
+
+// Загрузка файла
+$("#file-upload").uploadFile(new File("src/test/resources/document.pdf"));
+
+// Загрузка из classpath
+$("#avatar").uploadFromClasspath("images/profile.png");
+
+---
+
+## Drag-and-drop и сложные сценарии
+
+- Перетаскивание между элементами — `dragAndDropTo()`
+- Эмуляция сложного ввода через Actions API (доступен через `.toWebElement()`)
+- Комбинирование клавиш и мыши для нестандартных UI-паттернов
+
+### Пример Drag-and-Drop
+
+```java
+import static com.codeborne.selenide.Selenide.$;
+import org.openqa.selenium.interactions.Actions;
+import com.codeborne.selenide.WebDriverRunner;
+
+// Простое перетаскивание
+$("#draggable-item").dragAndDropTo($("#drop-zone"));
+
+// С использованием WebDriver Actions для нестандартных сценариев
+Actions actions = new Actions(WebDriverRunner.getWebDriver());
+actions.dragAndDrop($("#source").toWebElement(), $("#target").toWebElement()).perform();
+
+---
+
+## Best Practices
+
+- Используйте CSS-селекторы вместо XPath, когда это возможно — они быстрее и стабильнее
+- Опирйтесь на `data-*` атрибуты (например, `data-testid`) для изоляции тестов от изменений вёрстки
+- Избегайте жестких привязок к индексам в коллекциях — используйте фильтрацию по тексту или атрибутам
+- Не используйте `Thread.sleep()` — Selenide автоматически ожидает появления и готовности элементов
+- Для ввода текста в большие формы используйте `fastSetValue = true` в конфигурации, но учитывайте, что это не эмулирует реальные события `oninput`/`onchange`
+- При работе с динамическими коллекциями всегда вызывайте `$$()` заново, а не кешируйте `ElementsCollection` надолго
+- ❌ Не полагайтесь на абсолютные XPath (`/html/body/div[2]/...`) — они ломаются при малейшем изменении DOM
+- ❌ Не используйте `getValue()` для получения текста неинпутовых элементов — применяйте `getText()` или `getOwnText()`
+- ❌ Не забывайте про `hover()` перед взаимодействием с элементами, которые появляются только при наведении
+- ❌ Избегайте смешивания нативного `WebElement` и `SelenideElement` без явной необходимости — это нарушает единую модель ожиданий
