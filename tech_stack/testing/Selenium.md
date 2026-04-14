@@ -1379,3 +1379,731 @@ String step = (String) ((JavascriptExecutor) driver)
 
 ---
 
+# 7. Selenium 4: Продвинутые возможности
+
+> Selenium 4 предоставляет мощные API для отладки браузера, перехвата сетевого трафика, 
+> кросс-браузерного прослушивания событий и сбора метрик производительности, выходя далеко за рамки базового манипулирования DOM.
+
+## DevTools Protocol (CDP) интеграция
+
+> CDP (Chrome DevTools Protocol) — это протокол, который позволяет внешним инструментам управлять браузером на том же уровне, как это делают встроенные инструменты разработчика (F12).
+
+- Интерфейс `HasDevTools` позволяет получать доступ к сессии `DevTools` для браузера на базе Chromium.
+- Поддерживает эмуляцию геолокации, мобильных устройств, сетевых задержек и принудительное переключение тем оформления.
+- Требует явного создания сессии через `createSession()` и её закрытия для предотвращения утечек памяти.
+
+### Базовая настройка CDP
+
+```java
+DevTools devTools = ((HasDevTools) driver)  // приводим driver к интерфейсу HasDevTools (этот интерфейс реализуют ChromeDriver, EdgeDriver и др. для Chromium-браузеров)
+        .getDevTools();                     // получаем объект для работы с DevTools Protocol 
+devTools.createSession();                   // создаем отдельную сессию CDP (важно! это потребляет ресурсы)
+
+// Эмуляция геолокации (широта, долгота, точность)
+devTools.send(Emulation.setGeolocationOverride(
+    Optional.of(55.7558), 
+    Optional.of(37.6173), 
+    Optional.of(1.0)
+));
+
+// Закрытие сессии (обязательно в teardown)
+devTools.close();
+```
+
+## Перехват и модификация сетевых запросов
+
+- Позволяет блокировать нежелательные ресурсы (аналитика, шрифты, реклама), модифицировать заголовки и мокать ответы API на лету.
+- Использует команды `Network.enable()`, `Network.setBlockedURLs()`, `Fetch.enable()`.
+- Критически важно для тестирования edge-cases и offline-режимов без зависимости от внешних сервисов.
+
+### Блокировка и мок ответов
+
+```java
+// Network.enable() — активирует перехват всех сетевых событий (запросы, ответы, ошибки)
+default Command enable(Optional<String> urlPattern,                 // Фильтрует, какие запросы перехватывать, по URL.
+                       Optional<RequestPattern> requestPattern,     // Более сложная фильтрация по типу запроса, заголовкам и т.д.
+                       Optional<String> clientId)                   // Идентификатор клиента для контекста (редко используется, в основном для отладки)
+// Три аргумента, каждый обернут в Optional (может присутствовать или отсутствовать)
+```
+
+```java
+devTools           // Объект сессии DevTools
+    .send(         // Метод для отправки команды в браузер
+        Fetch.enable(           // Команда: включить перехват fetch
+            Optional.empty(),   // Параметр 1: URL-фильтр (пусто = все URL)
+            Optional.empty(),   // Параметр 2: сложный фильтр (пусто = нет фильтра)
+            Optional.empty()    // Параметр 3: ID клиента (пусто = не указан)
+        )
+    );
+```
+
+```java
+// Перехват с комбинированными фильтрами
+
+RequestPattern pattern = new RequestPattern()
+        .withUrlPattern("/api/users/*")
+        .withMethod("GET")
+        .withResourceType(ResourceType.XHR);
+
+devTools.send(Fetch.enable(
+        Optional.empty(),               // URL уже задан в pattern
+        Optional.of(pattern),
+        Optional.empty()
+));
+```
+
+```java
+// Fetch.fulfillRequest() перехватывает запрос и возвращает свой собственный ответ, полностью игнорируя настоящий сервер.
+
+default Command fulfillRequest(
+    String requestId,                   // ID запроса (обязательный)
+    int responseCode,                   // HTTP статус (200, 404, 500...)
+    List<HeaderEntry> responseHeaders,  // Заголовки ответа
+    Optional<String> body,              // Тело ответа (JSON, HTML, текст...)
+    Optional<String> responsePhrase     // Текстовое описание статуса (опционально)
+)
+```
+
+Примеры:
+
+```java
+// Включение перехвата сети
+devTools.send(Network.enable(                                       // активирует перехват всех сетевых событий
+        Optional.empty(), Optional.empty(), Optional.empty()));
+
+// Блокировка аналитики и сторонних скриптов
+devTools.send(Network.setBlockedURLs(                               // Network.setBlockedURLs() — указывает браузеру: "если видишь URL, подходящий под эти паттерны, даже не пытайся его загрузить"
+        List.of("*://analytics.*/*", "*://ads.*/*")));
+
+// Перехват и изменение ответа API
+devTools.send(Fetch.enable(
+        Optional.empty(), Optional.empty(), Optional.empty())); 
+
+devTools.addListener(Fetch.requestPaused(), request -> { // В 90% случаев для тестов используют Fetch.enable(Optional.empty(), Optional.empty(), Optional.empty()), потому что фильтрацию удобнее делать внутри Fetch.requestPaused() обработчика
+    String url = request.getRequest().getUrl();
+    if (url.contains("/api/user/profile")) {
+        devTools.send(Fetch.fulfillRequest( // Fetch.fulfillRequest() — это мок ответа API на уровне браузера, без реального похода на сервер
+            request.getRequestId(), 
+            200, 
+            Collections.emptyList(), 
+            Optional.of("{\"id\":1,\"role\":\"admin\"}"), 
+            Optional.empty()
+        ));
+    } else {
+        devTools.send(Fetch.continueRequest(
+            request.getRequestId(), 
+            Optional.empty(), 
+            Optional.empty(), 
+            Optional.empty(), 
+            Optional.empty(), 
+            Optional.empty()
+        ));
+    }
+});
+```
+
+## BiDi API (WebDriver BiDi)
+
+- Кросс-браузерный стандарт на базе WebSocket, пришедший на смену проприетарным расширениям.
+- Подписка на события: `browsingContext`, `log`, `network`, `script`.
+- Позволяет слушать `console.log`, ошибки JS и события навигации в реальном времени для Chrome, Firefox и Edge.
+
+> Включение перехвата:
+>
+> В BiDi не нужно явно посылать `Network.enable` или `Fetch.enable`. 
+> 
+> Подписка на событие beforeRequestSent автоматически включает перехват.
+
+Полная сигнатура конструктора ContinueRequest в Selenium WebDriver BiDi API:
+
+```java
+public ContinueRequest(
+        Optional<org.openqa.selenium.bidi.network.Body> body,
+        // Optional.of(Body.fromString("{\"key\":\"value\"}")); или Optional.of(Body.fromFile(Paths.get("/path/to/file")));
+        Optional<List<org.openqa.selenium.bidi.network.Header>> headers,
+        // Optional.of(List.of(new Header("Content-Type", "application/json")));
+        Optional<org.openqa.selenium.bidi.network.CookieHeader> cookies,
+        // Optional.of(new CookieHeader(List.of(new Cookie("sessionId", "abc123"))));
+        Optional<org.openqa.selenium.bidi.network.Auth> authorization)
+/*
+// Basic auth
+Auth authorization = new Auth(
+    Auth.AuthType.BASIC,
+    Optional.of("username"),
+    Optional.of("password"),
+    Optional.empty()
+);
+
+// Bearer token
+Auth authorization = new Auth(
+    Auth.AuthType.BEARER,
+    Optional.empty(),
+    Optional.empty(),
+    Optional.of("token123")
+);
+Optional.of(authorization)
+ */
+```
+
+Блокировка URL:
+
+```java
+if (url.matches(".*analytics\\..*")) {
+    biDi.getNetwork().failRequest(requestId, new Network.ErrorReason("BLOCKED_BY_CLIENT"));
+}
+// Аналог Network.setBlockedURLs — но более гибкий через условия в коде.
+```
+
+Подмена ответа:
+
+```java
+biDi.getNetwork().continueResponse(requestId, new ContinueResponse(
+                                                        Optional.of(200L),         // статус
+                                                        Optional.empty(),          // заголовки
+                                                        Optional.of(mockBodyBytes) // новое тело ответа
+));
+// Аналог Fetch.fulfillRequest.
+```
+
+Пропуск запроса:
+```java
+biDi.getNetwork().continueRequest(requestId, new ContinueRequest(
+                                                            Optional.empty(),
+                                                            Optional.empty(),
+                                                            Optional.empty(),
+                                                            Optional.empty()));
+```
+
+В BiDi (в отличие от CDP с Fetch.enable) каждый перехваченный запрос требует явного решения:
+
+- `continueRequest` - продолжить (пропустить)
+- `continueResponse` - подменить ответ
+- `failRequest` - заблокировать
+
+Без вызова одного из этих методов запрос "зависнет" в состоянии requestPaused.
+
+Пример:
+
+```java
+// Подписка на логи консоли через BiDi
+BiDi bidi = ((HasBiDi) driver).getBiDi();
+LogInspector logInspector = new LogInspector(bidi);
+BrowsingContext context = new BrowsingContext(driver, ContextId.ROOT);
+
+logInspector.onLogEvent(logEntry -> {
+    if (logEntry.getLevel().equals(Level.ERROR)) {
+        System.err.println("[BiDi Error] " + logEntry.getText());
+    }
+});
+
+// Навигация с ожиданием загрузки через BiDi
+context.navigate("https://example.com");
+```
+
+### Сравнение CDP и BiDi
+
+| Параметр            | CDP (Chrome DevTools Protocol)                | BiDi (WebDriver BiDi)                               |
+|:--------------------|-----------------------------------------------|-----------------------------------------------------|
+| Поддержка браузеров | Только Chromium-based                         | Chrome, Firefox, Edge, Safari (в процессе)          |
+| Архитектура         | Проприетарный HTTP/WS                         | Стандарт W3C                                        |
+| События             | `Log.entryAdded`, `Network.requestWillBeSent` | `log.entryAdded`, `network.beforeRequestSent`       |
+| Статус              | Stable для Chrome/Edge                        | Active development, рекомендован для новых проектов |
+
+## Скриншоты элементов и страницы
+
+- `TakesScreenshot` для снимков всего экрана или видимой области.
+- `WebElement.getScreenshotAs(OutputType.BYTES)` для автоматической обрезки конкретного элемента (Selenium 4).
+- Конвертация в `BASE64` для прямой интеграции с Allure/Extent без сохранения временных файлов.
+
+### Получение скриншотов
+
+```java
+// Скриншот всей страницы с обработкой оконного менеджера
+// Полезно для фиксации состояния UI при падении теста
+File fullPageScreenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+Path fullPagePath = Paths.get("reports/screenshots/full_page.png");
+Files.copy(fullPageScreenshot.toPath(), fullPagePath, StandardCopyOption.REPLACE_EXISTING);
+
+// Скриншот конкретного элемента с автоматической обрезкой (Selenium 4+)
+// Идеально для выделения валидационных сообщений, модальных окон или кнопок
+WebElement errorMessage = driver.findElement(By.cssSelector(".validation-error"));
+byte[] elementScreenshot = errorMessage.getScreenshotAs(OutputType.BYTES);
+Path elementPath = Paths.get("reports/screenshots/error_element.png");
+Files.write(elementPath, elementScreenshot);
+
+// Конвертация в BASE64 для Allure/Extent Reports (без временных файлов)
+// Прямая интеграция с отчетом - скриншот будет встроен в HTML
+String base64Screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+Allure.addAttachment("Скриншот ошибки", "image/png", base64Screenshot, "png");
+
+// Скриншот видимой области (viewport) с помощью JavaScript
+// Когда стандартный getScreenshotAs захватывает больше, чем нужно
+WebElement viewport = driver.findElement(By.tagName("body"));
+byte[] viewportScreenshot = viewport.getScreenshotAs(OutputType.BYTES);
+Files.write(Paths.get("reports/screenshots/viewport.png"), viewportScreenshot);
+
+// Скриншот с маскированием конфиденциальных данных (пример)
+// Для защиты персональных данных в отчетах
+BufferedImage image = ImageIO.read(new ByteArrayInputStream(
+        ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES)
+));
+Graphics2D g = image.createGraphics();
+g.setColor(Color.BLACK);
+g.fillRect(100, 200, 300, 50); // Закрашиваем область с email/паролем
+g.dispose();
+ImageIO.write(image, "png", Paths.get("reports/screenshots/masked.png").toFile());
+```
+
+## Производительность и трассировка
+
+- Сбор метрик через `Performance` CDP-домен.
+- Анализ `Navigation Timing`, `Resource Timing` для оценки скорости загрузки компонентов.
+- Интеграция с Chrome Tracing для генерации `trace.json`.
+- Альтернативы для глубокого аудита: Lighthouse CI, WebPageTest, k6 Browser.
+
+### Сбор метрик загрузки
+
+БАЗОВЫЕ МЕТРИКИ ЧЕРЕЗ PERFORMANCE CDP:
+
+```java
+// Включение Performance домена для сбора метрик
+devTools.send(Performance.enable(Optional.empty()));
+
+// Получение всех доступных метрик после загрузки страницы
+List<Metric> metrics = devTools.send(Performance.getMetrics());
+
+// Извлечение ключевых метрик загрузки страницы
+Map<String, Double> performanceMetrics = new HashMap<>();
+metrics.forEach(metric -> {
+    switch(metric.getName()) {
+        case "DomContentLoaded" -> // DOM полностью построен
+            performanceMetrics.put("DOM Content Loaded (ms)", metric.getValue());
+        case "FirstPaint" -> // Первая отрисовка пикселей
+            performanceMetrics.put("First Paint (ms)", metric.getValue());
+        case "FirstMeaningfulPaint" -> // Полезный контент появился
+            performanceMetrics.put("First Meaningful Paint (ms)", metric.getValue());
+        case "Load" -> // Страница полностью загружена
+            performanceMetrics.put("Full Load (ms)", metric.getValue());
+    }
+});
+```
+
+CHROME TRACING (генерация trace.json для DevTools):
+
+```java
+// Создаем файл трассировки для анализа в chrome://tracing
+try {
+    // Включаем трассировку с нужными категориями
+    devTools.send(Tracing.start(new Tracing.Start()
+        .setCategories("devtools.timeline,v8,blink.console")
+        .setOptions("record-until-full")));
+    
+    // Выполняем действие, которое хотим профилировать
+    driver.findElement(By.id("slow-button")).click();
+    
+    // Останавливаем трассировку и получаем данные
+    TracingEndResponse traceData = devTools.send(Tracing.end());
+    String traceJson = traceData.getStream().toString();
+    
+    // Сохраняем для анализа в chrome://tracing
+    Files.writeString(Paths.get("reports/traces/trace_%d.json".formatted(System.currentTimeMillis())), traceJson);
+} catch (Exception e) {
+    System.err.println("Трассировка не поддерживается в текущем драйвере");
+}
+```
+
+## Best Practices
+
+- Закрывать CDP-сессии в `@AfterMethod` или `finally`, избегать утечек памяти и конфликтов сессий
+- Использовать мокирование только для нестабильных внешних API, не для покрытия бизнес-логики
+- BiDi предпочтительнее CDP для кросс-браузерной поддержки и будущих версий Selenium
+- Скриншоты элементов делать только после `ExpectedConditions.visibilityOf()`, чтобы избежать пустых кадров
+- Логировать перехваченные запросы на уровне `DEBUG`, не хранить сырые ответы в продакшен-отчётах
+- Отключать `Performance.enable()` после сбора метрик, чтобы не нагружать браузер постоянным сбором данных
+- При работе с `Fetch` всегда обрабатывать `requestPaused` коллбэки, иначе браузер повиснет в ожидании ответа
+
+---
+
+## 8. Архитектура
+
+> Грамотная архитектура тестового фреймворка обеспечивает масштабируемость, переиспользование кода и изоляцию изменений UI от бизнес-логики тестов. 
+> 
+> В данном разделе рассматриваются ключевые паттерны проектирования, управление жизненным циклом драйвера и организация пакетной структуры.
+
+## Page Object Model (POM)
+
+- Принцип: один класс представляет одну страницу или логический UI-компонент
+- Локаторы инкапсулируются как `private`, методы взаимодействия — `public`
+- Методы возвращают `this` или новую страницу для поддержки Fluent-интерфейсов
+- Базовый класс `BasePage` выносит общие действия: ожидание готовности, скролл, получение URL
+
+```java
+public abstract class BasePage {
+    
+    protected final WebDriver driver;
+    protected final WebDriverWait wait;
+    protected final Actions actions;
+    protected final JavascriptExecutor js;
+    
+    // Конфигурация таймаутов
+    private static final int DEFAULT_TIMEOUT_SECONDS = 10;
+    private static final int POLLING_INTERVAL_MS = 500;
+    
+    public BasePage(WebDriver driver) {
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+        this.wait.pollingEvery(Duration.ofMillis(POLLING_INTERVAL_MS));
+        this.actions = new Actions(driver);
+        this.js = (JavascriptExecutor) driver;
+    }
+    
+    // ========== ОБЩИЕ МЕТОДЫ ОЖИДАНИЯ ==========
+    
+    protected WebElement waitUntilVisible(By locator) {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+    
+    protected WebElement waitUntilClickable(By locator) {
+        return wait.until(ExpectedConditions.elementToBeClickable(locator));
+    }
+    
+    protected boolean waitUntilInvisible(By locator) {
+        return wait.until(ExpectedConditions.invisibilityOfElementLocated(locator));
+    }
+    
+    // ========== FLUENT-МЕТОДЫ (возвращают this для цепочек) ==========
+    
+    // Скролл к элементу с плавной анимацией
+    public BasePage scrollToElement(By locator) {
+        WebElement element = waitUntilVisible(locator);
+        js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element);
+        return this; // Возвращаем текущий объект для дальнейших вызовов
+    }
+    
+    // Ожидание загрузки страницы (проверка DOM ready)
+    public BasePage waitForPageLoad() {
+        wait.until(driver -> js.executeScript("return document.readyState").equals("complete"));
+        return this;
+    }
+    
+    // Клик с JavaScript (когда обычный клик не работает)
+    public BasePage jsClick(By locator) {
+        WebElement element = waitUntilVisible(locator);
+        js.executeScript("arguments[0].click();", element);
+        return this;
+    }
+    
+    // Очистка поля перед вводом
+    public BasePage clearField(By locator) {
+        waitUntilVisible(locator).clear();
+        return this;
+    }
+    
+    // Ввод текста с предварительной очисткой
+    public BasePage type(By locator, String text) {
+        WebElement element = waitUntilVisible(locator);
+        element.clear();
+        element.sendKeys(text);
+        return this;
+    }
+    
+    // Получение текста с защитой от null
+    public String getText(By locator) {
+        return waitUntilVisible(locator).getText();
+    }
+    
+    // Проверка, отображается ли элемент
+    public boolean isDisplayed(By locator) {
+        try {
+            return driver.findElement(locator).isDisplayed();
+        } catch (NoSuchElementException e) {
+            return false;
+        }
+    }
+    
+    // Наведение мыши на элемент
+    public BasePage hover(By locator) {
+        WebElement element = waitUntilVisible(locator);
+        actions.moveToElement(element).perform();
+        return this;
+    }
+    
+    // Скриншот элемента для отчетности
+    public byte[] takeElementScreenshot(By locator) {
+        return waitUntilVisible(locator).getScreenshotAs(OutputType.BYTES);
+    }
+}
+```
+
+```java
+public class LoginPage extends BasePage {
+    
+    // Локаторы (инкапсулированы как private)
+    private final By usernameInput = By.id("user-login");
+    private final By passwordInput = By.name("password");
+    private final By submitBtn = By.cssSelector("button[type='submit']");
+    private final By rememberMeCheckbox = By.id("remember-me");
+    private final By forgotPasswordLink = By.linkText("Forgot password?");
+    private final By errorMessage = By.cssSelector(".alert-danger");
+    
+    public LoginPage(WebDriver driver) {
+        super(driver);
+    }
+    
+    // ========== FLUENT-МЕТОДЫ (возвращают this) ==========
+    
+    // Ввод логина с автоматической очисткой
+    public LoginPage enterUsername(String username) {
+      type(usernameInput, username);
+      return this; // Возвращаем this для fluent-цепочки
+    }
+    // Пример: new LoginPage(driver).enterUsername("user").enterPassword("pass")
+
+    // Ввод пароля
+    public LoginPage enterPassword(String password) {
+        type(passwordInput, password);
+        return this;
+    }
+    
+    // Установка чекбокса "Запомнить меня"
+    public LoginPage checkRememberMe() {
+        WebElement checkbox = waitUntilVisible(rememberMeCheckbox);
+        if (!checkbox.isSelected()) {
+            checkbox.click();
+        }
+        return this;
+    }
+    
+    // Снятие чекбокса "Запомнить меня"
+    public LoginPage uncheckRememberMe() {
+        WebElement checkbox = waitUntilVisible(rememberMeCheckbox);
+        if (checkbox.isSelected()) {
+            checkbox.click();
+        }
+        return this;
+    }
+    
+    // Скролл к кнопке входа (сначала скроллим, потом жмем)
+    public LoginPage scrollToSubmitButton() {
+        scrollToElement(submitBtn);
+        return this;
+    }
+    
+    // Ожидание готовности формы входа
+    public LoginPage waitForFormReady() {
+        waitUntilVisible(usernameInput);
+        waitUntilVisible(passwordInput);
+        return this;
+    }
+    
+    // ========== МЕТОДЫ ПЕРЕХОДА НА ДРУГИЕ СТРАНИЦЫ ==========
+    
+    // Успешный логин - возвращает новую страницу (DashboardPage)
+    public DashboardPage loginSuccess(String username, String password) {
+        enterUsername(username)
+            .enterPassword(password)
+            .waitForFormReady()
+            .scrollToSubmitButton();
+        
+        waitUntilClickable(submitBtn).click();
+        return new DashboardPage(driver); // Возвращаем НОВУЮ страницу
+    }
+    
+    // Неуспешный логин - возвращаем эту же страницу (остаемся на LoginPage)
+    public LoginPage loginFail(String username, String password) {
+        enterUsername(username)
+            .enterPassword(password)
+            .scrollToSubmitButton();
+        
+        waitUntilClickable(submitBtn).click();
+        return this; // Возвращаем текущую страницу для проверки ошибки
+    }
+    
+    // Полный Fluent-пример с проверкой
+    public DashboardPage loginWithFluentStyle(String username, String password) {
+        return this.enterUsername(username)
+                   .enterPassword(password)
+                   .checkRememberMe()
+                   .waitForFormReady()
+                   .scrollToSubmitButton()
+                   .clickSubmit()
+                   .waitForPageLoad(); // Ждем загрузки дашборда
+    }
+    
+    // Клик по кнопке Submit (возвращает this для промежуточных действий)
+    private LoginPage clickSubmit() {
+        waitUntilClickable(submitBtn).click();
+        return this;
+    }
+    
+    // ========== ВЕРИФИКАЦИОННЫЕ МЕТОДЫ ==========
+    
+    // Проверка отображения формы логина
+    public boolean isLoginFormDisplayed() {
+        return waitUntilVisible(usernameInput).isDisplayed();
+    }
+    
+    // Получение текста ошибки (если есть)
+    public String getErrorMessage() {
+        if (isDisplayed(errorMessage)) {
+            return getText(errorMessage);
+        }
+        return "";
+    }
+    
+    // Проверка, отображается ли сообщение об ошибке
+    public boolean isErrorDisplayed() {
+        return isDisplayed(errorMessage);
+    }
+    
+    // Переход на страницу восстановления пароля
+    public ForgotPasswordPage goToForgotPassword() {
+        waitUntilClickable(forgotPasswordLink).click();
+        return new ForgotPasswordPage(driver);
+    }
+    
+    // Очистка формы логина
+    public LoginPage clearForm() {
+        clearField(usernameInput);
+        clearField(passwordInput);
+        return this;
+    }
+}
+```
+
+Пример использования Fluent-интерфейса в тесте:
+```java
+@Test
+public void testFluentLoginExample() {
+
+    WebDriver driver = new ChromeDriver();
+
+    // Пример 1: Простой логин с возвратом новой страницы
+    DashboardPage dashboard = new LoginPage(driver)
+        .enterUsername("admin")
+        .enterPassword("secret")
+        .checkRememberMe()
+        .loginSuccess("admin", "secret");
+    
+    Assert.assertTrue(dashboard.isUserMenuDisplayed());
+    
+    // Пример 2: Ошибочный логин (остаемся на той же странице)
+    LoginPage loginPage = new LoginPage(driver)
+        .enterUsername("wrong")
+        .enterPassword("wrong")
+        .loginFail("wrong", "wrong");
+    
+    Assert.assertTrue(loginPage.isErrorDisplayed());
+    Assert.assertEquals("Invalid credentials", loginPage.getErrorMessage());
+    
+    // Пример 3: Супер-fluent цепочка с промежуточными действиями
+    LoginPage dashboardPage = new LoginPage(driver)
+        .waitForFormReady()
+        .enterUsername("user")
+        .enterPassword("pass")
+        .checkRememberMe()
+        .scrollToSubmitButton()
+        .waitForPageLoad()  // наследуется из BasePage
+        .loginSuccess("user", "pass");  // переходим на Dashboard
+  
+    // ассерты...
+}
+```
+
+---
+
+## Управление драйвером и жизненный цикл
+
+- `ThreadLocal<WebDriver>` гарантирует изоляцию сессий при параллельном выполнении
+- Factory-паттерн (`DriverFactory`) централизует создание и конфигурацию браузеров
+- Корректное завершение: `quit()` закрывает все окна и убивает процесс драйвера, `close()` — только текущее окно
+- Хуки фреймворка (`@BeforeMethod`, `@AfterMethod`) управляют инициализацией и очисткой
+
+```java
+public class DriverFactory {
+    
+    private static final ThreadLocal<WebDriver> DRIVER_POOL = new ThreadLocal<>();
+
+    public static WebDriver getDriver() {
+        if (DRIVER_POOL.get() == null) {
+            ChromeOptions options = new ChromeOptions();
+            options.addArguments("--headless=new");
+            DRIVER_POOL.set(new ChromeDriver(options));
+        }
+        return DRIVER_POOL.get();
+    }
+
+    public static void quitDriver() {
+        WebDriver driver = DRIVER_POOL.get();
+        
+        if (driver != null) {
+            driver.quit();
+            DRIVER_POOL.remove();
+        }
+    }
+}
+```
+
+---
+
+## Паттерны и абстракции
+
+- `PageFactory` и `@FindBy` помечены как deprecated в Selenium 4 — рекомендуется ручная инициализация или кастомные прокси
+- `Screenplay Pattern` разделяет роли: `Actor` (исполнитель), `Task` (действие), `Question` (проверка), `Ability` (возможность)
+- Builder для сложных сценариев: цепочечное создание тестовых данных или навигации
+- Facade для высокоуровневых операций: скрытие деталей реализации за методами `LoginPage.loginAs()`, `CartPage.addItem()`
+
+```java
+public class CheckoutFlow {
+    
+    private final WebDriver driver;
+    private final LoginPage loginPage;
+    private final CartPage cartPage;
+
+    public CheckoutFlow(WebDriver driver) {
+        this.driver = driver;
+        this.loginPage = new LoginPage(driver);
+        this.cartPage = new CartPage(driver);
+    }
+
+    public CheckoutFlow executeGuestCheckout(String productUrl) {
+        driver.get(productUrl);
+        cartPage.addToCart();
+        cartPage.proceedToCheckoutAsGuest();
+        return this;
+    }
+}
+```
+
+---
+
+## Организация кода и модульность
+
+- Рекомендуемая пакетная структура: `pages`, `components`, `utils`, `tests`, `config`, `listeners`
+- Вынос локаторов в enum `Locators` или внешние YAML/JSON файлы для централизованного управления
+- Параметризация страниц через конструкторы или DI-контейнеры (Spring, Guice) для упрощения тестов
+- Интеграция с логированием и отчетностью на уровне слушателей (`ITestListener`, `Extension`)
+
+```text
+src/test/java/
+├── pages/          # Page Objects и компоненты UI
+├── utils/          # Утилиты: Waits, FileOps, ConfigReader
+├── tests/          # Тестовые сценарии и Data-Driven тесты
+├── config/         # Конфигурации: BrowserConfig, EnvProperties
+└── listeners/      # Слушатели: Allure, Screenshot, Retry
+```
+
+---
+
+## Best Practices
+
+- Не дублировать логику навигации, выносить в `BasePage` или `NavigationManager`
+- Избегать `PageFactory.initElements()` в Selenium 4, использовать ручную инициализацию или кастомные прокси
+- Делать методы страниц возвращающими `this` или конкретную страницу для цепочек
+- Драйвер не должен передаваться напрямую в тесты, использовать менеджер или DI
+- Покрывать `BasePage` юнит-тестами, проверять инициализацию локаторов на этапе компиляции
+- Использовать `ThreadLocal` для потокобезопасности в параллельных прогонах
+- Разделять тесты по слоям: `unit` (быстрые), `integration` (API), `e2e` (UI)
+
+---
+
