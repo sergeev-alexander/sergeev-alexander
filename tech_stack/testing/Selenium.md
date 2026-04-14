@@ -2107,3 +2107,209 @@ src/test/java/
 
 ---
 
+## 9. Отладка, Логирование и Диагностика
+
+> Эффективная отладка и сбор диагностических данных превращают падающие тесты из «черного ящика» в понятный отчет о причине сбоя. 
+> 
+> Этот раздел охватывает автоматизацию скриншотов, анализ логов браузера, интеграцию с системами отчетности и техники локальной отладки.
+
+## Скриншоты и видео
+
+- `TakesScreenshot` интерфейс предоставляет методы `getScreenshotAs(OutputType.FILE/BYTES/BASE64)`
+- Автоматический захват при падении: реализуется через `ITestListener` (TestNG) или `TestWatcher` (JUnit 5) с `alwaysRun = true`
+- Скриншот элемента vs всей страницы: `WebElement.getScreenshotAs()` автоматически обрезает область видимости
+- Запись видео: через Docker-контейнеры (Selenoid/Grid 4), FFmpeg или специализированные плагины
+
+```java
+public class ScreenshotManager {
+    
+    public static String captureScreenshot(WebDriver driver, String testName) {
+        try {
+            String fileName = testName + "_" + LocalDateTime.now().toString().replace(":", "-") + ".png";
+            File srcFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            Files.copy(srcFile.toPath(), Paths.get("reports/screenshots/" + fileName));
+            return fileName;
+        } catch (Exception e) {
+            System.err.println("Failed to capture screenshot: " + e.getMessage());
+            return null;
+        }
+    }
+}
+
+// ИСПОЛЬЗОВАНИЕ:
+
+@Test
+public void testLoginFailure() {
+    driver = new ChromeDriver();
+    driver.get("https://example.com/login");
+
+    // Действие, которое упадёт
+    driver.findElement(By.id("nonexistent")).click();
+}
+
+// Автоматический скриншот при падении
+@AfterMethod
+public void tearDown(ITestResult result) {
+    if (ITestResult.FAILURE == result.getStatus()) {
+        String screenshotName = ScreenshotManager.captureScreenshot(driver, result.getName());
+        System.out.println("Скриншот сохранён: " + screenshotName);
+    }
+    if (driver != null) {
+        driver.quit();
+    }
+}
+```
+
+Лучшая практика — с Allure:
+```java
+@AfterMethod
+public void takeScreenshotOnFailure(ITestResult result) {
+    if (result.getStatus() == ITestResult.FAILURE && driver != null) {
+        byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+        Allure.addAttachment("Screenshot on failure", "image/png", screenshot, "png");
+    }
+}
+```
+
+## Логи браузера и сети
+
+- `LogEntries`, `LogType.BROWSER`, `LogType.DRIVER`, `LogType.PERFORMANCE`
+- Фильтрация по уровню: `Level.ALL`, `Level.FINE`, `Level.WARNING`, `Level.SEVERE`
+- Парсинг JS-ошибок, CORS-предупреждений, статусов 4xx/5xx
+- Вывод в консоль, запись в файлы, прикрепление к отчетам Allure/Extent
+
+```java
+LogEntries browserLogs = driver.manage().logs().get(LogType.BROWSER);
+for (LogEntry entry : browserLogs) {
+    if (entry.getLevel().equals(Level.SEVERE) || entry.getMessage().contains("Failed to load")) {
+        System.err.println("[BROWSER ERROR] " + entry.getMessage());
+    }
+}
+```
+
+## Диагностика и отладка
+
+- `driver.getPageSource()` для анализа текущего состояния DOM
+- `getDomProperty()` vs `getAttribute()` (v4 изменения): первое отражает live-состояние, второе — исходный HTML
+- Headed vs Headless: визуальная отладка через `--remote-debugging-port=9222`, подключение Chrome DevTools
+- Интеграция с IDE: breakpoints в Selenium-коде, пошаговое выполнение, инспекция `WebElement` прокси
+
+```bash
+# Запуск Chrome с портом удаленной отладки для подключения DevTools
+--remote-debugging-port=9222
+--disable-extensions
+--user-data-dir=/tmp/chrome-debug-profile
+```
+
+## Логирование и отчеты
+
+> Централизованное логирование и интеграция с системами отчетности превращают сырые данные выполнения в понятную диагностическую картину. 
+> 
+> Конфигурация логгера, структурирование сообщений и автоматическое прикрепление артефактов критически важны для анализа падений в CI/CD.
+
+### Конфигурация SLF4J + Logback
+
+- **Фасад SLF4J** — унифицированный API, позволяющий менять реализацию (Logback, Log4j2) без изменения кода тестов
+- **Logback** — реализация по умолчанию, поддерживает асинхронные аппендеры, фильтрацию по уровням и ротацию файлов
+- **Уровни логирования** — `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`; для тестов рекомендуется `INFO` по умолчанию, `DEBUG` для отладки локаторов и ожиданий
+- **Ротация файлов** — `RollingFileAppender` с политикой `SizeAndTimeBasedRollingPolicy` предотвращает переполнение диска артефактами прогонов
+
+### Структурированные логи и трассировка
+
+- **JSON-формат** — удобен для парсинга ELK/Splunk, включает `timestamp`, `thread`, `level`, `logger`, `message`, `correlationId`
+- **Correlation ID** — уникальный идентификатор сессии теста, передается во все шаги для сквозной трассировки в распределенных окружениях
+- **Step Tracing** — логирование каждого шага теста через `@Step` или кастомные обертки для восстановления последовательности действий
+
+### Интеграция с Allure
+
+- `@Step` — маркировка методов-действий, автоматическое отображение в дереве выполнения
+- `@Attachment` — прикрепление скриншотов, логов, `pageSource` при падении или по условию
+- `@Severity` — приоритизация: `BLOCKER`, `CRITICAL`, `NORMAL`, `MINOR`, `TRIVIAL`
+- `@Link` / `@Issue` / `@TmsLink` — связь с задачами Jira, баг-трекерами и тест-кейсами в TestRail/Qase
+
+### Обработка исключений
+
+- Логирование контекста (`URL`, `current page title`, `active element`) в `catch`-блоках или `TestWatcher`
+- Сохранение `pageSource` только при `ERROR/FAILED` для минимизации размера отчетов
+- Использование `try-with-resources` или `finally` для гарантированной очистки временных файлов
+
+### Конфигурация Logback с детальными комментариями
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Конфигурация Logback для тестового окружения.
+  Оптимизирована для CI/CD: вывод в консоль, фильтрация шума от Selenium,
+  асинхронная запись в файл с ротацией по размеру и времени.
+-->
+<configuration>
+
+    <!--
+      Аппендер для вывода в консоль.
+      Формат включает: время, поток, уровень, имя логгера (макс. 36 символов), сообщение.
+      %highlight добавляет цветовое выделение уровней в терминале.
+    -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %highlight([%thread]) %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- Фильтр: в консоль выводим только INFO и выше, чтобы не забивать вывод CI -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!--
+      Аппендер для записи в файл с ротацией.
+      Логи сохраняются в папке logs/, архивируются ежедневно или при достижении 50МБ.
+      Хранятся последние 30 дней архивов.
+    -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/test-run.log</file>
+        <encoder>
+            <!-- Расширенный формат для локальной отладки с поддержкой MDC -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} | %-5level | %thread | %logger{36} | %X{correlationId} | %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/test-run.%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!--
+      Настройка логгера для Selenium/WebDriver.
+      Уровень WARN подавляет подробные отладочные сообщения драйвера,
+      оставляя только критические ошибки и предупреждения.
+    -->
+    <logger name="org.openqa.selenium" level="WARN" />
+    <logger name="org.openqa.selenium.devtools" level="WARN" />
+    <logger name="io.github.bonigarcia" level="INFO" />
+
+    <!--
+      Корневой логгер проекта.
+      Уровень DEBUG для захвата всех шагов тестов, включая кастомные обертки.
+      Подключает консольный и файловый аппендеры.
+    -->
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>
+```
+
+## Best Practices
+
+- Делать скриншоты только при `SEVERE` или `FAILED`, избегать захвата на каждом шаге для экономии ресурсов CI
+- Парсить логи браузера через Stream API, фильтровать по регулярным выражениям для отсева ложных срабатываний
+- В CI/CD пайплайнах отключать verbose-логи драйвера, оставлять только `ERROR/WARN` для читаемости консоли
+- Использовать `@Attachment` для автоматической вставки скриншотов, логов и `pageSource` в отчеты
+- Хранить `pageSource` только при критических падениях, ограничивать размер файлов для ускорения загрузки отчетов
+- Настраивать `LogType.PERFORMANCE` только для конкретных тестов производительности, чтобы не перегружать браузер сбором метрик
+- При отладке `StaleElement` всегда логировать текущий URL и timestamp, чтобы отслеживать навигацию и редиректы
+
+---
