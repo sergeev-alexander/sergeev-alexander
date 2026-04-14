@@ -2629,3 +2629,297 @@ public class GridRetryAnalyzer implements IRetryAnalyzer {
 - При падениях в параллели проверять инициализацию `ThreadLocal<WebDriver>` и cleanup в `@AfterMethod`
 - В CI использовать `--headless=new` с отключением GPU и sandbox для стабильности в контейнерах
 - Для отладки зависших сессий включать `--log-level FINE` и анализировать `grid_session_active` метрику
+
+---
+
+# 11. Интеграция с тестовыми раннерами и экосистемой
+
+> Интеграция Selenium с фреймворками выполнения, системами параметризации, CI/CD и инструментами отчетности для построения масштабируемой и поддерживаемой автоматизации.
+
+## TestNG
+
+- **Аннотации жизненного цикла** — `@BeforeSuite`, `@BeforeClass`, `@BeforeMethod`, `@AfterMethod`, `@AfterClass`, `@AfterSuite` для управления инициализацией и очисткой
+- **Группировка и приоритеты** — `groups`, `priority`, `dependsOnMethods` для фильтрации сьютов и управления порядком выполнения
+- **Soft Assertions** — `SoftAssert` позволяет продолжить выполнение после падения проверки, финализируется вызовом `assertAll()`
+- **Listeners** — `ITestListener`, `ISuiteListener`, `IInvokedMethodListener` для кастомной логики до/после шагов, скриншотов и логирования
+
+```xml
+<!-- testng.xml: базовая конфигурация сьюта -->
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="E2E Suite" parallel="tests" thread-count="4" verbose="2">
+    <parameter name="env" value="staging"/>
+    <test name="Regression">
+        <groups>
+            <run>
+                <include name="smoke"/>
+                <exclude name="flaky"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.qa.tests.LoginTest"/>
+            <class name="com.qa.tests.CheckoutTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+```java
+public class BaseTest {
+    
+    protected SoftAssert softAssert;
+    protected WebDriver driver;
+
+    @BeforeMethod
+    public void init() {
+        driver = DriverManager.get();
+        softAssert = new SoftAssert();
+    }
+
+    @Test(groups = {"smoke", "regression"}, priority = 1)
+    public void verifyLogin() {
+        softAssert.assertTrue(driver.getTitle().contains("Dashboard"), "Заголовок не совпадает");
+        softAssert.assertEquals(driver.findElement(By.id("status")).getText(), "Active");
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        softAssert.assertAll(); // Выбросит AssertionError при накопленных ошибках
+        DriverManager.quit();
+    }
+}
+```
+
+## JUnit 5
+
+- **Аннотации** — `@Test`, `@BeforeEach`, `@AfterEach`, `@BeforeAll`, `@AfterAll` с поддержкой наследования и интерфейсов
+- **Параметризация** — `@ParameterizedTest`, `@ValueSource`, `@CsvSource`, `@MethodSource`, `@ArgumentsSource`
+- **Extension API** — замена наследованию, внедрение драйвера и ресурсов через `@ExtendWith`
+- **TestWatcher** — отслеживание статуса тестов (`testSuccessful`, `testFailed`, `testDisabled`) для кастомных реакций
+
+```java
+@ExtendWith(WebDriverExtension.class)
+class CheckoutTest {
+
+    @ParameterizedTest(name = "Покупка товара {0} с ценой {1}")
+    @CsvSource({"laptop, 1200", "mouse, 25", "keyboard, 75"})
+    void verifyCheckout(String item, int expectedPrice) {
+        WebDriver driver = WebDriverContext.get();
+        CartPage page = new CartPage(driver);
+        page.addItem(item);
+        assertEquals(page.getTotal(), expectedPrice);
+    }
+
+    @Test
+    @DisplayName("Проверка применения промокода")
+    void applyPromo() {
+        WebDriver driver = WebDriverContext.get();
+        CartPage page = new CartPage(driver);
+        assertAll("Проверка корзины",
+            () -> assertTrue(page.hasItems()),
+            () -> assertEquals(page.getDiscount("SAVE10"), 10)
+        );
+    }
+}
+```
+
+```properties
+# junit-platform.properties
+junit.jupiter.execution.parallel.enabled = true
+junit.jupiter.execution.parallel.mode.default = concurrent
+junit.jupiter.execution.parallel.config.strategy = dynamic
+junit.jupiter.extensions.autodetection.enabled = true
+```
+
+## Data-Driven и генерация данных
+
+- **Внешние источники** — загрузка из `JSON`, `YAML`, `CSV`, `Excel` через парсеры (Jackson, OpenCSV, Apache POI)
+- **Генерация данных** — `java-faker`, `instafaker` для создания уникальных email, имен, адресов без коллизий
+- **Testcontainers** — запуск изолированных БД (PostgreSQL, MySQL) или сервисов (Redis, MockServer) в Docker на время теста
+- **Управление состоянием** — фабричные методы, seed-скрипты, автоматический cleanup через `@AfterAll` или `DisposableBean`
+
+```java
+public class TestDataFactory {
+
+    private static final Faker faker = new Faker();
+
+  public static User generateUser() {
+    return new User(
+            // Генерирует случайное имя (John, Mary, Robert и т.д.)
+            faker.name().firstName(),
+            // Генерирует фамилию (Smith, Johnson, Williams)
+            faker.name().lastName(),
+            // Генерирует email вида "john.doe@example.com"
+            faker.internet().emailAddress(),
+            // Генерирует число от 18 до 65 (включительно)
+            faker.number().numberBetween(18, 65)
+    );
+  }
+
+    @DataProvider(name = "users")
+    public Object[][] provideUsers() {
+        return new Object[][]{
+            {generateUser()},
+            {generateUser()}
+        };
+    }
+}
+```
+
+```yaml
+# test-data/config.yml
+environments:
+  staging:
+    url: "https://staging.example.com"
+    db_host: "localhost"
+    db_port: 5432
+    timeout: 30
+features:
+  new_checkout: true
+  legacy_api: false
+```
+
+## CI/CD и автоматизация
+
+- **Пайплайны** — GitHub Actions, GitLab CI, Jenkins с матричным запуском (browser × OS × version)
+- **Оптимизация** — кэширование `~/.m2`, `~/.gradle`, использование `fail-fast: false` для полного прохождения сьюта
+- **Gate-механизмы** — блокировка merge при падении `critical` тестов, обязательный проход `smoke`
+- **Статический анализ** — интеграция с SonarQube, Checkstyle, SpotBugs, JaCoCo для контроля покрытия кода
+
+```yaml
+# .github/workflows/selenium-ci.yml
+# Имя workflow - отображается в интерфейсе GitHub Actions
+name: UI Automation
+
+# Триггеры (когда запускать пайплайн)
+on:
+  # Запуск при пуше (коммите) в указанные ветки
+  push:
+    branches: [ main, develop ]
+
+  # Запуск при создании Pull Request в main
+  pull_request:
+    branches: [ main ]
+
+# Определяем задачи (jobs) для выполнения
+jobs:
+  # Название задачи (может быть любым)
+  test:
+    # На каком виртуальном сервере запускать (ubuntu, windows, macos)
+    runs-on: ubuntu-latest
+
+    # Матричный запуск - тесты выполняются с разными комбинациями параметров
+    strategy:
+      matrix:
+        # Тестируем в двух браузерах
+        browser: [chrome, firefox]
+        # Делим тесты на 4 параллельных шарда (части) для ускорения
+        shard: [1, 2, 3, 4]
+
+      # Если один из запусков в матрице упал, остальные продолжают выполняться
+      # false - при падении одного браузера, другой все равно запустится
+      fail-fast: false
+
+    # Шаги, которые выполняются внутри задачи
+    steps:
+      # 1. Клонирование репозитория с кодом тестов
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Установка Java Development Kit
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'  # OpenJDK от Eclipse Temurin
+          java-version: '17'       # Используем Java 17
+
+      # 3. Кэширование Maven зависимостей (ускоряет последующие запуски)
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      # 4. Установка и запуск браузера для тестов (Chrome)
+      - name: Setup Chrome
+        if: matrix.browser == 'chrome'
+        uses: browser-actions/setup-chrome@v1
+
+      # 5. Установка и запуск браузера для тестов (Firefox)
+      - name: Setup Firefox
+        if: matrix.browser == 'firefox'
+        uses: browser-actions/setup-firefox@v1
+
+      # 6. Запуск тестов с параметрами из матрицы
+      - name: Run Tests
+        run: |
+          mvn test \
+            -Dsurefire.parallel.methods=4 \        # Параллельный запуск 4 методов
+            -Dbrowser=${{ matrix.browser }} \      # Передаем браузер из матрицы
+            -Dshard=${{ matrix.shard }}            # Передаем номер шарда
+
+      # 7. Загрузка Allure отчета (даже если тесты упали)
+      # if: always() - выполняется всегда, независимо от результата тестов
+      - name: Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Уникальное имя артифакта для каждого запуска
+          name: allure-report-${{ matrix.browser }}-shard-${{ matrix.shard }}
+          path: target/allure-results
+
+      # 8. Загрузка скриншотов и логов (если тесты упали)
+      - name: Upload Screenshots on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots-${{ matrix.browser }}-shard-${{ matrix.shard }}
+          path: target/screenshots/
+```
+
+## Отчетность и аналитика
+
+- **Allure Framework** — шаги `@Step`, вложения `@Attachment`, категоризация дефектов, history-тренды, `environment.properties`
+- **ExtentReports** — кастомные темы, логирование в реальном времени, скриншоты, дашборды
+- **Метрики** — `flaky-rate`, `avg execution time`, `pass/fail ratio`, интеграция с Grafana/Prometheus
+- **Интеграции** — отправка уведомлений в Slack/Teams, создание тикетов в Jira, email-рассылки по расписанию
+
+```java
+@AllureEpic("Авторизация")
+@AllureFeature("Вход в систему")
+public class LoginTest {
+
+    @Step("Открытие страницы логина")
+    public void openLoginPage() {
+        driver.get("https://app.example.com/login");
+    }
+
+    @Step("Ввод креденшиалов: {username}")
+    @Attachment(value = "Скриншот ошибки", type = "image/png")
+    public byte[] attachScreenshotOnError(Throwable error) {
+        return ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+    }
+
+    @Test
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("Проверка успешной авторизации валидным пользователем")
+    public void validLogin() {
+        openLoginPage();
+        LoginPage login = new LoginPage(driver);
+        login.fillCredentials("admin", "password123");
+        login.clickSubmit();
+        Assert.assertTrue(driver.getCurrentUrl().contains("/dashboard"));
+    }
+}
+```
+
+## Best Practices
+
+- Выносить раннер-специфичные хуки в отдельные классы, не смешивать с Page Object Model для соблюдения Single Responsibility
+- Использовать `soft assertions` только для non-critical проверок, всегда финализировать через `assertAll()` в конце теста
+- Параметризовать тесты через внешние источники (YAML/JSON/CSV), избегать хардкода данных в коде для гибкости поддержки
+- В CI всегда запускать с `fail-fast: false` и собирать артефакты отчетов независимо от статуса сьюта для полной видимости
+- Настраивать `Testcontainers` для полной изоляции, никогда не использовать продакшен БД или внешние API без моков
+- Документировать требования к окружению, переменные и секреты в `README.md` и `.env.example` для онбординга команды
+- Использовать `@Flaky` или кастомные ретраи для нестабильных тестов, но обязательно заводить баг-тикеты на их устранение
+- Логировать только `WARN`/`ERROR` в CI-пайплайнах, `DEBUG` оставлять для локальной отладки и локальных запусков
