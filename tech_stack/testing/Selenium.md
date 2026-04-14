@@ -2313,3 +2313,319 @@ for (LogEntry entry : browserLogs) {
 - При отладке `StaleElement` всегда логировать текущий URL и timestamp, чтобы отслеживать навигацию и редиректы
 
 ---
+
+# 10. Selenium Grid 4 и Параллельное выполнение
+
+> Распределённое выполнение тестов на множестве браузеров и платформ. 
+> 
+> Grid 4 представляет собой модульную архитектуру на основе событий, заменяющую монолитный Hub/Node подход предыдущих версий.
+
+## Архитектура Grid 4
+
+- **Router** — единая точка входа, распределяет запросы на создание сессий
+- **Distributor** — находит подходящий узел (Node) по `capabilities` и назначает сессию
+- **Session Map** — хранит активные сессии и их привязку к узлам
+- **Node** — исполняет тесты, регистрируется в Grid через Event Bus
+- **Event Bus** — шина событий (Pub/Sub) для координации компонентов, работает на Netty
+
+```text
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Client    │---->│   Router    │---->│ Distributor │
+│  (Test Run) │     │ (Port 4444) │     │             │
+└─────────────┘     └──────┬──────┘     └──────┬──────┘
+                           |                   |
+                           ▼                   ▼
+                   ┌──────────────┐     ┌──────────────┐
+                   │  Session Map │     │   Event Bus  │
+                   │  (Redis/In-  │     │  (Netty/ZMQ) │
+                   │   memory)    │     │              │
+                   └───────┬──────┘     └──────┬───────┘
+                           |                   |
+                           ▼                   ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │    Node 1   │     │    Node N   │
+                    │ Chrome/Fire │     │  Docker/K8s │
+                    └─────────────┘     └─────────────┘
+```
+
+### Режимы запуска Grid 4
+
+- **Standalone** — все компоненты Grid (Router, Distributor, Session Map, Event Bus, Node) запускаются в едином JVM-процессе.
+  - Это упрощённый режим для локальной отладки, разработки и быстрого старта.
+  - Не подходит для продакшена из-за отсутствия отказоустойчивости и горизонтального масштабирования. 
+
+
+- **Hub + Node** — гибридный режим, совместимый с классической архитектурой Grid 3, но использующий внутренние механизмы Grid 4. 
+  - Один процесс (Hub) объединяет Router, Distributor, Session Map и Event Bus. 
+  - Отдельные процессы (Node) регистрируются в Hub и исполняют тесты. 
+  - Упрощает миграцию с Grid 3, но Hub остаётся единой точкой отказа.
+
+
+- **Distributed** — каждый компонент Grid (Router, Distributor, Session Map, Event Bus, Node) запускается как отдельный процесс, возможно на разных физических или виртуальных машинах. 
+  - Компоненты взаимодействуют через Event Bus (по умолчанию Netty). 
+  - Это production-режим для высоконагруженных систем: можно масштабировать только узкие места (например, добавить несколько Distributor), обеспечить отказоустойчивость через репликацию Session Map (Redis) и Event Bus (ZMQ). 
+  - Требует настройки переменных окружения или конфигурационного файла для указания адресов компонентов.
+
+
+- **Docker/Kubernetes** — специализированный режим для контейнерной оркестрации. 
+  - Узлы (Node) запускаются как Docker-контейнеры с предустановленными браузерами и драйверами (например, Selenium Docker images). 
+  - Grid 4 поддерживает auto-discovery через механизмы Docker Swarm или Kubernetes Services. 
+  - В Kubernetes Deployment описываются отдельно Router, Distributor, Session Map (Redis), Event Bus и реплицируемые узлы. 
+  - Особенности: динамическое добавление/удаление узлов, изоляция тестов, автоматическое восстановление после сбоев.
+
+```bash
+# Standalone режим (все в одном)
+java -jar selenium-server-4.25.0.jar standalone
+
+# Hub (Router + Distributor + Session Map + Event Bus)
+java -jar selenium-server-4.25.0.jar hub
+
+# Node (регистрируется на Hub)
+java -jar selenium-server-4.25.0.jar node --publish-events tcp://hub:4442 --subscribe-events tcp://hub:4443
+
+# Docker Compose запуск (рекомендуемый для CI)
+docker-compose -f docker-compose-v3.yml up -d
+```
+
+```toml
+# config.toml — пример конфигурации Node
+[server]
+host = "node-chrome"
+port = 5555
+
+[node]
+detect-drivers = true
+max-sessions = 3
+
+[[driver-configuration]]
+display-name = "Chrome"
+stereotype = '{"browserName": "chrome", "platformName": "linux"}'
+max-sessions = 3
+```
+
+## Настройка и управление драйверами в Grid
+
+### Selenium Manager в распределённой среде
+
+- Автоматическая загрузка драйверов на каждом Node при старте
+- Кэширование в `~/.cache/selenium/`, поддержка offline-режима через `SE_MANAGER_CACHE_PATH`
+- Приоритет: локальный кэш → скачивание → fallback на системный PATH
+
+```java
+// RemoteWebDriver с автоматическим матчингом через Selenium Manager
+ChromeOptions options = new ChromeOptions();
+options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage");
+
+WebDriver driver = new RemoteWebDriver(
+    URI.create("http://grid-host:4444").toURL(),
+    options
+);
+```
+
+### Capabilities матчинг и кастомизация
+
+- Строгий матчинг по `platformName`, `browserVersion`, `se:options`
+- Кастомные capabilities для маршрутизации: `se:build`, `se:project`, `se:region`
+- Использование `MutableCapabilities` для динамического слияния
+
+```java
+MutableCapabilities caps = new MutableCapabilities();
+caps.setCapability(ChromeOptions.CAPABILITY, options);
+caps.setCapability("se:build", "prod-v2.3");
+caps.setCapability("se:project", "checkout-flow");
+
+WebDriver driver = new RemoteWebDriver(
+    URI.create("http://grid:4444").toURL(),
+    caps
+);
+```
+
+### Конфигурация через переменные окружения
+
+- `SE_NODE_MAX_SESSIONS` — лимит параллельных сессий на узле
+- `SE_NODE_SESSION_TIMEOUT` — таймаут неактивной сессии (по умолчанию 300 сек)
+- `SE_VNC_NO_PASSWORD` — отключение аутентификации для VNC в dev-средах
+- `SE_ENABLE_TRACING` — включение OpenTelemetry для трассировки запросов
+
+```bash
+# Запуск Node с кастомными параметрами
+export SE_NODE_MAX_SESSIONS=5
+export SE_NODE_SESSION_TIMEOUT=600
+export SE_VNC_VIEW_ONLY=true
+
+java -jar selenium-server.jar node \
+  --publish-events tcp://hub:4442 \
+  --subscribe-events tcp://hub:4443 \
+  --detect-drivers true
+```
+
+## Параллельное выполнение тестов
+
+### TestNG конфигурация
+
+```xml
+<!-- testng.xml: параллелизм на уровне методов -->
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="ParallelSuite" parallel="methods" thread-count="5" data-provider-thread-count="3">
+    <test name="ChromeTests">
+        <parameter name="browser" value="chrome"/>
+        <classes>
+            <class name="com.example.tests.LoginTest"/>
+            <class name="com.example.tests.CheckoutTest"/>
+        </classes>
+    </test>
+</suite>
+```
+
+- `parallel="methods"` — каждый `@Test`-метод в отдельном потоке
+- `parallel="classes"` — весь тест-класс выполняется в одном потоке
+- `thread-count` — общее количество потоков, распределяется динамически
+- `data-provider-thread-count` — отдельный лимит для `@DataProvider`
+
+### JUnit 5 параллелизм
+
+```java
+@Execution(ExecutionMode.CONCURRENT)
+@ResourceLock(value = "browser", mode = ResourceLockMode.READ)
+class ParallelTests {
+
+    @Test
+    @DisplayName("Проверка корзины")
+    void cartTest() {
+        // ThreadLocal<WebDriver> обеспечивает изоляцию
+    }
+
+    @Test
+    @DisplayName("Оформление заказа")
+    void checkoutTest() {
+        // Независимый тест, может выполняться параллельно
+    }
+}
+```
+
+```properties
+# junit-platform.properties
+junit.jupiter.execution.parallel.enabled = true
+junit.jupiter.execution.parallel.mode.default = concurrent
+junit.jupiter.execution.parallel.config.strategy = fixed
+junit.jupiter.execution.parallel.config.fixed.parallelism = 4
+```
+
+### Изоляция данных и ThreadLocal
+
+- `ThreadLocal<WebDriver>` — гарантия, что каждый поток работает со своим драйвером
+- Уникальные тестовые данные: генерация email/username через Faker с суффиксом потока
+- Cleanup в `@AfterMethod(alwaysRun = true)` — удаление тестовых записей независимо от исхода
+
+```java
+public class DriverManager {
+    
+    private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
+
+    public static WebDriver get() {
+        return driver.get();
+    }
+
+    public static void set(WebDriver webDriver) {
+        driver.set(webDriver);
+    }
+
+    public static void quit() {
+        if (driver.get() != null) {
+            driver.get().quit();
+            driver.remove();
+        }
+    }
+}
+```
+
+```java
+@BeforeMethod
+public void setUp(Method method) {
+    ChromeOptions options = new ChromeOptions();
+    options.addArguments("--headless=new");
+    
+    WebDriver webDriver = new RemoteWebDriver(
+        URI.create("http://grid:4444").toURL(),
+        options
+    );
+    DriverManager.set(webDriver);
+    
+    // Уникальные данные для изоляции
+    String testUser = "user_" + method.getName() + "_" + Thread.currentThread().getId();
+    PageFactory.initElements(webDriver, LoginPage.class).loginAs(testUser);
+}
+```
+
+## Мониторинг и диагностика
+
+### Grid UI и API
+
+- Встроенная панель: `http://grid-host:4444` — активные сессии, очередь, метрики узлов
+- REST API: `GET /status`, `GET /session/{id}`, `POST /session` для программной диагностики
+- Метрики Prometheus: `http://grid-host:4444/metrics` — `grid_session_active`, `node_sessions_used`
+
+```bash
+# Проверка статуса Grid через curl
+curl -s http://localhost:4444/status | jq '.value.ready, .value.message'
+
+# Получение списка активных сессий
+curl -s http://localhost:4444/sessions | jq '.value[] | {id, capabilities}'
+```
+
+### Логирование и трассировка
+
+- Уровень логирования: `--log-level FINE` для отладки, `INFO` для production
+- Структурированные логи в JSON: `--log-format json` для парсинга в ELK/Splunk
+- OpenTelemetry интеграция: `--enable-tracing --tracing-exporter otlp`
+
+```properties
+# logging.properties для детальной отладки
+.level = INFO
+org.openqa.selenium.grid.level = FINE
+org.openqa.selenium.remote.level = FINER
+
+# Формат вывода
+java.util.logging.SimpleFormatter.format = [%1$tF %1$tT] [%4$s] %5$s %n
+```
+
+### Обработка сбоев и retry-логика
+
+- `SessionNotCreatedException` — повторная регистрация Node или переключение на резервный браузер
+- `StaleElementReferenceException` в параллели — избегать кеширования `WebElement` между шагами
+- Кастомный `IRetryAnalyzer` для flaky-тестов с экспоненциальной задержкой
+
+```java
+public class GridRetryAnalyzer implements IRetryAnalyzer {
+    
+    private int count = 0;
+    private static final int MAX_RETRY = 2;
+
+    @Override
+    public boolean retry(ITestResult result) {
+        if (count < MAX_RETRY && isGridRelatedFailure(result)) {
+            count++;
+            Thread.sleep(1000 * count); // экспоненциальная задержка
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isGridRelatedFailure(ITestResult result) {
+        Throwable t = result.getThrowable();
+        return t instanceof SessionNotCreatedException ||
+               t instanceof WebDriverException && t.getMessage().contains("grid");
+    }
+}
+```
+
+## Best Practices
+
+- Использовать Docker Compose для локальной Grid-инфраструктуры — обеспечивает воспроизводимость окружения
+- Настраивать `max-sessions` и `session-timeout` под нагрузку проекта: 3–5 сессий на ядро — оптимальный баланс
+- Параллелить только изолированные тесты, избегать общих state/cookies — использовать `ThreadLocal` и уникальные данные
+- В `RemoteWebDriver` передавать только `Options`/`MutableCapabilities`, не `DesiredCapabilities` (deprecated в v4)
+- Мониторить Grid через встроенный UI и метрики Prometheus, настраивать алерты на `session_queue_size > threshold`
+- При падениях в параллели проверять инициализацию `ThreadLocal<WebDriver>` и cleanup в `@AfterMethod`
+- В CI использовать `--headless=new` с отключением GPU и sandbox для стабильности в контейнерах
+- Для отладки зависших сессий включать `--log-level FINE` и анализировать `grid_session_active` метрику
