@@ -4095,4 +4095,3 @@ public void testUserFromDatabase(Long id, String name, String email) {
 5. **H2 для изоляции БД** — In-memory база для быстрых интеграционных тестов
 6. **Очистка в `@BeforeMethod`** — Чистое состояние перед каждым тестом
 7. **Миграции в `@BeforeSuite`** — Один раз для всех тестов suite
-
