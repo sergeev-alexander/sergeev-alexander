@@ -467,3 +467,409 @@ SelenideElement formContainer = passwordField.closest("form"); // компенс
 By cardSelector = By.cssSelector("div.card:has(> button.delete-btn)");
 WebElement card = driver.findElement(cardSelector);
 ```
+
+## 4. Псевдо-классы и функции для автоматизации
+
+> Встроенные возможности для фильтрации состояния и позиции. 
+> 
+> Псевдо-классы позволяют выбирать элементы на основе их положения в DOM, статуса взаимодействия или валидации, что особенно полезно при тестировании динамических интерфейсов и форм.
+
+## Структурные псевдо-классы
+
+Позволяют выбирать элементы по их порядковому номеру среди братьев (siblings) или исключать определённые узлы.
+
+```html
+<!-- :first-child — первый дочерний элемент своего родителя -->
+<!-- CSS: ul.steps li:first-child -->
+<!-- XPath: //ul[@class='steps']/li[1] -->
+<ul class="steps">
+    <li>Шаг 1</li> <!-- Найден -->
+    <li>Шаг 2</li>
+    <li>Шаг 3</li>
+</ul>
+
+<!-- :last-child — последний дочерний элемент своего родителя -->
+<!-- CSS: ul.steps li:last-child -->
+<!-- XPath: //ul[@class='steps']/li[last()] -->
+<ul class="steps">
+    <li>Шаг 1</li>
+    <li>Шаг 2</li>
+    <li>Шаг 3</li> <!-- Найден -->
+</ul>
+
+<!-- :nth-child(n) — элемент на определённой позиции (1-based индекс) -->
+<!-- CSS: table tbody tr:nth-child(3) -->
+<!-- XPath: //table/tbody/tr[3] -->
+<table>
+    <tr><td>Строка 1</td></tr>
+    <tr><td>Строка 2</td></tr>
+    <tr><td>Строка 3</td></tr> <!-- Найден -->
+</table>
+
+<!-- :not() — отрицание, исключает элементы, подходящие под селектор -->
+<!-- CSS: input:not([disabled]) -->
+<!-- XPath: //input[not(@disabled)] -->
+<form>
+    <input type="text" name="login"> <!-- Найден -->
+    <input type="text" name="promo" disabled> <!-- Исключён -->
+    <input type="email" name="email"> <!-- Найден -->
+</form>
+
+<!-- Комбинация: исключение по классу или атрибуту -->
+<!-- CSS: button.btn:not(.btn-outline) -->
+<!-- XPath: //button[contains(@class,'btn') and not(contains(@class,'btn-outline'))] -->
+<button class="btn btn-primary">Основная</button> <!-- Найден -->
+<button class="btn btn-outline">Контурная</button> <!-- Исключён -->
+```
+
+## Псевдо-классы состояний форм
+
+Фильтруют элементы ввода в зависимости от их текущего статуса: выбран, заблокирован, прошёл валидацию и т.д.
+
+```html
+<!-- :checked — выбранные чекбоксы или радиокнопки -->
+<!-- CSS: input[type='checkbox']:checked -->
+<!-- XPath: //input[@type='checkbox' and @checked] -->
+<label>
+    <input type="checkbox" name="agree" checked> Согласен с условиями
+</label>
+<label>
+    <input type="checkbox" name="newsletter"> Подписка <!-- Не найден -->
+</label>
+
+<!-- :disabled / :enabled — состояние доступности поля -->
+<!-- CSS: input:disabled -->
+<!-- XPath: //input[@disabled] -->
+<input type="text" name="readonly_field" disabled value="Только для чтения">
+<input type="text" name="editable_field" value="Можно редактировать"> <!-- Не найден -->
+
+<!-- :focus — элемент в фокусе (полезно для UI-тестов, но требует явного фокуса в Selenium) -->
+<!-- CSS: input:focus -->
+<!-- XPath: не имеет прямого аналога, требует JS-скрипта -->
+<input type="text" id="search" placeholder="Введите запрос...">
+
+<!-- :valid / :invalid — результат встроенной валидации HTML5 -->
+<!-- CSS: input:invalid -->
+<!-- XPath: нет нативного аналога, проверка через JS -->
+<input type="email" name="user_email" required> <!-- Станет :invalid, если пусто или неверно -->
+<input type="email" name="user_email" value="test@example.com"> <!-- Станет :valid -->
+```
+
+## Интерактивные псевдо-классы и ограничения в Selenium
+
+```html
+<!-- :hover / :active / :visited — псевдо-классы, зависящие от состояния мыши или истории браузера -->
+<!-- CSS: a:hover -->
+<!-- Selenium/Selenide: НЕ поддерживаются напрямую через findElement, так как браузер не хранит состояние hover в DOM -->
+<a href="/profile" class="nav-link">Профиль</a>
+
+<!-- Как проверить стили hover/active в автотестах -->
+<!-- 1. Симулировать наведение через Actions API (Selenium) -->
+<!-- 2. Использовать JavaScript для получения computed styles -->
+<!-- Пример: проверка изменения цвета при hover -->
+<style>
+    .btn:hover { background-color: #0056b3; }
+</style>
+<button class="btn">Наведи на меня</button>
+```
+
+## :has() — эмуляция «родительского» и условного поиска
+
+Появился в CSS Level 4 и поддерживается современными браузерами (Chrome 105+, Firefox 121+, Safari 15.4). Selenium 4.2+ нативно поддерживает `:has()`.
+
+```html
+<!-- :has() позволяет выбрать элемент, содержащий определённых потомков -->
+<!-- CSS: div.card:has(> img.featured) -->
+<!-- XPath: //div[@class='card' and .//img[contains(@class,'featured')]] -->
+<div class="card">
+    <img class="featured" src="hero.jpg">
+    <h2>Избранный товар</h2> <!-- Родитель найден -->
+</div>
+<div class="card">
+    <img src="thumb.jpg">
+    <h2>Обычный товар</h2> <!-- Не найден -->
+</div>
+
+<!-- :has() с селекторами соседей: поиск родителя по наличию соседа -->
+<!-- CSS: label:has(+ input:invalid) -->
+<!-- XPath: //label[following-sibling::input[1][@invalid]] (условно) -->
+<form>
+    <label>Пароль:</label>
+    <input type="password" required> <!-- Если invalid, label будет найден -->
+    <span class="error">Обязательное поле</span>
+</form>
+
+<!-- Ограничения :has() -->
+- Работает только в современных браузерах; в старых версиях Selenium Grid может вызвать `InvalidSelectorException`.
+- Не поддерживает псевдо-элементы (`::before`, `::after`) внутри `:has()`.
+- Требует строгой проверки совместимости перед использованием в CI/CD.
+```
+
+## Почему :contains() не работает в CSS (и чем заменить)
+
+В XPath существует функция `text()` и `contains()`, позволяющая искать элементы по содержимому: `//button[contains(text(), 'Отправить')]`. В нативном CSS нет эквивалента `:contains()` по соображениям производительности и безопасности (сложность парсинга текстовых узлов).
+
+```html
+<!-- Задача: найти кнопку по тексту "Отправить" -->
+<!-- XPath: //button[text()='Отправить'] или //button[contains(., 'Отправить')] -->
+<!-- CSS: НЕ ВОЗМОЖНО напрямую -->
+<button class="action-btn">Отправить заявку</button>
+
+<!-- Альтернативы в автотестах -->
+<!-- 1. Использовать data-* атрибуты для машинного поиска -->
+<!-- CSS: button[data-action='submit'] -->
+<button class="action-btn" data-action="submit">Отправить заявку</button>
+
+<!-- 2. Искать по родительскому контексту + CSS, а затем фильтровать текст в коде теста -->
+<!-- Selenide: $$("button.action-btn").filter(Condition.text("Отправить")) -->
+
+<!-- 3. XPath остаётся лучшим выбором для поиска по тексту -->
+<!-- WebDriver: driver.findElement(By.xpath("//button[contains(text(), 'Отправить')]")) -->
+```
+
+## Сводная таблица псевдо-классов
+
+| Псевдокласс CSS      | Когда срабатывает                            | CSS пример                | XPath                                                    |
+|:---------------------|:---------------------------------------------|:--------------------------|:---------------------------------------------------------|
+| `:hover`             | Курсор мыши наведён на элемент               | `button:hover`            | - (нет аналога, только JS)                               |
+| `:focus`             | Элемент в фокусе (готов принимать ввод)      | `input:focus`             | - (нет аналога, только JS)                               |
+| `:active`            | Элемент активирован (зажат клик мыши)        | `button:active`           | -                                                        |
+| `:visited`           | Ссылка уже была посещена в истории браузера  | `a:visited`               | -                                                        |
+| `:link`              | Ссылка, которую ещё не посещали              | `a:link`                  | -                                                        |
+| `:enabled`           | Элемент доступен для редактирования/кликов   | `input:enabled`           | `//input[not(@disabled)]`                                |
+| `:disabled`          | Элемент заблокирован (атрибут `disabled`)    | `input:disabled`          | `//input[@disabled]`                                     |
+| `:read-only`         | Поле только для чтения (`readonly`)          | `input:read-only`         | `//input[@readonly]`                                     |
+| `:read-write`        | Поле доступно для редактирования             | `input:read-write`        | `//input[not(@readonly or @disabled)]`                   |
+| `:checked`           | Радио-кнопка или чекбокс отмечены            | `input:checked`           | `//input[@checked]`                                      |
+| `:indeterminate`     | Чекбокс в неопределённом состоянии           | `input:indeterminate`     | -                                                        |
+| `:required`          | Поле обязательно для заполнения (`required`) | `input:required`          | `//input[@required]`                                     |
+| `:optional`          | Поле необязательное (нет `required`)         | `input:optional`          | `//input[not(@required)]`                                |
+| `:valid`             | Значение прошло HTML5-валидацию              | `input:valid`             | - (нет аналога, JS)                                      |
+| `:invalid`           | Значение НЕ прошло HTML5-валидацию           | `input:invalid`           | - (нет аналога, JS)                                      |
+| `:in-range`          | Число в `input[type=number]` внутри min/max  | `input:in-range`          | -                                                        |
+| `:out-of-range`      | Число вне диапазона min/max                  | `input:out-of-range`      | -                                                        |
+| `:placeholder-shown` | Плейсхолдер виден (поле пустое)              | `input:placeholder-shown` | `//input[@placeholder and not(text())]` (приблизительно) |
+| `:empty`             | Элемент не содержит текста и дочерних узлов  | `div:empty`               | `//div[not(node())]`                                     |
+| `:not(sel)`          | Логическое НЕ (исключение)                   | `input:not([disabled])`   | `//input[not(@disabled)]`                                |
+| `:has(sel)`          | Содержит внутри указанный элемент            | `div:has(> img)`          | `//div[.//img]`                                          |
+| `:first-child`       | Первый дочерний элемент родителя             | `ul li:first-child`       | `//ul/li[1]`                                             |
+| `:last-child`        | Последний дочерний элемент родителя          | `ul li:last-child`        | `//ul/li[last()]`                                        |
+| `:nth-child(n)`      | Элемент на позиции n (1-based)               | `tr:nth-child(2)`         | `//tr[2]`                                                |
+| `:nth-of-type(n)`    | n-ный элемент своего типа                    | `p:nth-of-type(2)`        | `//p[2]`                                                 |
+| `:contains()`        | Поиск по тексту                              | Не поддерживается в CSS   | `//button[contains(., 'text')]`                          |
+
+## Best Practices для псевдо-классов
+
+- **Избегайте `:nth-child()` в динамических списках**: если порядок элементов меняется или добавляется скрытая разметка, позиция сместится. Лучше использовать `:nth-of-type()` или уникальные `data-*` атрибуты.
+- **`:not()` упрощает фильтрацию**: вместо поиска `input` и последующей проверки `!element.isEnabled()` в коде, сразу используйте `input:not([disabled])`.
+- **Проверяйте поддержку `:has()`**: если ваш тест ранится в разных браузерах, добавьте fallback на XPath или JS-поиск для стабильности.
+- **Не полагайтесь на `:hover`/`:active` в локаторах**: они не отражаются в DOM. Для проверки состояний используйте `Actions` в Selenium или получайте `computedStyle` через JS.
+- **Комбинируйте с атрибутами**: `input[name='email']:valid:enabled` даёт точный и быстрый селектор без лишней вложенности.
+
+```java
+// Пример: фильтрация активных элементов через :not()
+List<WebElement> activeInputs = driver.findElements(By.cssSelector("input:not([disabled]):not([readonly])"));
+
+// Пример: Selenide + :has() для поиска карточки с активным чекбоксом
+// Требуется Selenium 4.2+ и современный браузер
+By cardSelector = By.cssSelector("div.product-card:has(input:checkbox:checked)");
+SelenideElement selectedCard = $(cardSelector);
+
+// Пример: обход отсутствия :contains() через Selenide Conditions
+SelenideElement submitBtn = $$("button.action").filter(Condition.text("Отправить")).first();
+
+// Пример: проверка валидности поля через CSS-состояние и JS-фоллбек
+boolean isValid = driver.findElement(By.cssSelector("input#email:valid")).isDisplayed();
+```
+
+# 5. Типовые шаблоны локаторов для Selenium/Selenide
+
+> Готовые паттерны под частые задачи автоматизации. 
+> 
+> Эти конструкции охватывают 90% сценариев поиска элементов в веб-приложениях и обеспечивают баланс между точностью, 
+> скоростью выполнения и устойчивостью к изменениям вёрстки.
+
+## Поиск по уникальным идентификаторам и data-атрибутам
+
+- **Уникальный `id`** — самый быстрый и стабильный способ. Используйте, когда `id` генерируется предсказуемо или назначается разработчиками явно.
+- **`data-testid` / `data-qa`** — рекомендуемый паттерн для автотестов. Отделяет тестовую логику от визуальных классов и бизнес-логики, снижая риск поломки тестов при рефакторинге UI.
+
+```html
+<!-- Поиск по стабильному ID -->
+<!-- CSS: #submit-btn -->
+<!-- XPath: //*[@id='submit-btn'] -->
+<button id="submit-btn" type="submit">Отправить</button>
+
+<!-- Поиск по data-testid (рекомендуется для CI/CD) -->
+<!-- CSS: [data-testid='user-profile-card'] -->
+<!-- XPath: //*[@data-testid='user-profile-card'] -->
+<div class="card" data-testid="user-profile-card">
+    <h2>Профиль пользователя</h2>
+</div>
+
+<!-- Комбинация тега и data-атрибута для точности -->
+<!-- CSS: input[data-testid='login-email'] -->
+<!-- XPath: //input[@data-testid='login-email'] -->
+<input type="email" data-testid="login-email" placeholder="Email">
+```
+
+## Частичное совпадение атрибутов
+
+- **Префикс `[attr^=val]`** — полезен для динамических ID или классов, начинающихся с известного шаблона.
+- **Суффикс `[attr$=val]`** — подходит для расширений файлов или фиксированных окончаний строк.
+- **Подстрока `[attr*=val]`** — универсальный поиск, но требует осторожности из-за риска ложных срабатываний.
+
+```html
+<!-- Поиск по префиксу: динамические ID -->
+<!-- CSS: [id^='modal_'] -->
+<!-- XPath: //*[starts-with(@id, 'modal_')] -->
+<div id="modal_8472_confirm">Подтверждение действия</div>
+
+<!-- Поиск по суффиксу: типы файлов или версии -->
+<!-- CSS: a[href$='.pdf'] -->
+<!-- XPath: //*[substring(@href, string-length(@href)-3) = '.pdf'] -->
+<a href="/docs/annual_report_2023.pdf">Скачать отчёт</a>
+
+<!-- Поиск по подстроке: классы с динамическими состояниями -->
+<!-- CSS: [class*='error-state'] -->
+<!-- XPath: //*[contains(@class, 'error-state')] -->
+<span class="input-field error-state highlight">Неверный формат</span>
+
+<!-- Ограничение: [class*='error'] может найти 'no-error' -->
+<!-- Используйте [class~='error'] для точного совпадения по слову -->
+```
+
+## Логические комбинации и исключения
+
+- **Сочетание условий** — объединяет несколько атрибутов в одном селекторе без пробелов.
+- **Исключение через `:not()`** — убирает элементы с определённым состоянием прямо на уровне движка браузера.
+
+```html
+<!-- Точное сочетание атрибутов -->
+<!-- CSS: input[type='text'][name='username'][required] -->
+<!-- XPath: //input[@type='text'][@name='username'][@required] -->
+<input type="text" name="username" required>
+
+<!-- Исключение заблокированных полей -->
+<!-- CSS: button.btn:not([disabled]):not(.invisible) -->
+<!-- XPath: //button[contains(@class,'btn') and not(@disabled) and not(contains(@class,'invisible'))] -->
+<button class="btn" disabled>Неактивная</button>
+<button class="btn invisible">Скрытая</button>
+<button class="btn">Активная кнопка</button> <!-- Найден -->
+
+<!-- Фильтрация по видимому состоянию (если элемент имеет CSS-класс скрытия) -->
+<!-- CSS: .panel:not(.collapsed) -->
+<div class="panel collapsed">...</div>
+<div class="panel">Раскрытый контент</div> <!-- Найден -->
+```
+
+## Навигация от известного соседа
+
+- **`+` (adjacent sibling)** — ищет элемент, идущий сразу после указанного. Идеален для пар `label` + `input`.
+- **`~` (general sibling)** — ищет все последующие элементы на том же уровне. Полезен для поиска сообщений об ошибках после поля ввода.
+
+```html
+<!-- Поиск поля ввода по тексту лейбла -->
+<!-- CSS: label[for='pwd'] + input -->
+<!-- XPath: //label[@for='pwd']/following-sibling::input[1] -->
+<div class="form-row">
+    <label for="pwd">Пароль</label>
+    <input type="password" id="pwd"> <!-- Найден -->
+    <span class="hint">Минимум 8 символов</span>
+</div>
+
+<!-- Поиск сообщения об ошибке после поля -->
+<!-- CSS: input[name='email'] + span.error -->
+<!-- XPath: //input[@name='email']/following-sibling::span[contains(@class,'error')] -->
+<input type="email" name="email">
+<span class="error">Неверный email</span> <!-- Найден -->
+
+<!-- Поиск всех последующих элементов-соседей -->
+<!-- CSS: .step.active ~ .step -->
+<!-- XPath: //div[contains(@class,'step') and contains(@class,'active')]/following-sibling::div[contains(@class,'step')] -->
+<div class="step active">Шаг 1</div>
+<div class="step">Шаг 2</div> <!-- Найден -->
+<div class="step">Шаг 3</div> <!-- Найден -->
+```
+
+## Специфика Selenide: компенсация ограничений CSS
+
+В CSS нет прямой навигации «вверх» (`parent::`, `ancestor::`). Selenide решает эту задачу через цепочки методов, 
+которые работают с найденным элементом как с контекстом, сохраняя читаемость тестов.
+
+- `.parent()` — возвращает непосредственного родителя в DOM.
+- `.closest("selector")` — ищет ближайшего предка, соответствующего селектору.
+- `.sibling(index)` / `.preceding(index)` — навигация к соседним элементам по индексу.
+
+```html
+<!-- HTML-контекст для демонстрации навигации -->
+<div class="card-container">
+    <div class="card" id="item_1">
+        <h3>Товар 1</h3>
+        <button class="delete">Удалить</button>
+    </div>
+    <div class="card" id="item_2">
+        <h3>Товар 2</h3>
+        <button class="delete">Удалить</button>
+    </div>
+</div>
+```
+
+```java
+// Selenide: поиск родительской карточки по кнопке удаления
+// Аналог XPath: //button[@class='delete']/ancestor::div[@class='card']
+SelenideElement card = $(".card button.delete").closest(".card");
+card.shouldBe(visible); // Проверяем, что нашли нужную карточку
+
+// Selenide: переход к родителю
+// Аналог XPath: //input[@id='pwd']/..
+SelenideElement formGroup = $("#pwd").parent();
+
+// Selenide: поиск соседа по индексу
+// Аналог XPath: //label[for='pwd']/following-sibling::input
+SelenideElement input = $("label[for='pwd']").sibling(1);
+input.setValue("my_secret");
+
+// Selenide: цепочка от родителя к потомку
+// Находим форму, затем ищем внутри неё кнопку
+SelenideElement submitBtn = $("form#checkout").$("button[type='submit']");
+submitBtn.click();
+```
+
+## Сравнение подходов: чистый CSS vs Selenide-цепочки
+
+| Задача                  | Чистый CSS        | Selenide API                     | Примечание                           |
+|:------------------------|-------------------|----------------------------------|--------------------------------------|
+| Найти родителя          | Не поддерживается | `.parent()` / `.closest()`       | CSS требует `:has()` (Selenium 4.2+) |
+| Найти соседа            | `A + B` / `A ~ B` | `.sibling(n)`                    | CSS быстрее, если сосед фиксирован   |
+| Найти по тексту         | Не поддерживается | `.filter(Condition.text("..."))` | CSS требует `data-*` атрибутов       |
+| Поиск внутри найденного | `parent child`    | `.$("child")`                    | Selenide сохраняет контекст поиска   |
+
+## Best Practices
+
+- **Всегда используйте `data-testid`**, если есть возможность договориться с разработчиками. Это устраняет зависимость от изменений CSS-классов и структуры вёрстки.
+- **Избегайте `[class*='...']` без проверки контекста**: селектор может найти неожиданные элементы, если подстрока встречается в других словах класса.
+- **Комбинируйте атрибуты для уникальности**: `[name='email'][type='text']` надёжнее, чем просто `[name='email']`, если имена могут дублироваться в разных формах.
+- **Не полагайтесь на порядок `:nth-child` в динамических списках**: если элемент может быть скрыт или добавлен программно, позиция сместится. Лучше использовать `:nth-of-type()` или уникальные идентификаторы.
+- **Используйте Selenide-цепочки для компенсации `parent::`**: это читаемее и поддерживаемее, чем попытки эмулировать восходящий поиск через сложный CSS или XPath.
+- **Проверяйте селекторы в DevTools перед коммитом**: команда `$$('ваш_селектор')` в консоли мгновенно покажет количество найденных элементов и предотвратит `ElementNotFoundException` в CI.
+
+```java
+// Пример интеграции паттернов в Page Object
+public class LoginPage {
+    
+    private static final String LOGIN_FORM = "form#login";
+    private static final String EMAIL_INPUT = "input[data-testid='email-field']:not([disabled])";
+    private static final String SUBMIT_BTN = "button[type='submit']:not(.loading)";
+
+    public void login(String email, String password) {
+        $(LOGIN_FORM).shouldBe(visible);
+        $(EMAIL_INPUT).setValue(email);
+        $(LOGIN_FORM).$("input[data-testid='password-field']").setValue(password);
+        $(SUBMIT_BTN).click();
+    }
+}
+```
+
+---
+
