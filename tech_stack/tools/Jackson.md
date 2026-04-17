@@ -1,3 +1,13 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
 # Jackson
 
 > **Jackson** - это самая популярная библиотека для работы с JSON в Java. Она позволяет **преобразовывать Java-объекты в JSON** (сериализация) и **собирать объекты из JSON** (десериализация) с минимальными усилиями. 

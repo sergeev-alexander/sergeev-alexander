@@ -1,3 +1,13 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
 # Java Reflection API
 
 > Reflection — это механизм, позволяющий исследовать и модифицировать структуру и поведение классов, объектов, методов и полей во время выполнения (Runtime), а не на этапе компиляции.

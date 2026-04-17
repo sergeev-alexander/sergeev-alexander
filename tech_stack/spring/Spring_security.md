@@ -1,15 +1,24 @@
-## 🛡️ Spring Security
+**Copyright (c) 2023-2026 sergeev-alexander**
 
-🔐 Что такое Spring Security?
+All Rights Reserved.
 
-Spring Security — это мощный и гибкий фреймворк для обеспечения аутентификации (authentication) и авторизации (authorization) в приложениях на Spring. 
-Он позволяет защищать веб-приложения, REST API, методы сервисов и даже отдельные данные.
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
 
-Spring Security построен на концепции цепочки фильтров (Filter Chain).
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
 
-Когда HTTP-запрос приходит в приложение, он проходит через серию фильтров, и один из них - SecurityFilterChain, который отвечает за безопасность.
+---
 
-### ⚙️ Базовая настройка
+# Spring Security
+
+> Spring Security — это мощный и гибкий фреймворк для обеспечения аутентификации (authentication) и авторизации (authorization) в приложениях на Spring. 
+> 
+> Он позволяет защищать веб-приложения, REST API, методы сервисов и даже отдельные данные.
+> 
+> Spring Security построен на концепции цепочки фильтров (Filter Chain).
+> 
+> Когда HTTP-запрос приходит в приложение, он проходит через серию фильтров, и один из них - SecurityFilterChain, который отвечает за безопасность.
+
+## Базовая настройка
 <details> 
     <summary> 
         <b>Зависимости и конфигурация</b> 
@@ -241,3 +250,4 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 }
 ```
 
+</details>

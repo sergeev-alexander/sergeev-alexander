@@ -1,3 +1,15 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
+# Selenium
+
 ## Содержание
 
 1. [Введение и Основы](#1-введение-и-основы)

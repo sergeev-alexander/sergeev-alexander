@@ -1,3 +1,13 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
 # RestClient
 
 > ### `RestClient` - это HTTP-клиент, введённый в Spring 6.1 (Spring Boot 3.2+) для выполнения HTTP -запросов к внешним REST API.
@@ -212,3 +222,4 @@ RestClient client = RestClient.builder()
         .build();
 ```
 
+</details>

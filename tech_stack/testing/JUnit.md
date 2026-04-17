@@ -1,3 +1,13 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
 # JUnit 5
 
 ## Содержание
@@ -13,7 +23,6 @@
 9. [Организация тестов](#9-организация-тестов)
 10. [Запуск и отчётность](#10-запуск-и-отчётность)
 11. [Миграция с JUnit 4](#11-миграция-с-junit-4)
-12. [Best Practices](#12-best-practices)
 
 ---
 

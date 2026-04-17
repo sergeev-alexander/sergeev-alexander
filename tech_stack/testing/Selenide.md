@@ -1,3 +1,13 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
 # Selenide
 
 ## Содержание
@@ -18,7 +28,8 @@
 
 # 1. Введение, настройка и конфигурация
 
-> Философия Selenide и базовая настройка окружения для автоматизации UI-тестов: подключение, интеграция с фреймворками, управление конфигурацией.
+> Философия Selenide и базовая настройка окружения для автоматизации UI-тестов: подключение, интеграция с фреймворками, 
+> управление конфигурацией.
 
 ## Философия Selenide
 
@@ -189,18 +200,14 @@ public class ConfigHelper {
 ```
 
 > Поля загружаются один раз при первом обращении к классу Configuration. 
-> Поэтому `ConfigHelper.printActiveConfig()` покажет именно те значения, которые были вычислены с учетом файла, переменных окружения и системных свойств на момент запуска JVM.
+> Поэтому `ConfigHelper.printActiveConfig()` покажет именно те значения, которые были вычислены с учетом файла, 
+> переменных окружения и системных свойств на момент запуска JVM.
 
 ---
 
 ## Динамическое изменение конфигурации
 
 ```java
-import static com.codeborne.selenide.Configuration.*;
-import static com.codeborne.selenide.Selenide.*;
-
-import org.junit.jupiter.api.Test;
-
 class DynamicConfigTest {
 
     @Test
@@ -244,10 +251,10 @@ class DynamicConfigTest {
 - Используйте `Configuration.assertionMode = SOFT` для накопления ошибок в отчётах, если это соответствует стратегии тестирования
 - Включайте `savePageSource = true` для просмотра и анализа падающих тестов
 - Жёсткое кодирование `Configuration` в каждом тесте — нарушает централизованное управление
-- Использование `Thread.sleep()` вместо встроенных ожиданий Selenide
-- Изменение глобальной конфигурации без восстановления — приводит к "утечке" состояния между тестами
+- Не используйте `Thread.sleep()` вместо встроенных ожиданий Selenide
+- Не изменяйте глобальную конфигурацию без восстановления — приводит к "утечке" состояния между тестами
 - Игнорирование `headless`-режима в CI — увеличивает время прогона и потребление ресурсов
-- Хранение чувствительных данных (пароли, токены) в `selenide.properties` — используйте ENV или secrets-менеджеры
+- Не храните чувствительные данные (пароли, токены) в `selenide.properties` — используйте ENV или secrets-менеджеры
 
 ---
 
@@ -255,208 +262,411 @@ class DynamicConfigTest {
 
 > Core API Selenide предоставляет лаконичный Fluent-интерфейс для поиска, взаимодействия и проверки веб-элементов, 
 > скрывая сложность нативного Selenium WebDriver и обеспечивая встроенные автоматические ожидания.
+> 
+> - Цепочки вызовов — последовательное применение методов без промежуточных переменных
+> - Lazy evaluation — элементы не ищутся до момента вызова действия или проверки
 
-## Базовый синтаксис и Fluent API
+## Поиск элементов и селекторы
 
-- `$()` — поиск одного элемента, возвращает `SelenideElement`
-- `$$()` — поиск коллекции элементов, возвращает `ElementsCollection`
-- `$x()` — поиск по XPath-выражению
-- Цепочки вызовов — последовательное применение методов без промежуточных переменных
-- Lazy evaluation — элементы не ищутся до момента вызова действия или проверки
+### Глобальный поиск
 
-### Пример базового использования
+- `$(String cssSelector)` / `$$(String cssSelector)` — поиск одного элемента / коллекции по CSS
+- `$(By)` / `$$(By)` — поиск через нативный `Selenium By`
+- `$x(String xpath)` / `$$x(String xpath)` — поиск по XPath
+- `$(WebElement)` / `$(SelenideElement)` — обёртка над существующим элементом
+- `$$(Collection<WebElement>)` — обёртка над коллекцией `WebElement`
 
-```java
-// Поиск и действие в одну строку
-$("#submit-btn").click(); // Поиск по CSS Selector
+### Сокращённые CSS-алиасы
 
-// Цепочка Fluent API
-$(".user-card").find(".name")
-        .shouldHave(text("Иванов"))
-        .parent().find(".status")
-        .shouldBe(visible);
+- `$("#id")` — поиск по ID
+- `$(".class")` — поиск по классу
+- `$("[name='value']")` — поиск по атрибуту
+- `$("tag")` — поиск по тегу
 
-// Работа с коллекцией
-$$(".list-item").first().click();
-```
+### Пользовательские селекторы (`Selectors`)
 
----
+- `byText(String)` — точное совпадение текста
+- `withText(String)` — частичное совпадение текста
+- `byName(String)` / `byValue(String)` — по атрибутам `name` / `value`
+- `byAttribute(String attr, String value)` — по произвольному атрибуту
+- `byTitle(String)` — по атрибуту `title`
 
-## Селекторы и локаторы
+## Навигация по DOM
 
-- **CSS-селекторы** — приоритетный способ, быстрее и читаемее: `.class`, `#id`, `[attr=value]`
-- **XPath** — используется для сложной навигации или поиска по тексту/иерархии: `$x("//div[contains(text(),'Login')]")`
-- **Поиск по тексту** — встроенные методы `byText()`, `withText()`
-- **Комбинированные локаторы** — объединение атрибутов и классов: `input[name='email'][type='text']`
+### Внутренний поиск (от текущего `SelenideElement`)
 
-### Примеры селекторов
+- `$(selector)` / `find(selector)` — поиск дочернего элемента (синонимы)
+- `$$(selector)` / `findAll(selector)` — поиск коллекции дочерних элементов (синонимы)
+- `$x(xpath)` / `$$x(xpath)` — поиск по XPath внутри элемента
 
-```java
-// CSS
-$("form#login input[type='password']")
+### Вверх по дереву
 
-// XPath
-$x("//table//tr[td[text()='Admin']]/td[2]")
+- `parent()` — непосредственный родитель
+- `ancestor(cssSelector)` / `closest(cssSelector)` — ближайший предок по CSS (синонимы)
+- `closest(By)` — ближайший предок через `Selenium By`
+- `closest(String tagName)` — ближайший предок по тегу
 
-// Поиск по точному тексту
-$(byText("Сохранить"))
+### Соседние элементы
 
-// Поиск по частичному тексту
-$(withText("Загрузка..."))
+- `sibling(cssSelector)` — сосед на том же уровне по CSS
+- `preceding(int index)` — предыдущий сосед (`1` — ближайший)
+- `following(int index)` — следующий сосед (`1` — ближайший)
 
-// Комбинированный атрибут
-$("button[data-action='submit'].btn-primary")
+## Работа с коллекциями (`ElementsCollection`)
 
----
+### Фильтрация и поиск внутри коллекции
 
-## Навигация по DOM и коллекции
+- `filterBy(Condition)` / `filterBy(Predicate<SelenideElement>)` — оставить элементы, удовлетворяющие условию
+- `excludeWith(Condition)` / `exclude(Predicate<SelenideElement>)` — исключить элементы по условию
+- `findBy(Condition)` — найти первый подходящий элемент
 
-- **Поиск внутри родителя** — `parent()`, `ancestor()`, `sibling()`, `closest()`
-- **Фильтрация коллекций** — `filterBy()`, `excludeWith()`, `findBy()`
-- **Доступ по индексу** — `first()`, `last()`, `get(int index)`
-- **Счётчики и состояния** — `size()`, `isEmpty()`, `areDisplayed()`
+### Доступ по индексу и состояние
 
-### Навигация и фильтрация
+- `get(int index)` — элемент по индексу (с `0`)
+- `first()` / `last()` — первый / последний элемент
+- `size()` / `isEmpty()` / `areDisplayed()` — размер, проверка на пустоту, проверка видимости всех элементов
+- `asDynamicIterable()` / `asFixedIterable()` — ленивая итерация или снапшот коллекции
 
-```java
-import static com.codeborne.selenide.CollectionCondition.size;
-import static com.codeborne.selenide.Selenide.$$;
+### Проверки коллекций (`should...`)
 
-ElementsCollection rows = $$(".data-table tbody tr");
+- `shouldHaveSize(int)` / `shouldBe(CollectionCondition)` / `shouldHave(CollectionCondition)` — проверка условий коллекции
 
-// Фильтрация по условию
-rows.filterBy(text("Активен")).shouldHave(size(3));
+### Условия коллекций (`CollectionCondition`)
 
-// Навигация от элемента
-$(".highlighted-item").ancestor(".main-container").click();
+- `size(int)` / `sizeGreaterThan` / `sizeGreaterThanOrEqual` / `sizeLessThan` / `sizeLessThanOrEqual` / `sizeNotEqual` — проверка размера
+- `empty` — коллекция пуста
+- `texts(String...)` / `textsInAnyOrder(String...)` / `exactTexts(String...)` — проверка текстов элементов
+- `itemWithText(String)` — наличие элемента с текстом
+- `containExactTextsCaseSensitive(String...)` — регистрозависимая проверка
 
-// Работа с индексами (0-based)
-$$(".menu-items").get(2).hover();
+### Итерация и преобразование
 
----
+- `forEach(Consumer<SelenideElement>)` — действие для каждого элемента
+- `iterator()` / `stream()` — обход коллекции (`stream()` отключает авто-ожидания Selenide)
+
+### Действия коллекции (делегирование первому элементу)
+
+- `click()` / `setValue(String)` — клик или ввод в первый элемент
+- `texts()` / `attributes(String)` — получение списков текстов или атрибутов всех элементов
 
 ## Извлечение данных
 
-- `getText()` / `getOwnText()` — полный текст элемента / текст без дочерних элементов
-- `getAttribute("name")` — значение атрибута
-- `getCssValue("property")` — значение CSS-свойства
-- `getValue()` / `getSelectedOption()` / `isSelected()` — состояния форм и элементов
+### Текст и HTML
 
-### Извлечение значений
+- `getText()` — возвращает ВЕСЬ текст внутри элемента, включая текст всех вложенных дочерних элементов.
+- `getOwnText()` — возвращает только СВОЙ СОБСТВЕННЫЙ текст, игнорируя текст внутри детей.
+- `innerText()` / `innerHtml()` / `outerHtml()` — получение через JS (`innerText`) и нативный HTML
 
-```java
-// Текст
-String header = $(".page-title").getText();
+### Атрибуты, стили и свойства
 
-// Атрибут
-String href = $("a.download-link").getAttribute("href");
+- `getAttribute(String name)` — значение произвольного (любого) атрибута
+- `getCssValue(String property)` — значение CSS-свойства
+- `getValue()` / `val()` — текущее значение поля (`value`)
+- `getTagName()` / `getSelectedOption()` / `isSelected()` — тег, выбранная опция `<select>`, состояние выбора
 
-// CSS-свойство
-String color = $(".alert-danger").getCssValue("background-color");
+### Геометрия и позиция
 
-// Значение инпута
-String email = $("input[name='email']").getValue();
-
-// Состояние чекбокса
-boolean isChecked = $("input#terms").isSelected();
-
----
+- `getLocation()` / `getSize()` / `getRect()` — координаты, размеры или объединённый объект `Rectangle`
 
 ## Действия с элементами
 
-- `click()` / `doubleClick()` / `contextClick()` — различные типы кликов
-- `setValue()` / `clear()` — ввод и очистка полей
-- `pressEnter()` / `pressEscape()` — отправка спецклавиш
-- `hover()` — наведение курсора
-- `dragAndDropTo()` — перетаскивание
+### Клики и контекстное меню
 
-### Взаимодействие и ввод
+- `click()` / `doubleClick()` / `contextClick()` — левый, двойной, правый клик
+- `click(int x, int y)` / `hover(int x, int y)` — клик или наведение по относительным координатам
+- `*(ClickOptions options)` — все клики поддерживают модификаторы (`ctrl`, `shift`), оффсеты и тип устройства
 
-```java
-import static com.codeborne.selenide.Selenide.*;
+### Клавиатура и ввод
 
-// Быстрый ввод (без эмуляции нажатий клавиш, если включён fastSetValue)
-$("#username").setValue("admin");
+- `pressEnter()` / `pressEscape()` / `pressTab()` — специальные клавиши
+- `press(String keys)` / `press(Keys keys)` — произвольная клавиша или `Keys` enum
+- `sendKeys(CharSequence... keys)` — низкоуровневая отправка символов
 
-// Очистка и ввод
-$("#search").clear().setValue("Selenide").pressEnter();
+### Работа с полями ввода
 
-// Двойной клик
-$("li.item").doubleClick();
+- `setValue(String text)` / `val(String)` — установка значения (заменяет старое)
+- `setValue(String, boolean clearBefore)` — установка с опциональной очисткой
+- `append(String text)` — добавление текста к текущему значению
+- `clear()` — очистка поля
 
-// Правый клик (контекстное меню)
-$(".editable-area").contextClick();
+### Чекбоксы, радиокнопки и `<select>`
 
-// Наведение для появления тултипа
-$(".tooltip-trigger").hover();
+- `setSelected(boolean)` — выбор/снятие флажка или радиокнопки
+- `selectOption(String value)` / `selectOption(int index)` — выбор опции по значению или индексу
+- `selectOptionByValue(String)` / `selectOptionContainingText(String)` — выбор опции по атрибуту или тексту
 
----
+### Перетаскивание и скроллинг
 
-## Работа с формами
+- `dragAndDropTo(String/WebElement/SelenideElement)` — перетаскивание к цели
+- `dragAndDrop(int x, int y)` — перетаскивание на смещение в пикселях
+- `scrollTo()` / `scrollIntoView(...)` — скроллинг к элементу (с выравниванием `true/false` или `ScrollIntoViewOptions`)
 
-- **Выпадающие списки** — `selectOption()`, `selectOptionContainingText()`
-- **Чекбоксы** — `setSelected(true)`, `setSelected(false)`
-- **Радио-кнопки** — `click()` или `setValue()` для выбора
-- **Загрузка файлов** — `uploadFromClasspath()`, `uploadFile()`
+### Загрузка файлов
 
-### Примеры работы с формами
+- `uploadFile(File... / Path...)` — загрузка локальных файлов
+- `uploadFromClasspath(String...)` — загрузка из `resources`
 
-```java
-import java.io.File;
-import static com.codeborne.selenide.Selenide.$;
+### Наведение мыши
 
-// Выпадающий список (select)
-$("#country").selectOption("Россия");
-$("#role").selectOptionContainingText("Менеджер");
+- `hover()` / `hover(int x, int y)` — наведение курсора на элемент или его часть
 
-// Чекбокс
-$("input#agree").setSelected(true);
+## Проверки и ожидания
 
-// Радио-кнопка
-$("[name='gender']").findBy(value("female")).click();
+### Условия и проверки
 
-// Загрузка файла
-$("#file-upload").uploadFile(new File("src/test/resources/document.pdf"));
+- `should(Condition...)` / `shouldBe(Condition...)` / `shouldHave(Condition...)` — синонимы, проверка с авто-ожиданием
+- `waitUntil(Condition, long timeoutMs)` / `waitWhile(Condition, long timeoutMs)` — явное ожидание условия с таймаутом
 
-// Загрузка из classpath
-$("#avatar").uploadFromClasspath("images/profile.png");
+### JavaScript и низкоуровневое взаимодействие
 
----
+- `executeJavaScript(String jsCode, Object... args)` — выполнение JS в контексте элемента
+- `click(usingDefaultSelenium())` — клик через нативный WebDriver (без JS-обёртки Selenide)
 
-## Drag-and-drop и сложные сценарии
-
-- Перетаскивание между элементами — `dragAndDropTo()`
-- Эмуляция сложного ввода через Actions API (доступен через `.toWebElement()`)
-- Комбинирование клавиш и мыши для нестандартных UI-паттернов
-
-### Пример Drag-and-Drop
+### Скриншоты
+- `screenshot()` — сохранение скриншота конкретного элемента
 
 ```java
-import static com.codeborne.selenide.Selenide.$;
-import org.openqa.selenium.interactions.Actions;
-import com.codeborne.selenide.WebDriverRunner;
+// ПОИСК ЭЛЕМЕНТОВ И СЕЛЕКТОРЫ
 
-// Простое перетаскивание
-$("#draggable-item").dragAndDropTo($("#drop-zone"));
+// --- Глобальный поиск ---
 
-// С использованием WebDriver Actions для нестандартных сценариев
-Actions actions = new Actions(WebDriverRunner.getWebDriver());
-actions.dragAndDrop($("#source").toWebElement(), $("#target").toWebElement()).perform();
+// Поиск одного элемента по CSS-селектору
+SelenideElement loginBtn = $("#login-button");
 
----
+// Поиск коллекции элементов по XPath с фильтрацией
+ElementsCollection items = $$x("//div[@class='product']").filterBy(visible);
+
+// --- Сокращённые CSS-алиасы ---
+
+// Поиск по ID (аналог $(By.id("header")))
+SelenideElement header = $("#header");
+
+// Поиск по классу с вложенным поиском
+$(".card").find(".title").shouldHave(text("Заголовок"));
+
+// --- Пользовательские селекторы (Selectors) ---
+
+// Поиск кнопки с точным текстом "Отправить"
+$(byText("Отправить")).click();
+
+// Поиск input по атрибуту name с частичным совпадением текста
+$("[name='search']").shouldBe(appear);
+```
+
+```java
+// НАВИГАЦИЯ ПО DOM
+
+// --- Внутренний поиск (от текущего SelenideElement) ---
+
+// Поиск дочернего элемента внутри найденного родителя
+$(".user-card").find(".avatar").shouldBe(visible);
+
+// Поиск коллекции параграфов внутри статьи по XPath
+$$x(".//p", $(".article")).shouldHaveSize(3);
+
+// --- Вверх по дереву ---
+
+// Получение родителя и проверка его класса
+$("#child-element").parent().shouldHave(cssClass("container"));
+
+// Поиск ближайшего предка с классом "modal"
+$(".close-btn").closest(".modal").shouldBe(visible);
+
+// --- Соседние элементы ---
+
+// Клик по следующему соседнему элементу после текущего
+$(".active-item").following(1).click();
+
+// Проверка текста предыдущего элемента в списке
+$(".selected").preceding(1).shouldHave(text("Предидущий"));
+```
+```java
+// РАБОТА С КОЛЛЕКЦИЯМИ (ElementsCollection)
+
+// --- Фильтрация и поиск внутри коллекции ---
+
+// Фильтрация видимых элементов и выбор первого
+$$(".product").filterBy(visible).first().click();
+
+// Исключение элементов с классом "disabled" и поиск по тексту
+$$("li").excludeWith(cssClass("disabled")).findBy(text("Активный")).shouldBe(enabled);
+
+// --- Доступ по индексу и состояние ---
+
+// Получение третьего элемента (индекс с 0) и проверка
+$$("tr").get(2).shouldHave(text("Данные"));
+
+// Проверка, что коллекция не пуста и все элементы отображаются
+$$(".notification").shouldNotBe(empty).and(areDisplayed);
+
+// --- Проверки коллекций (should...) ---
+
+// Ожидание, что в списке появится ровно 5 элементов
+$$("ul > li").shouldHaveSize(5);
+
+// Проверка коллекции на соответствие условию
+$$(".price").shouldBe(textsInAnyOrder("100", "200", "300"));
+
+// --- Условия коллекций (CollectionCondition) ---
+
+// Проверка точных текстов элементов в указанном порядке
+$$("td").shouldHave(exactTexts("Имя", "Возраст", "Город"));
+
+// Проверка, что хотя бы один элемент содержит указанный текст
+$$("option").shouldHave(itemWithText("Выберите значение"));
+
+// --- Итерация и преобразование ---
+
+// Выполнение действия для каждого видимого элемента
+$$(".checkbox").filterBy(visible).forEach(el -> el.setSelected(true));
+
+// Получение списка текстов всех элементов коллекции (без ожиданий при итерации)
+List<String> titles = $$("h2").texts();
+
+// --- Действия коллекции (делегирование первому элементу) ---
+
+// Клик по первому элементу коллекции и ввод текста
+$$("input[type='text']").setValue("Первое значение").click();
+
+// Получение всех значений атрибута href из коллекции ссылок
+List<String> links = $$("a").attributes("href");
+```
+
+```java
+// ИЗВЛЕЧЕНИЕ ДАННЫХ
+
+// --- Текст и HTML ---
+
+// Получение видимого текста и текста без учёта дочерних элементов
+String fullText = $(".article").getText();
+String ownText = $(".article").getOwnText();
+
+// Получение внутреннего HTML для парсинга
+String htmlContent = $(".template").innerHtml();
+
+// --- Атрибуты, стили и свойства ---
+
+// Чтение атрибута data-id и CSS-свойства цвета
+String itemId = $(".product").getAttribute("data-id");
+String color = $(".button").getCssValue("background-color");
+
+// Получение значения input и проверка выбранной опции в select
+String email = $("input[name='email']").getValue();
+String selected = $("select").getSelectedOption().getText();
+
+// --- Геометрия и позиция ---
+
+// Получение данных о геометрии элемента
+Point location = $(".modal").getLocation(); // координаты X, Y
+Dimension size = $(".modal").getSize(); // ширина, высота
+
+// Получение полного прямоугольника элемента (позиция + размеры)
+Rectangle rect = $(".header").getRect();
+```
+
+```java
+// ДЕЙСТВИЯ С ЭЛЕМЕНТАМИ
+
+// --- Клики и контекстное меню ---
+
+// Обычный клик и клик с модификатором клавиши
+$("#submit").click();
+$(".item").click(ClickOptions.usingMethod(JS).withCtrl());
+
+// Вызов контекстного меню (правый клик)
+$(".table-row").contextClick();
+
+// --- Клавиатура и ввод ---
+
+// Последовательное нажатие специальных клавиш
+$("input").pressEnter().pressEscape();
+
+// Отправка комбинации клавиш (выделить всё + удалить)
+$("textarea").press(Keys.chord(Keys.CONTROL, "a")).press(Keys.DELETE);
+
+// --- Работа с полями ввода ---
+
+// Установка значения с предварительной очисткой и последующим добавлением текста
+$("#search").setValue("запрос", true).append(" уточнение");
+
+// Очистка поля и проверка, что оно пустое
+$("#comment").clear();
+String current = $("#comment").val(); // ""
+
+// --- Чекбоксы, радиокнопки и <select> ---
+
+// Выбор чекбокса и радиокнопки
+$("#agree").setSelected(true);
+$("input[value='premium']").setSelected(true);
+
+// Выбор опции в выпадающем списке по тексту и по индексу
+$("select#country").selectOptionContainingText("Россия");
+$("select#role").selectOption(2);
+
+// --- Перетаскивание и скроллинг ---
+
+// Перетаскивание элемента к цели по селектору
+$(".draggable").dragAndDropTo(".drop-zone");
+
+// Плавный скроллинг к элементу с выравниванием по центру
+$(".footer-link").scrollIntoView(ScrollIntoViewOptions.withBehavior("smooth").withBlock("center"));
+
+// --- Загрузка файлов ---
+
+// Загрузка файла из classpath и локального пути
+$("input[type='file']").uploadFromClasspath("test.pdf");
+$("input[type='file']").uploadFile(new File("/path/to/doc.docx"));
+
+// --- Наведение мыши ---
+
+// Наведение для отображения тултипа и клик по появившемуся элементу
+$(".menu-item").hover();
+$(".submenu").shouldBe(appear).click();
+```
+
+```java
+// ✅ ПРОВЕРКИ И ОЖИДАНИЯ
+
+// --- Условия и проверки ---
+
+// Цепочка проверок с авто-ожиданием (до 4 секунд по умолчанию)
+$("#status").shouldHave(text("Успешно"), cssClass("green"), be(visible));
+
+// Явное ожидание с кастомным таймаутом
+$(".loader").waitWhile(visible, 10000); // Ждать исчезновения лоадера до 10 сек
+
+// --- JavaScript и низкоуровневое взаимодействие ---
+
+// Выполнение произвольного JS-кода над элементом
+$("#canvas").executeJavaScript("arguments[0].getContext('2d').clearRect(0,0,200,200)", $("#canvas"));
+
+// Клик через нативный Selenium (в обход JS-обёртки Selenide)
+$(".overlay").click(usingDefaultSelenium());
+
+// --- Скриншоты ---
+
+// Сохранение скриншота конкретного элемента при ошибке или для отчёта
+if ($(".error-banner").isDisplayed()) {
+    $(".error-banner").screenshot();
+}
+```
 
 ## Best Practices
 
 - Используйте CSS-селекторы вместо XPath, когда это возможно — они быстрее и стабильнее
-- Опирйтесь на `data-*` атрибуты (например, `data-testid`) для изоляции тестов от изменений вёрстки
+- Опирайтесь на `data-*` атрибуты (например, `data-testid`) для изоляции тестов от изменений вёрстки
 - Избегайте жестких привязок к индексам в коллекциях — используйте фильтрацию по тексту или атрибутам
 - Не используйте `Thread.sleep()` — Selenide автоматически ожидает появления и готовности элементов
 - Для ввода текста в большие формы используйте `fastSetValue = true` в конфигурации, но учитывайте, что это не эмулирует реальные события `oninput`/`onchange`
 - При работе с динамическими коллекциями всегда вызывайте `$$()` заново, а не кешируйте `ElementsCollection` надолго
-- ❌ Не полагайтесь на абсолютные XPath (`/html/body/div[2]/...`) — они ломаются при малейшем изменении DOM
-- ❌ Не используйте `getValue()` для получения текста неинпутовых элементов — применяйте `getText()` или `getOwnText()`
-- ❌ Не забывайте про `hover()` перед взаимодействием с элементами, которые появляются только при наведении
-- ❌ Избегайте смешивания нативного `WebElement` и `SelenideElement` без явной необходимости — это нарушает единую модель ожиданий
+- Не полагайтесь на абсолютные XPath (`/html/body/div[2]/...`) — они ломаются при малейшем изменении DOM
+- Не используйте `getValue()` для получения текста неинпутовых элементов — применяйте `getText()` или `getOwnText()`
+- Не забывайте про `hover()` перед взаимодействием с элементами, которые появляются только при наведении
+- Избегайте смешивания нативного `WebElement` и `SelenideElement` без явной необходимости — это нарушает единую модель ожиданий
+
+---
+
+
 
 
 

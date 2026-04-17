@@ -1,3 +1,13 @@
+**Copyright (c) 2023-2026 sergeev-alexander**
+
+All Rights Reserved.
+
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+
+---
+
 # `JWT`
 
 **JWT (JSON Web Token)** - это открытый стандарт (**RFC 7519**) для создания токенов доступа, основанных на **JSON
@@ -205,7 +215,8 @@ String privateKeyPem = "-----BEGIN PRIVATE KEY-----\n" +
 ```
 </details>
 
-### Работа с JWT в Java
+## Работа с JWT в Java
+
 <details closed> 
     <summary>
         <b>Библиотеки для работы с JWT</b>
@@ -374,3 +385,5 @@ public class AdvancedJwtValidator {
     }
 }
 ```
+
+</details>
