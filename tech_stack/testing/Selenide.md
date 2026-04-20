@@ -952,6 +952,10 @@ alert().input("Тестовое значение");
 alert().accept();
 ```
 
+> Методы `alert().accept()`, `alert().dismiss()`, `alert().shouldHave()` внутри используют тот же механизм ожидания с `Configuration.timeout`, что и `shouldBe()` для элементов. 
+> 
+> Selenide будет опрашивать драйвер на наличие алерта с интервалом `pollingInterval`, пока алерт не появится или не истечёт таймаут.
+
 ## Cookies и Web Storage
 
 - **Cookies** — `WebDriverRunner.getWebDriver().manage().getCookies()`, установка/удаление через `addCookie()`/`deleteCookie()`
@@ -1016,6 +1020,181 @@ void cleanupContext() {
 - Не храните чувствительные cookies или токены в коде тестов — выносите их в переменные окружения или CI-secrets
 - Не используйте `executeJavaScript` для обхода стандартных действий Selenide без веской причины — это ломает автоматические ожидания и логгирование
 - Не забывайте про `open("about:blank")` перед установкой cookies, если тест стартует с пустого контекста
+
+---
+
+# 5. Архитектура тестов: Page Object и кастомизация
+
+> Архитектурные паттерны построения поддерживаемых UI-тестов: Page Object/Component, ленивая инициализация, вынос локаторов, 
+> создание кастомных условий и утилит для переиспользования логики.
+
+## Структура Page Object
+
+- **Поля-элементы** — декларативное объявление `SelenideElement` без мгновенного поиска в DOM
+- **Методы-действия** — инкапсуляция бизнес-сценариев страницы (авторизация, навигация, отправка форм)
+- **Возвращаемые страницы** — возврат `new NextPage()` для построения fluent-цепочек между тестами
+- **Инкапсуляция селекторов** — скрытие локаторов внутри классов, запрет прямого вызова `$()` из тестов
+
+```java
+public class LoginPage {
+    
+    // Поля-элементы (ленивая инициализация)
+    private final SelenideElement usernameInput = $("#username");
+    private final SelenideElement passwordInput = $("#password");
+    private final SelenideElement submitBtn = $("button[type='submit']");
+
+    // Методы-действия
+    public DashboardPage login(String user, String pass) {
+        usernameInput.setValue(user);
+        passwordInput.setValue(pass);
+        submitBtn.click();
+        return new DashboardPage(); // Возврат следующей страницы
+    }
+}
+```
+
+## Ленивая инициализация и вынос локаторов
+
+- `SelenideElement` не ищет элемент в DOM при объявлении поля — поиск происходит только при вызове метода
+- Вынос селекторов в `private static final String` или `By` константы упрощает поддержку при рефакторинге
+- Использование `By` вместо строк обеспечивает type-safety и подсказки в IDE
+- Хранение текстов, ошибок и констант в отдельных классах или `.properties` файлах
+
+```java
+public class UserPage {
+
+    private static final By PROFILE_LINK = By.cssSelector("a.profile");
+    private static final By EDIT_BTN = By.id("edit-user");
+    private static final String SUCCESS_MSG = "Профиль успешно обновлён";
+
+    private final SelenideElement profileLink = $(PROFILE_LINK);
+    private final SelenideElement editBtn = $(EDIT_BTN);
+
+    public boolean isProfileVisible() {
+        return profileLink.isDisplayed();
+    }
+}
+```
+
+## Композиция и вложенные компоненты
+
+- **Page Component** — переиспользуемые блоки интерфейса (хедер, футер, модальные окна, виджеты)
+- **Композиция через поля** — включение компонентов в Page Object без глубокого наследования
+- **Базовые классы** — общие методы навигации, ожиданий лоадеров, снятия скриншотов
+- **Разделение ответственности** — UI-логика в компонентах, бизнес-сценарии и ассерты в тестах
+
+> Композиция в Page Object — это сборка страницы из независимых компонентов-кирпичиков вместо наследования от базового класса со всей логикой. 
+> 
+> Каждый компонент отвечает только за свой кусок UI и может переиспользоваться на разных страницах.
+
+```java
+// Компонент — переиспользуемый блок, который живёт на многих страницах
+public class HeaderComponent {
+
+    private final SelenideElement logo = $(".logo");
+    private final SelenideElement userMenu = $(".user-dropdown");
+
+    public void openProfile() {
+        userMenu.click();
+        $("#profile-link").click();
+    }
+}
+
+// Страница собирается из компонентов через поля
+public class DashboardPage {
+
+    private final HeaderComponent header = new HeaderComponent();  // композиция
+    private final SelenideElement statsWidget = $(".stats");
+
+    public HeaderComponent getHeader() {
+        return header;  // отдаём компонент наружу для взаимодействия
+    }
+}
+
+// Тест работает с компонентом через страницу
+@Test
+void navigateViaHeader() {
+    DashboardPage page = new DashboardPage();  // страница готова
+    page.getHeader()                           // получаем компонент
+            .openProfile();                    // используем его метод
+    
+    // профиль открыт, тест продолжается
+}
+```
+
+## Кастомные условия и обёртки элементов
+
+- Расширение `Condition` для бизнес-специфичных проверок (например, `isValidEmail()`, `isFullyLoaded()`)
+- Создание утилитных методов-обёрток над `SelenideElement` для сложных или повторяющихся действий
+- Интеграция с `should()` через `Condition.condition()` или статические фабрики без потери fluent-синтаксиса
+
+```java
+// Кастомное условие
+public class ValidEmailCondition extends Condition {
+    
+    public ValidEmailCondition() {
+        super("valid-email-format"); 
+    }
+    
+    @Override
+    public boolean apply(Driver driver, WebElement element) {
+        return Pattern.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$", element.getText());
+    }
+}
+
+// Использование
+$(".user-email").should(new ValidEmailCondition());
+
+// Метод-обёртка для сложного сценария
+public static void waitAndClickWithRetry(SelenideElement element, Duration timeout) {
+    element.withTimeout(timeout).click();
+}
+```
+
+## Глобальные утилиты и переиспользование логики
+
+- **BaseTest / BasePage** — общая инициализация, `@BeforeEach` настройка, автоматические скриншоты
+- **SelenideUtils** — статические методы для частых операций (скролл, ожидание лоадера, массовая очистка форм)
+- **Контекстные хелперы** — обёртки над `Configuration`, управление драйвером, логирование шагов
+- **Изоляция тестовых данных** — генерация уникальных идентификаторов, очистка состояния между прогонами
+
+```java
+public final class SelenideUtils {
+    
+    private SelenideUtils() {}
+
+    public static void waitForLoaderDisappear(Duration maxWait) {
+        $(".loader").waitWhile(visible, maxWait);
+    }
+
+    public static void clearAllInputs(ElementsCollection forms) {
+        forms.filterBy(visible).forEach(SelenideElement::clear);
+    }
+
+    public static void scrollToBottom() {
+        Selenide.executeJavaScript("window.scrollTo(0, document.body.scrollHeight);");
+    }
+}
+```
+
+## Best Practices
+
+- Используйте композицию (`HeaderComponent`, `ModalComponent`) вместо глубокого наследования для гибкости
+- Объявляйте `SelenideElement` как `final` поля — ленивая инициализация не требует `null`-проверок
+- Выносите локаторы и тексты в константы или внешние конфиги, чтобы изменения вёрстки требовали правки в одном месте
+- Создавайте кастомные `Condition` только для повторяющихся бизнес-проверок, не дублируйте встроенные
+- Возвращайте `this` или новую страницу из методов Page Object для поддержки fluent-цепочек в тестах
+- Не создавайте Page Object с сотнями полей — разделяйте на логические компоненты (композиция)
+- Не используйте `@FindBy` из Selenium — Selenide не требует `PageFactory`, он работает "из коробки"
+
+  - Selenide сам делает ленивую инициализацию через $(selector)
+  - PageFactory.initElements() — лишний шаг, который не даёт выигрыша
+  - WebElement не умеет ждать и самовосстанавливаться, в отличие от SelenideElement
+  - Код становится проще и короче без аннотаций и инициализации фабрики
+
+- Не кешируйте `SelenideElement` через `WebDriver.findElement()` — это ломает автоматические ожидания
+- Не смешивайте UI-логику страницы с ассертами тестов — тест должен вызывать методы Page Object, а проверять только конечный результат
+- Не храните состояние между тестами в полях Page Object — каждый тест должен работать с новым экземпляром страницы
 
 ---
 
