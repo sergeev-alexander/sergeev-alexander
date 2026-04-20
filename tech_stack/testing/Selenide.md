@@ -22,7 +22,7 @@ This work is private property and is not licensed for copying, distribution, mod
 8. [Интеграция с API, тестовые данные и безопасность](#8-интеграция-с-api-тестовые-данные-и-безопасность)
 9. [Инфраструктура, CI/CD и кросс-браузерное тестирование](#9-инфраструктура-cicd-и-кросс-браузерное-тестирование)
 10. [Оптимизация, поддержка и жизненный цикл проекта](#10-оптимизация-поддержка-и-жизненный-цикл-проекта)
-11. [Псевдоклассы CSS](#8-Псевдоклассы-CSS)
+11. [Псевдоклассы CSS](#11-Псевдоклассы-CSS)
 
 ---
 
@@ -666,40 +666,385 @@ if ($(".error-banner").isDisplayed()) {
 
 ---
 
+# 3. Ожидания, проверки и коллекции
 
+> Продвинутые паттерны работы с ожиданиями и коллекциями в Selenide: кастомные условия, сложные таймауты, динамические списки и стратегии предотвращения типичных ошибок.
 
+## Философия fluent-ассерций и встроенные условия
 
+- `should()` / `shouldNot()` — базовые методы для проверки произвольных условий
+- `shouldBe()` / `shouldNotBe()` — проверка состояний элемента (видимость, кликабельность, выбранность)
+- `shouldHave()` / `shouldNotHave()` — проверка свойств (текст, значение атрибута, CSS-свойства)
+- Автоматический повторный запрос элемента до выполнения условия или истечения таймаута
+- Декларативный стиль: логика проверки читается как естественное предложение
 
+> Методы `should()`, `shouldBe()`, `shouldHave()` и их отрицательные версии возвращают тот же самый объект элемента/коллекции (`SelenideElement` или `ElementsCollection`), 
+> что позволяет выстраивать цепочку проверок. 
+> При этом сам вызов метода не возвращает булево значение — в случае невыполнения условия тест просто упадет с исключением.
+>
+> Метод `.and()` является синтаксическим сахаром и не выполняет логическую операцию `AND`, а просто продолжает цепочку вызовов для того же элемента, 
+> делая код читаемее. 
+> Selenide также поддерживает `.or()` для коллекций при формировании условий совпадения, но для ассерций отдельных элементов в fluent-стиле отдельного `or()`-метода нет (вместо этого пишут кастомное условие с `Condition.or`).
 
+```java
+// Проверка видимости и кликабельности
+$(".btn-primary").shouldBe(visible).and(clickable);
 
+// Проверка текста и атрибута
+$("h1.title").shouldHave(text("Добро пожаловать")).and(attribute("data-loaded", "true"));
 
+// Негативные проверки
+$(".error-message").shouldNotBe(visible);
+$("#loading-spinner").shouldNot(exist);
+
+// Condition.and — оба условия должны выполниться одновременно
+$(".modal").shouldBe(Condition.and("видима и доступна", visible, enabled));
+
+// Condition.or — достаточно выполнения хотя бы одного условия
+$(".status").shouldBe(Condition.or("успех или предупреждение",
+                      text("Success"),
+                      text("Warning")));
+```
+
+## Таймауты: глобальные и точечные
+
+- Глобальный таймаут задаётся через `Configuration.timeout` (по умолчанию 4000 мс)
+- Точечный таймаут переопределяет глобальный для конкретной проверки через `withTimeout()`
+- Интервал опроса настраивается через `Configuration.pollingInterval` (по умолчанию 200 мс)
+- Динамическое изменение не влияет на уже начатые ожидания
+
+```java
+// Глобальная настройка
+
+// Configuration — это статический класс Selenide (com.codeborne.selenide.Configuration) 
+// его поля задают глобальные параметры для всех последующих проверок
+Configuration.timeout = 10000;
+Configuration.pollingInterval = 500;
+
+// Локальная переопределяющая проверка
+$(".heavy-component").withTimeout(Duration.ofSeconds(30)).should(appear);
+
+// Цепочка с разным таймаутом
+$("#fast-btn").click();
+$("#slow-result").withTimeout(Duration.ofSeconds(15)).shouldHave(text("Готово"));
+```
+
+## Кастомные условия
+
+- Реализация интерфейса `Condition` для нестандартных проверок
+- Использование лямбда-выражений через `Condition.condition()`
+- Переопределение `apply()` и `test()` для валидации сложных состояний DOM
+- Интеграция с `should()`, `shouldBe()` без потери fluent-синтаксиса
+
+```java
+// Базовая сигнатура с названием и Predicate
+public static Condition condition(String name, Predicate<SelenideElement> predicate)
+
+// С переопределённым таймаутом
+public static Condition condition(String name, Predicate<SelenideElement> predicate, long timeoutMs)
+```
+
+```java
+// Лямбда-подход
+Condition hasDataAttr = Condition.condition("has-data-attr", el ->
+    el.getAttribute("data-custom") != null && !el.getAttribute("data-custom").isEmpty()
+);
+
+// В тесте
+$(".widget").should(hasDataAttr);
+```
+
+```java
+// Полная реализация через интерфейс
+class ContainsJsonCondition extends Condition {
+    
+    public ContainsJsonCondition() {
+        super("contains-valid-json"); 
+    }
+
+    @Override
+    public boolean apply(Driver driver, WebElement element) {
+        try {
+            new org.json.JSONObject(element.getText());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+
+// В тесте
+$("#api-response").should(new ContainsJsonCondition());
+```
+
+> Когда используется `Condition.condition(name, predicate)`, внутри Selenide сам вызывает `predicate.test(element)`.
+>
+> А когда класс наследуешься от Condition напрямую, переопределяется абстрактный метод `apply(Driver, WebElement)`.
+>
+> Это два разных пути создания кастомного условия.
+
+## Работа с коллекциями и динамическими списками
+
+- `$$()` возвращает `ElementsCollection`, поддерживающий ленивую инициализацию
+- Проверки размера, порядка элементов, текстового содержимого
+- Фильтрация: `filterBy()`, `excludeWith()`, `findBy()`
+- Условный доступ: `firstMatch()`, `last`, `get(index)`
+- Динамические списки (ленивая подгрузка, AJAX) требуют повторного запроса `$$()` после изменений
+- Кеширование `ElementsCollection` опасно при изменении DOM — приводит к `StaleElementReferenceException`
+
+```java
+// На странице изначально 3 элемента
+$$(".item").shouldHave(size(3));  // Selenide ищет .item → находит 3
+
+// Кликаем кнопку, AJAX подгружает ещё 2 элемента
+$("#load-more").click();
+
+// Коллекция НЕ кеширована — она заново ищет .item в DOM → находит 5
+$$(".item").shouldHave(size(5));  // работает, без StaleElementException
+```
+
+```java
+// Проверка размера
+$$(".list-item").shouldHave(size(5));
+
+// Проверка содержимого (порядок важен)
+$$(".nav-link").shouldHave(exactTexts("Главная", "О нас", "Контакты"));
+
+// Фильтрация по условию
+$$(".product-card").filterBy(text("В наличии")).shouldHave(sizeGreaterOrEqual(2));
+
+// Ожидание подгрузки элементов
+$$(".paginated-item").shouldHave(size(10));
+$("button.load-more").click();
+$$(".paginated-item").shouldHave(size(20));
+```
+
+## Распространённые ошибки и способы их предотвращения
+
+- `ElementNotFound` при проверке коллекции до её полной загрузки
+- `StaleElementReferenceException` при кешировании коллекции и последующем изменении DOM
+- Несоответствие `text()` и `exactText()` при наличии скрытых элементов или пробелов
+- Игнорирование `pollingInterval`, приводящее к избыточным запросам к DOM
+
+## Best Practices
+
+- Используйте `shouldHave(text())` вместо `getText().equals()` — встроенные проверки автоматически ждут появления текста
+- Настраивайте `Configuration.pollingInterval` в диапазоне 100–300 мс для баланса между нагрузкой и скоростью реакции
+- Применяйте `withTimeout()` только для известных "медленных" мест, не раздувайте таймауты глобально
+- Для динамических коллекций всегда запрашивайте `$$()` заново после AJAX-обновлений или действий пользователя
+- Создавайте кастомные `Condition` для повторяющихся бизнес-проверок (например, `isValidDate()`, `isFullyLoaded()`)
+- Избегайте `shouldNot(exist)` для скрытых элементов — используйте `shouldNotBe(visible)` или `shouldBe(hidden)`
+- Не кешируйте `ElementsCollection` в полях Page Object — это ломает ленивую природу Selenide
+- Не используйте `Thread.sleep()` или ручные `WebDriverWait` внутри проверок — это нарушает философию автоматических ожиданий
+- Не проверяйте коллекции на `size(0)` для ожидания исчезновения — используйте `shouldBe(empty)` или `shouldHave(size(0))` с явным ожиданием
+- Не смешивайте проверки `text()` и `exactText()` без учёта скрытых дочерних элементов и переносов строк
+
+# 4. Формы, контексты и браузерные данные
+
+> Управление контекстами браузера, работа с формами, выполнение JavaScript и манипуляция данными сессии 
+> для создания устойчивых и изолированных UI-тестов.
+
+## Стратегии заполнения форм
+
+- **Пошаговое заполнение** — последовательный ввод данных с проверкой валидации после каждого поля
+- **Массовый ввод** — использование `setValue()` в цепочках или кастомных методах Page Object
+- **Сабмит формы** — отправка через `pressEnter()`, `submit()`, или клик по кнопке отправки
+- **Обработка валидации** — проверка сообщений об ошибках через `shouldHave(text(...))` или `cssClass(...)`
+
+```java
+// Пошаговое заполнение с валидацией
+$("#email").setValue("user@test.com");
+$("#password").setValue("securePass123");
+$("button.submit").click();
+
+// Массовый ввод через Map
+Map<String, String> formData = Map.of(
+    "email", "admin@corp.com",
+    "password", "adminPass",
+    "role", "manager"
+);
+formData.forEach((key, value) -> $(String.format("[name='%s']", key)).setValue(value));
+$("form").submit();
+```
+
+## Работа с окнами и вкладками
+
+- **Переключение по индексу/хендлу** — `switchTo().window(index)` или `switchTo().window(handle)`
+- **Ожидание появления** — `WebDriverRunner.getWebDriver().getWindowHandles()` с `shouldHave`
+- **Закрытие и возврат** — `closeWindow()`, возврат к родительской вкладке через сохранение хендлов
+
+```java
+String originalWindow = WebDriverRunner.getWebDriver().getWindowHandle();
+
+// Открытие новой вкладки и переключение
+$("a[target='_blank']").click();
+switchTo().window(1);
+$(".modal-content").shouldBe(visible);
+
+// Закрытие и возврат
+closeWindow();
+switchTo().window(originalWindow);
+$(".main-container").should(appear);
+```
+
+## Работа с iframe
+
+- **Переключение** — `switchTo().frame(String/WebElement/SelenideElement)`
+- **Вложенные фреймы** — последовательный переход по цепочке
+- **Возврат к основному контексту** — `switchTo().defaultContent()`
+
+```java
+// Переключение в iframe по селектору
+switchTo().frame($("#payment-iframe"));
+$("#card-number").setValue("4111 1111 1111 1111");
+
+// Работа с вложенными фреймами
+switchTo().frame("#parent-frame");
+switchTo().frame("#child-frame");
+$(".inner-content").click();
+
+// Возврат в основной контекст
+switchTo().defaultContent(); // выход из любого iframe обратно на главную страницу (в основной DOM)
+$(".header").should(appear);
+```
+
+## Выполнение JavaScript и эмуляция событий
+
+- **Произвольный код** — `Selenide.executeJavaScript(String, Object...)`
+- **Возврат значений** — получение результатов вычислений в DOM
+- **Передача элементов** — использование `arguments[0]` для работы с `WebElement`
+- **Эмуляция событий** — скролл, фокус, программные клики через `dispatchEvent`
+
+```java
+// Скролл к элементу
+Selenide.executeJavaScript("arguments[0].scrollIntoView({block: 'center'})", $(".footer"));
+
+// Получение значения из localStorage
+String token = Selenide.executeJavaScript("return localStorage.getItem('auth_token');");
+
+// Программный клик (в обход стандартного WebDriver)
+Selenide.executeJavaScript("arguments[0].click()", $(".hidden-overlay"));
+
+// Эмуляция изменения события input для реактивных фреймворков
+String js = "const event = new Event('input', { bubbles: true }); arguments[0].dispatchEvent(event);";
+Selenide.executeJavaScript(js, $("#react-input"));
+```
+
+## Работа с модальными окнами (Alert/Confirm/Prompt)
+
+- **Alert** — `alert().accept()`, `alert().dismiss()`, `alert().getText()`
+- **Confirm/Prompt** — аналогичные методы с передачей текста в `alert().input()`
+- **Ожидание появления** — встроенные механизмы Selenide автоматически ждут модального окна
+
+```java
+// Accept alert
+$("button.show-alert").click();
+alert().accept();
+
+// Dismiss confirm и проверка текста
+$("button.delete").click();
+alert().dismiss();
+alert().getText().contains("Вы уверены?");
+
+// Ввод текста в prompt
+$("button.prompt").click();
+alert().input("Тестовое значение");
+alert().accept();
+```
+
+## Cookies и Web Storage
+
+- **Cookies** — `WebDriverRunner.getWebDriver().manage().getCookies()`, установка/удаление через `addCookie()`/`deleteCookie()`
+- **localStorage/sessionStorage** — чтение/запись через `Selenide.executeJavaScript()`
+- **Изоляция данных** — очистка перед каждым тестом для предотвращения утечки состояния
+
+```java
+// Установка кастомной cookie для обхода авторизации
+Cookie authCookie = new Cookie("session_id", "abc123xyz", "/", null, true, false); // org.openqa.selenium.Cookie
+WebDriverRunner.getWebDriver().manage().addCookie(authCookie);
+
+// Очистка всех cookies и localStorage
+WebDriverRunner.getWebDriver().manage().deleteAllCookies();
+Selenide.executeJavaScript("sessionStorage.clear(); localStorage.clear();");
+
+// Чтение данных из sessionStorage
+String cartData = Selenide.executeJavaScript("return sessionStorage.getItem('cart');");
+```
+
+## Сценарии использования: обход авторизации и предустановка состояния
+
+- **Pre-login через cookies** — установка валидной сессии перед открытием URL
+- **Мок состояния через localStorage** — инжекция данных для UI без вызова API
+- **Очистка контекста** — `clearCookies()`, `clearBrowserLocalStorage()` в `@AfterMethod`
+
+```java
+@BeforeMethod
+void injectSession() {
+    open("about:blank"); // Требуется домен для установки cookies
+    WebDriverRunner.getWebDriver().manage().addCookie(
+        new Cookie("jwt_token", "mock_valid_token", "/")
+    );
+    Selenide.executeJavaScript("localStorage.setItem('user_prefs', '{\"theme\": \"dark\"}')");
+}
+
+@Test
+void dashboardWithoutLogin() {
+    open("/dashboard");
+    $(".welcome-panel").should(appear);
+}
+
+@AfterMethod
+void cleanupContext() {
+    clearCookies();
+    clearBrowserLocalStorage();
+    Selenide.closeWebDriver();
+}
+```
+
+## Best Practices
+
+- Используйте `switchTo().defaultContent()` после работы с iframe для предотвращения `NoSuchElementException` в основном DOM
+- Для работы с React/Vue/Angular формами используйте эмуляцию событий `input`/`change` через JS, если стандартный `setValue()` не триггерит валидацию
+- Устанавливайте cookies только после перехода на `about:blank` или целевой домен, иначе браузер отклонит их по политике безопасности
+
+  WebDriver должен иметь активную страницу с каким-либо URL (даже about:blank), иначе браузер не знает, к какому домену привязать cookie, и выбрасывает `InvalidCookieDomainException`
+
+- Очищайте `localStorage`, `sessionStorage` и cookies в `@AfterMethod` для полной изоляции тестов
+- Используйте `alert().accept()` с встроенными ожиданиями Selenide или `alert().withTimeout(Duration.ofSeconds(..)).accept()` — не добавляйте `Thread.sleep()` перед взаимодействием с модальными окнами
+- Для сложных сценариев с несколькими вкладками сохраняйте `getWindowHandle()` в начале теста и восстанавливайте его в конце
+- Не пытайтесь взаимодействовать с элементами внутри iframe без явного `switchTo().frame()` — WebDriver выбросит `ElementNotInteractableException`
+- Не храните чувствительные cookies или токены в коде тестов — выносите их в переменные окружения или CI-secrets
+- Не используйте `executeJavaScript` для обхода стандартных действий Selenide без веской причины — это ломает автоматические ожидания и логгирование
+- Не забывайте про `open("about:blank")` перед установкой cookies, если тест стартует с пустого контекста
+
+---
 
 # 11. Псевдоклассы CSS
 
-| Псевдокласс CSS | Когда срабатывает | Проверка в Selenide |
-|:----------------|:------------------|:--------------------|
-| `:hover` | Курсор мыши наведён на элемент | `hover()` (эмуляция) |
-| `:focus` | Элемент в фокусе (готов принимать ввод) | `$(el).shouldBe(focused)` |
-| `:active` | Элемент активирован (зажат клик мыши) | - |
-| `:visited` | Ссылка уже была посещена в истории браузера | - |
-| `:link` | Ссылка, которую ещё не посещали | - |
-| `:enabled` | Элемент доступен для редактирования/кликов | `$(el).shouldBe(enabled)` |
-| `:disabled` | Элемент заблокирован (атрибут `disabled`) | `$(el).shouldBe(disabled)` |
-| `:read-only` | Поле только для чтения (`readonly`) | `$(el).shouldHave(attribute("readonly"))` |
-| `:read-write` | Поле доступно для редактирования | - |
-| `:checked` | Радио-кнопка или чекбокс отмечены | `$(el).shouldBe(checked)` |
-| `:indeterminate` | Чекбокс в неопределённом состоянии | `$(el).executeJavaScript("return this.indeterminate")` |
-| `:required` | Поле обязательно для заполнения (`required`) | `$(el).shouldHave(attribute("required"))` |
-| `:optional` | Поле необязательное (нет `required`) | - |
-| `:valid` | Значение прошло HTML5-валидацию | `$(el).is(":valid")` |
-| `:invalid` | Значение НЕ прошло HTML5-валидацию | `$(el).is(":invalid")` |
-| `:in-range` | Число в `input[type=number]` внутри min/max | - |
-| `:out-of-range` | Число вне диапазона min/max | - |
-| `:placeholder-shown` | Плейсхолдер виден (поле пустое) | - |
-| `:empty` | Элемент не содержит текста и дочерних узлов | `$(el).shouldBe(empty)` |
-| `:not(selector)` | Логическое НЕ (исключение) | `$(el).is(":not(.class)")` |
-| `:has(selector)` | Содержит внутри указанный элемент | `$(el).find(selector).exists()` |
-| `:first-child` | Первый дочерний элемент родителя | - |
-| `:last-child` | Последний дочерний элемент родителя | - |
-| `:nth-child(n)` | Элемент на позиции n (1-based) | - |
-| `:nth-of-type(n)` | n-ный элемент своего типа | - |
+| Псевдокласс CSS      | Когда срабатывает                            | Проверка в Selenide                                    |
+|:---------------------|----------------------------------------------|--------------------------------------------------------|
+| `:hover`             | Курсор мыши наведён на элемент               | `hover()` (эмуляция)                                   |
+| `:focus`             | Элемент в фокусе (готов принимать ввод)      | `$(el).shouldBe(focused)`                              |
+| `:active`            | Элемент активирован (зажат клик мыши)        | -                                                      |
+| `:visited`           | Ссылка уже была посещена в истории браузера  | -                                                      |
+| `:link`              | Ссылка, которую ещё не посещали              | -                                                      |
+| `:enabled`           | Элемент доступен для редактирования/кликов   | `$(el).shouldBe(enabled)`                              |
+| `:disabled`          | Элемент заблокирован (атрибут `disabled`)    | `$(el).shouldBe(disabled)`                             |
+| `:read-only`         | Поле только для чтения (`readonly`)          | `$(el).shouldHave(attribute("readonly"))`              |
+| `:read-write`        | Поле доступно для редактирования             | -                                                      |
+| `:checked`           | Радио-кнопка или чекбокс отмечены            | `$(el).shouldBe(checked)`                              |
+| `:indeterminate`     | Чекбокс в неопределённом состоянии           | `$(el).executeJavaScript("return this.indeterminate")` |
+| `:required`          | Поле обязательно для заполнения (`required`) | `$(el).shouldHave(attribute("required"))`              |
+| `:optional`          | Поле необязательное (нет `required`)         | -                                                      |
+| `:valid`             | Значение прошло HTML5-валидацию              | `$(el).is(":valid")`                                   |
+| `:invalid`           | Значение НЕ прошло HTML5-валидацию           | `$(el).is(":invalid")`                                 |
+| `:in-range`          | Число в `input[type=number]` внутри min/max  | -                                                      |
+| `:out-of-range`      | Число вне диапазона min/max                  | -                                                      |
+| `:placeholder-shown` | Плейсхолдер виден (поле пустое)              | -                                                      |
+| `:empty`             | Элемент не содержит текста и дочерних узлов  | `$(el).shouldBe(empty)`                                |
+| `:not(selector)`     | Логическое НЕ (исключение)                   | `$(el).is(":not(.class)")`                             |
+| `:has(selector)`     | Содержит внутри указанный элемент            | `$(el).find(selector).exists()`                        |
+| `:first-child`       | Первый дочерний элемент родителя             | -                                                      |
+| `:last-child`        | Последний дочерний элемент родителя          | -                                                      |
+| `:nth-child(n)`      | Элемент на позиции n (1-based)               | -                                                      |
+| `:nth-of-type(n)`    | n-ный элемент своего типа                    | -                                                      |
