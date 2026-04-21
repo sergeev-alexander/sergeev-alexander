@@ -706,6 +706,8 @@ $(".status").shouldBe(Condition.or("успех или предупреждени
                       text("Warning")));
 ```
 
+---
+
 ## Таймауты: глобальные и точечные
 
 - Глобальный таймаут задаётся через `Configuration.timeout` (по умолчанию 4000 мс)
@@ -728,6 +730,8 @@ $(".heavy-component").withTimeout(Duration.ofSeconds(30)).should(appear);
 $("#fast-btn").click();
 $("#slow-result").withTimeout(Duration.ofSeconds(15)).shouldHave(text("Готово"));
 ```
+
+---
 
 ## Кастомные условия
 
@@ -783,6 +787,8 @@ $("#api-response").should(new ContainsJsonCondition());
 >
 > Это два разных пути создания кастомного условия.
 
+---
+
 ## Работа с коллекциями и динамическими списками
 
 - `$$()` возвращает `ElementsCollection`, поддерживающий ленивую инициализацию
@@ -818,6 +824,7 @@ $$(".paginated-item").shouldHave(size(10));
 $("button.load-more").click();
 $$(".paginated-item").shouldHave(size(20));
 ```
+---
 
 ## Распространённые ошибки и способы их предотвращения
 
@@ -825,6 +832,8 @@ $$(".paginated-item").shouldHave(size(20));
 - `StaleElementReferenceException` при кешировании коллекции и последующем изменении DOM
 - Несоответствие `text()` и `exactText()` при наличии скрытых элементов или пробелов
 - Игнорирование `pollingInterval`, приводящее к избыточным запросам к DOM
+
+---
 
 ## Best Practices
 
@@ -838,6 +847,8 @@ $$(".paginated-item").shouldHave(size(20));
 - Не используйте `Thread.sleep()` или ручные `WebDriverWait` внутри проверок — это нарушает философию автоматических ожиданий
 - Не проверяйте коллекции на `size(0)` для ожидания исчезновения — используйте `shouldBe(empty)` или `shouldHave(size(0))` с явным ожиданием
 - Не смешивайте проверки `text()` и `exactText()` без учёта скрытых дочерних элементов и переносов строк
+
+---
 
 # 4. Формы, контексты и браузерные данные
 
@@ -867,6 +878,8 @@ formData.forEach((key, value) -> $(String.format("[name='%s']", key)).setValue(v
 $("form").submit();
 ```
 
+---
+
 ## Работа с окнами и вкладками
 
 - **Переключение по индексу/хендлу** — `switchTo().window(index)` или `switchTo().window(handle)`
@@ -886,6 +899,8 @@ closeWindow();
 switchTo().window(originalWindow);
 $(".main-container").should(appear);
 ```
+
+---
 
 ## Работа с iframe
 
@@ -908,6 +923,8 @@ switchTo().defaultContent(); // выход из любого iframe обратн
 $(".header").should(appear);
 ```
 
+---
+
 ## Выполнение JavaScript и эмуляция событий
 
 - **Произвольный код** — `Selenide.executeJavaScript(String, Object...)`
@@ -929,6 +946,8 @@ Selenide.executeJavaScript("arguments[0].click()", $(".hidden-overlay"));
 String js = "const event = new Event('input', { bubbles: true }); arguments[0].dispatchEvent(event);";
 Selenide.executeJavaScript(js, $("#react-input"));
 ```
+
+---
 
 ## Работа с модальными окнами (Alert/Confirm/Prompt)
 
@@ -956,6 +975,8 @@ alert().accept();
 > 
 > Selenide будет опрашивать драйвер на наличие алерта с интервалом `pollingInterval`, пока алерт не появится или не истечёт таймаут.
 
+---
+
 ## Cookies и Web Storage
 
 - **Cookies** — `WebDriverRunner.getWebDriver().manage().getCookies()`, установка/удаление через `addCookie()`/`deleteCookie()`
@@ -974,6 +995,8 @@ Selenide.executeJavaScript("sessionStorage.clear(); localStorage.clear();");
 // Чтение данных из sessionStorage
 String cartData = Selenide.executeJavaScript("return sessionStorage.getItem('cart');");
 ```
+
+---
 
 ## Сценарии использования: обход авторизации и предустановка состояния
 
@@ -1004,6 +1027,8 @@ void cleanupContext() {
     Selenide.closeWebDriver();
 }
 ```
+
+---
 
 ## Best Practices
 
@@ -1053,6 +1078,8 @@ public class LoginPage {
 }
 ```
 
+---
+
 ## Ленивая инициализация и вынос локаторов
 
 - `SelenideElement` не ищет элемент в DOM при объявлении поля — поиск происходит только при вызове метода
@@ -1075,6 +1102,8 @@ public class UserPage {
     }
 }
 ```
+
+---
 
 ## Композиция и вложенные компоненты
 
@@ -1122,6 +1151,8 @@ void navigateViaHeader() {
 }
 ```
 
+---
+
 ## Кастомные условия и обёртки элементов
 
 - Расширение `Condition` для бизнес-специфичных проверок (например, `isValidEmail()`, `isFullyLoaded()`)
@@ -1151,6 +1182,8 @@ public static void waitAndClickWithRetry(SelenideElement element, Duration timeo
 }
 ```
 
+---
+
 ## Глобальные утилиты и переиспользование логики
 
 - **BaseTest / BasePage** — общая инициализация, `@BeforeEach` настройка, автоматические скриншоты
@@ -1176,6 +1209,8 @@ public final class SelenideUtils {
     }
 }
 ```
+
+---
 
 ## Best Practices
 
@@ -1237,6 +1272,8 @@ void fullRegistration() {
 }
 ```
 
+---
+
 ## Динамический контент: анимации, лоадеры, ленивая подгрузка
 
 - **Ожидание исчезновения лоадеров** — использование `waitWhile(visible, timeout)` вместо `Thread.sleep()`
@@ -1256,6 +1293,8 @@ $$(".product-card").shouldHave(sizeGreaterThan(initialSize));
 // Проверка завершения анимации через CSS-свойство
 $(".animated-box").shouldHave(cssValue("opacity", "1")); // cssValue — это Condition в Selenide. Проверяет, что CSS-свойство элемента имеет ожидаемое значение
 ```
+
+---
 
 ## Всплывающие элементы и асинхронные уведомления
 
@@ -1279,6 +1318,8 @@ $("button.delete").click();
 alert().accept();
 $(".success-banner").should(appear);
 ```
+
+---
 
 ## Внешние зависимости: моки, стабы и прокси
 
@@ -1308,6 +1349,8 @@ wireMockServer.stubFor(get(urlEqualTo("/api/config"))
     .withStatus(200)
     .withBody("{\"theme\":\"dark\"}")));
 ```
+
+---
 
 ## Data-driven подход и параметризация
 
@@ -1342,6 +1385,8 @@ Faker faker = new Faker(new Locale("ru"));
 String uniqueEmail = faker.internet().emailAddress();
 String randomName = faker.name().fullName();
 ```
+
+---
 
 ## Best Practices
 
@@ -1392,6 +1437,8 @@ class DebugTest {
 > Когда вы включаете Configuration.savePageSource = true (или используете ScreenShooterExtension, который это подразумевает), при каждом падении теста Selenide делает две вещи:
 > - Скриншот экрана (PNG)
 > - Дамп HTML — сохраняет полный HTML-код текущей страницы (.html файл)
+
+---
 
 ## Видео-запись выполнения теста
 
@@ -1494,6 +1541,8 @@ public class OptimalVideoConfig {
 }
 ```
 
+---
+
 ## Логирование и фильтрация чувствительных данных
 
 - **SLF4J / Logback** — интеграция через `selenide.logback.xml` или `logback-test.xml`
@@ -1517,6 +1566,8 @@ public class OptimalVideoConfig {
     </root>
 </configuration>
 ```
+
+---
 
 ## Интеграция с Allure
 
@@ -1544,6 +1595,8 @@ class AuthTest {
     }
 }
 ```
+
+---
 
 ## Best Practices
 
@@ -2184,6 +2237,102 @@ class MobileEmulationTest {
 - Не кешируйте `WebDriver` инстансы между разными пайплайнами или раннерами — каждый запуск должен быть изолирован
 - Не тестируйте все браузеры на каждом коммите — используйте триггеры по тегам или ночные прогоны для полной матрицы
 - Не игнорируйте `screenResolution` в удалённых запусках — адаптивная вёрстка может ломаться при нестандартных DPI
+
+---
+
+# 10. Оптимизация, поддержка и жизненный цикл проекта
+
+> Стратегии ускорения тестов, обеспечение стабильности в long-run, управление обновлениями фреймворка и построение поддерживаемой инфраструктуры автоматизации.
+
+## Оптимизация таймаутов и ускоренные методы
+
+- `fastSetValue` — установка значения через JS без эмуляции нажатия клавиш (ускоряет ввод в 3-5 раз)
+- `click()` через JS — обход сложных overlay-элементов, которые блокируют нативный клик
+- Точечные таймауты вместо глобальных — использование `withTimeout()` только для "тяжёлых" элементов
+- Отключение автоматических скриншотов в headless-режиме при прогоне smoke-тестов
+- Кэширование статических ресурсов браузера в CI-агентах через Docker volumes или shared cache
+
+```java
+// Глобальная оптимизация для CI
+fastSetValue = true;
+clickViaJs = true; // Если UI стабильный и не требует real-user events
+timeout = 5000;    // Снижение глобального таймаута для быстрого фейла
+
+// Локальное ускорение для стабильных элементов
+$(".stable-input").setValue("fast-data");
+$(".overlay-btn").click(ClickOptions.usingMethod(JS));
+
+// Точечное ожидание только для известного долгого процесса
+$(".complex-chart").withTimeout(ofSeconds(20)).should(appear);
+```
+
+---
+
+## Профилирование и стабильность в long-run
+
+- Выявление flaky-тестов через статистику повторных запусков в CI (Allure flaky report)
+- Анализ длительности шагов: интеграция с JUnit/TestNG listeners для логирования `start`/`end` timestamps
+- Оптимизация запросов к DOM: группировка проверок в одну цепочку `shouldHave(...).and(...)` вместо множественных вызовов
+- Изоляция состояния: полный `closeWebDriver()` или `clearCookies()` между тестовыми классами для предотвращения утечки памяти
+- Long-run стратегии: запуск тестов на 12+ часов в ночном режиме с мониторингом потребления RAM/CPU
+
+```java
+class LongRunOptimizedTest {
+
+    @RegisterExtension
+    static ScreenShooterExtension screenshots = new ScreenShooterExtension().forFailedTestsOnly();
+
+    @Test
+    void optimizedFlow() {
+        // Группировка проверок в один запрос к DOM
+        $(".profile-card").shouldHave(
+            text("Иван Петров"),
+            visible,
+            enabled
+        );
+        // Явная очистка после тяжёлого теста
+        Selenide.closeWebDriver();
+    }
+}
+```
+
+---
+
+## Обновление версий и отслеживание релизов
+
+- Регулярный мониторинг [GitHub Releases](https://github.com/codeborne/selenide/releases) и Changelog
+- Тестирование минорных обновлений на изолированной ветке (`selenide-upgrade`) перед мержем
+- Использование `BOM` или `Dependency Management` для согласования версий `selenide`, `selenium`, `webdrivermanager`
+- Стратегия отката: фиксация рабочей версии в CI-матрице, наличие `rollback`-скриптов в pipeline
+- Проверка обратной совместимости: кастомные `Condition`, `WebDriverProvider`, `Commands` могут требовать рефакторинга
+
+```xml
+<!-- Использование BOM для согласования версий зависимостей Selenide экосистемы -->
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.codeborne</groupId>
+            <artifactId>selenide-bom</artifactId>
+            <version>7.3.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
+<dependencies>
+    <dependency>
+        <groupId>com.codeborne</groupId>
+        <artifactId>selenide</artifactId>
+        <!-- Версия берётся из BOM -->
+    </dependency>
+    <dependency>
+        <groupId>com.codeborne</groupId>
+        <artifactId>selenide-core</artifactId>
+        <!-- Версия берётся из BOM -->
+    </dependency>
+</dependencies>
+```
 
 ---
 
