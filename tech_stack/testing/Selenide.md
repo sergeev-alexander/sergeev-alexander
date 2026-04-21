@@ -1560,6 +1560,184 @@ class AuthTest {
 
 ---
 
+# 8. Интеграция с API, тестовые данные и безопасность
+
+> Комбинирование UI- и API-тестов, управление жизненным циклом тестовых данных, обеспечение безопасности секретов и изоляции окружений.
+
+## Интеграция с API (REST Assured + Selenide)
+
+- **Подготовка данных** — создание пользователей, заказов, конфигураций через API перед открытием UI
+- **Верификация результатов** — проверка состояния БД или ответов API после UI-действий
+- **Общий контекст** — передача токенов, cookies, session-id между REST Assured и Selenide
+- **Сериализация/десериализация** — использование Jackson/Gson для DTO в запросах и ответах
+
+```java
+public class ApiSetupHelper {
+
+    public static String createUserViaApi(String username, String password) {
+        return given()
+            .contentType("application/json")
+            .body(new UserDto(username, password))
+            .when()
+            .post("/api/users")
+            .then()
+            .statusCode(201)
+            .extract()
+            .jsonPath().getString("token");
+    }
+}
+
+// Использование в тесте: API-подготовка + UI-валидация
+@Test
+void createAndVerifyUser() {
+    // 1. Подготовка через API
+    String token = ApiSetupHelper.createUserViaApi("testuser", "pass123");
+
+    // 2. Установка токена в браузер
+    Selenide.open("about:blank");
+    WebDriverRunner.getWebDriver().manage().addCookie(
+        new Cookie("auth_token", token, "/", null, true, false)
+    );
+
+    // 3. UI-сценарий
+    open("/profile");
+    $(".user-name").shouldHave(text("testuser"));
+
+    // 4. Верификация через API после UI-действия
+    $("button.deactivate").click();
+    given()
+        .header("Authorization", "Bearer " + token)
+        .when()
+        .get("/api/users/me/status")
+        .then()
+        .body("status", equalTo("INACTIVE"));
+}
+```
+
+---
+
+## Генерация и управление тестовыми данными
+
+- **Фабрики данных** — использование `DataFaker`, `UUID`, `Instant.now()` для уникальности
+- **Фикстуры** — JSON/XML шаблоны, загружаемые из `resources`
+- **Очистка после теста** — стратегии `DELETE` через API, SQL-транзакции с `ROLLBACK`, или перезапуск контейнеров
+- **Изоляция запусков** — префиксы для тестовых сущностей (`test_`, `qa_`), предотвращение конфликтов в параллельных прогонах
+
+```text
+Ваш проект:
+├── src/
+│   └── test/
+│       └── resources/
+│           └── fixtures/              ← Папка с тестовыми данными
+│               ├── user.json          ← фикстура пользователя
+│               ├── order.xml          ← шаблон заказа
+│               ├── response.json      ← ожидаемый ответ API
+│               └── product-data.json  ← данные для POST запроса
+```
+
+```java
+public class TestDataFactory {
+    
+    private static final Faker faker = new Faker(new Locale("ru"));
+
+    public static String generateUniqueEmail() {
+        return faker.internet().emailAddress() + "+" + UUID.randomUUID().toString().substring(0, 8) + "@test.local";
+    }
+
+    public static String loadFixture(String fileName) throws IOException {
+        // Путь к файлу всегда относительно resources/
+        // "fixtures/user.json" загрузит "src/test/resources/fixtures/user.json"
+        try (InputStream is = TestDataFactory.class.getClassLoader().getResourceAsStream("fixtures/" + fileName)) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+}
+
+@AfterEach
+void cleanupTestData() {
+    // Очистка через API-хелпер
+    String testUserId = getCreatedUserId();
+    if (testUserId != null) {
+        ApiCleanupHelper.deleteUser(testUserId);
+    }
+    // Альтернатива: очистка через JDBC-коннектор в тестовой БД
+    JdbcExecutor.execute("DELETE FROM users WHERE email LIKE '%@test.local'");
+}
+```
+
+---
+
+## Безопасность и защита окружений
+
+- **Хранение секретов** — ENV-переменные, CI/CD Secrets (GitHub/GitLab), HashiCorp Vault, AWS Secrets Manager
+- **Маскирование в логах** — фильтрация паролей, токенов, PII перед записью в `slf4j` или `Allure`
+- **Изоляция данных** — строгое разделение `dev`, `staging`, `prod` через `Configuration.baseUrl` и ENV
+- **Защита от accidental prod-impact** — валидация URL перед запуском, блокировка `prod` в `@BeforeAll`
+
+```bash
+# Передача секретов через переменные окружения в CI
+
+# 1. Устанавливаем переменные окружения
+export SELENIDE_BASE_URL=https://staging.example.com     # ← url тестируемого приложения
+export API_TEST_TOKEN=eyJhbGciOiJIUzI1NiIs...            # ← токен для API-тестов
+
+# 2. Запускаем тесты, передавая параметр для Selenoid
+mvn test -Dselenide.remote=http://grid:4444/wd/hub       # ← url сервера с браузерами
+```
+
+```java
+// Безопасная инициализация с проверкой окружения
+@BeforeAll
+static void preventProdAccidents() {
+    String envUrl = System.getenv("SELENIDE_BASE_URL");
+    if (envUrl != null && envUrl.contains("prod")) {
+        throw new IllegalStateException("Запуск тестов на PRODUCTION запрещён!");
+    }
+    Configuration.baseUrl = System.getProperty("app.url", "https://dev.example.com");
+}
+```
+
+---
+
+## Негативные тесты и валидация
+
+- **Валидация входных данных** — проверка сообщений об ошибках при вводе некорректных форматов
+- **XSS/SQL-инъекции** — эмуляция опасных payloads в полях ввода, проверка экранирования
+- **Обработка ошибок API** — имитация `500`, `403`, `401` ответов и проверка UI-поведения
+- **Граничные значения** — пустые строки, максимальная длина, спецсимволы, emoji
+
+```java
+@ParameterizedTest
+@ValueSource(strings = {"<script>alert(1)</script>", "'; DROP TABLE users; --", "A".repeat(5000)})
+void negativeInputValidation(String maliciousPayload) {
+    open("/comment-form");
+    $("#comment-body").setValue(maliciousPayload);
+    $("button.submit").click();
+
+    // Проверка корректной обработки вредоносного ввода
+    $(".error-banner").should(appear);
+    $("#comment-body").shouldNotHave(attribute("value", maliciousPayload)); // Проверка экранирования/очистки
+}
+```
+
+---
+
+## Best Practices
+
+- Используйте API-фикстуры и `REST Assured` для подготовки данных вместо ручного прохождения UI-сценариев
+- Генерируйте уникальные идентификаторы (`UUID`, `DataFaker`) для каждого теста, чтобы избежать конфликтов при параллельных запусках
+- Всегда очищайте созданные сущности в `@AfterEach` через API или SQL, чтобы не оставлять мусор в БД
+- Храните секреты исключительно в ENV или CI/CD Vault, никогда не коммитьте токены в `selenide.properties` или код
+- Блокируйте запуск тестов на `prod` окружении через проверку `baseUrl` в `@BeforeAll`
+- Эмулируйте ошибки `4xx/5xx` через WireMock или моки для проверки устойчивости UI к сбоям бэкенда
+- Не используйте реальные данные клиентов или продакшн-пароли в тестах
+- Не полагайтесь на порядок выполнения тестов для передачи данных между ними
+- Не оставляйте тяжёлые объекты (WebDriver, REST Assured Response) в статических полях без очистки
+- Не игнорируйте валидацию URL перед запуском — это главная причина accidental prod-impact
+- Не тестируйте XSS/SQL-инъекции на боевых базах данных — используйте изолированные контейнеры или мок-сервисы
+
+---
+
 # 11. Псевдоклассы CSS
 
 | Псевдокласс CSS      | Когда срабатывает                            | Проверка в Selenide                                    |
