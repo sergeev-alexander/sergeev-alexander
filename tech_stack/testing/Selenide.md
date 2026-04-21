@@ -1358,6 +1358,208 @@ String randomName = faker.name().fullName();
 
 ---
 
+# 7. Отладка, диагностика и отчётность
+
+> Автоматическая фиксация состояния тестов, интеграция с Allure, логирование, анализ падений и инструменты для дистанционной отладки в CI/CD.
+
+## Автоматические скриншоты и HTML-дампы
+
+- **Авто-скриншоты** — встраиваются через `ScreenShooterExtension` или `Configuration.screenshots = true`
+- **Сохранение исходного кода страницы** — `Configuration.savePageSource = true` для постмортем-анализа DOM
+- **Кастомные скриншоты** — вызов `SelenideElement.screenshot()` или `Selenide.webdriver().getScreenshotAs()` в конкретных шагах
+- **Папка отчётов** — настраивается через `Configuration.reportsFolder` (по умолчанию `build/reports/tests`)
+
+```java
+class DebugTest {
+
+    @RegisterExtension
+    static ScreenShooterExtension screenshots = new ScreenShooterExtension()
+            .to("build/test-reports/screenshots")
+            .forFailedTestsOnly(); // или .forFailedTestsOnly(false) для всех тестов
+
+    @Test
+    void captureCustomState() {
+        open("/dashboard");
+        // Явное создание скриншота конкретного элемента
+        $(".critical-section").screenshot();
+        // Проверка с автоматическим дампом HTML при падении
+        $(".dynamic-widget").should(appear);
+        // Если проверка (should(appear)) не проходит — Selenide автоматически сохраняет исходный код HTML страницы в файл в тот момент, когда тест падает
+    }
+}
+```
+
+> Когда вы включаете Configuration.savePageSource = true (или используете ScreenShooterExtension, который это подразумевает), при каждом падении теста Selenide делает две вещи:
+> - Скриншот экрана (PNG)
+> - Дамп HTML — сохраняет полный HTML-код текущей страницы (.html файл)
+
+## Видео-запись выполнения теста
+
+- **Selenoid / Ggr** — нативная поддержка видео через `enableVideo: true` в capabilities
+- **Локальная запись** — использование `org.testcontainers` или сторонних утилит (FFmpeg + VNC)
+- **Интеграция с CI** — сохранение `.mp4` артефактов и привязка к Allure-отчётам
+- **Управление размером** — ограничение качества и длительности для экономии места в артефактах
+
+```properties
+# selenide.properties или system properties для Selenoid
+selenoid.enabled=true
+selenoid.video.enabled=true
+selenoid.video.frameRate=24
+selenoid.video.quality=medium
+```
+
+```bash
+# Пример docker-compose для Selenoid с видео
+version: "3"
+services:
+  selenoid:
+    image: aerokube/selenoid:latest
+    ports: ["4444:4444"]
+    volumes:
+      - ./selenoid/config:/etc/selenoid
+      - ./selenoid/video:/opt/selenoid/video
+    environment:
+      - OVERRIDES={"video":{"enabled": true, "quality": "medium"}}
+```
+
+> В Java-коде видео не нужно явно включать для каждого теста — оно записывается автоматически для всех тестов после того, 
+> как вы один раз настроили конфигурацию. Но есть важные нюансы.
+
+### Включение видео в Java-коде
+
+Способ 1: Через capabilities (для Selenoid):
+
+```java
+public class OptimalVideoConfig {
+    
+    @BeforeAll
+    static void optimalSetup() {
+        DesiredCapabilities caps = new DesiredCapabilities();
+        
+        // 1. Включаем видео
+        caps.setCapability("enableVideo", true);
+        
+        // 2. Ограничиваем качество для экономии места
+        caps.setCapability("videoQuality", "medium"); // вместо "high"
+        caps.setCapability("videoFrameRate", 15);     // вместо 24
+        
+        // 3. Записываем только падающие тесты
+        caps.setCapability("videoSaveMode", "failed");
+        
+        // 4. Лимит размера видео (в МБ)
+        caps.setCapability("videoSizeLimit", 100);
+
+        Configuration.browserCapabilities = caps;
+        /*
+        Поскольку Configuration.browserCapabilities — это статическое поле, оно является единым для всех тестов, выполняющихся в рамках одного Java-процесса. 
+        Если вы измените его в одном тесте, эти изменения затронут все последующие тесты
+         */
+    }
+}
+```
+
+### Локальная конфигурация в Selenide 7.5.0+
+
+> Начиная с Selenide 7.5.0 появилась возможность задавать конфигурацию (включая capabilities) локально для одного конкретного теста.
+> 
+> Вы можете передать объект SelenideConfig напрямую в метод `open()`. 
+> 
+> В этом случае настройки не будут влиять на глобальный Configuration
+
+```java
+public class OptimalVideoConfig {
+
+    @Test
+    void testWithLocalVideoConfig() {
+        // 1. Создаем локальный объект конфигурации
+        SelenideConfig config = new SelenideConfig();
+        
+        // 2. Создаем и настраиваем capabilities
+        DesiredCapabilities caps = new DesiredCapabilities();
+        caps.setCapability("enableVideo", true);
+        caps.setCapability("videoQuality", "medium");
+        caps.setCapability("videoFrameRate", 15);
+        caps.setCapability("videoSaveMode", "failed");
+        caps.setCapability("videoSizeLimit", 100);
+        
+        // 3. Применяем capabilities к нашей локальной конфигурации
+        config.browserCapabilities(caps);
+        
+        // 4. Открываем браузер с этой конфигурацией
+        // Глобальный Configuration при этом НЕ меняется
+        open("https://example.com/dashboard", config);
+        
+        // ... ваши тестовые шаги
+    }
+}
+```
+
+## Логирование и фильтрация чувствительных данных
+
+- **SLF4J / Logback** — интеграция через `selenide.logback.xml` или `logback-test.xml`
+- **Уровни логирования** — `DEBUG` для трассировки действий, `INFO` для шагов, `WARN/ERROR` для падений
+- **Маскирование данных** — фильтрация паролей, токенов, PII через кастомные аппендеры или `SelenideCommandListener`
+- **Логирование шагов** — использование `SelenideLogger.begin()` и `.commit()` для ручного трекинга
+
+```xml
+<!-- logback-test.xml -->
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.codeborne.selenide" level="DEBUG"/>
+    <logger name="com.codeborne.selenide.impl" level="INFO"/>
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
+```
+
+## Интеграция с Allure
+
+- **Аннотации** — `@Story`, `@Feature`, `@Severity`, `@Description` для группировки и приоритизации
+- **Allure Steps** — `@Step` для методов Page Object и `Allure.step()` для динамических шагов
+- **Вложения** — скриншоты, логи, JSON-ответы через `Allure.addAttachment()`
+- **Метаданные и теги** — `allure.label.epic`, `allure.parameter` для фильтрации в отчётах
+
+```java
+@Feature("Авторизация")
+@Story("Вход в систему")
+@Severity(SeverityLevel.CRITICAL)
+class AuthTest {
+
+    @Test
+    @Description("Проверка успешного входа с валидными данными")
+    void successfulLogin() {
+        Allure.step("Открытие страницы логина", () -> Selenide.open("/login"));
+        Allure.step("Ввод учётных данных", () -> {
+            $("#user").setValue("admin");
+            $("#pass").setValue("secret");
+        });
+        Allure.step("Отправка формы", () -> $("button.submit").click());
+        Allure.step("Проверка перехода в дашборд", () -> $(".dashboard").should(appear));
+    }
+}
+```
+
+## Best Practices
+
+- Включайте `savePageSource = true` и автоматические скриншоты только для падающих тестов в CI, чтобы не раздувать артефакты
+- Используйте `Allure.step()` для логирования бизнес-действий, а не для обёртывания каждого `$().click()` — отчёт должен быть читаемым
+- Маскируйте пароли и токены в логах через кастомный `SelenideCommandListener` или фильтрацию на уровне Logback
+- Для удалённых запусков (Selenoid/Grid) обязательно сохраняйте видео и VNC-запись, привязывая их к Allure через `addAttachment`
+- При анализе падений сначала смотрите HTML-дамп страницы, затем скриншот, и только потом стектрейс — это ускоряет локализацию причины
+- Не используйте `Thread.currentThread().sleep()` в отладке — применяйте `Configuration.timeout` или `Debugger.pause()`
+- Не включайте `DEBUG` логирование Selenide в продакшн-CI без ротации файлов — это быстро заполняет диск
+- Не сохраняйте скриншоты всех тестов в репозиторий или базовую ветку — используйте временное хранилище с TTL
+- Не пытайтесь отлаживать тесты в headless-режиме через UI-инспектор браузера без VNC или DevTools-проброса
+- Не оставляйте `Allure.step()` с пустыми или неинформативными названиями — это снижает ценность отчёта для аналитиков и разработчиков
+
+---
+
 # 11. Псевдоклассы CSS
 
 | Псевдокласс CSS      | Когда срабатывает                            | Проверка в Selenide                                    |
