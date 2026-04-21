@@ -1198,6 +1198,166 @@ public final class SelenideUtils {
 
 ---
 
+# 6. Расширенные сценарии и паттерны автоматизации
+
+> Паттерны обработки сложных UI-сценариев: многошаговые формы, динамический контент, работа с внешними зависимостями и data-driven тестирование.
+
+## Многошаговые формы и управление состоянием
+
+- **Сохранение промежуточного состояния** — использование Page Object с методами-цепочками, возвращающими `this` или следующую страницу
+- **Валидация на каждом шаге** — инкапсуляция проверок в методы страницы, а не в тестовый класс
+- **Навигация назад/вперед** — реализация методов `goBack()`, `cancel()` с восстановлением данных формы
+- **Изоляция шагов** — передача данных между шагами через контекст-объекты, а не через глобальные переменные
+
+```java
+public class RegistrationFlow {
+
+    public RegistrationFlow fillStep1(String email, String password) {
+        $("#step1-email").setValue(email);
+        $("#step1-pass").setValue(password);
+        $("button.next").click();
+        return this; // Возврат текущего состояния для цепочки
+    }
+
+    public ProfilePage completeStep2(String name, String phone) {
+        $("#step2-name").setValue(name);
+        $("#step2-phone").setValue(phone);
+        $("button.submit").click();
+        return new ProfilePage(); // Завершение и переход
+    }
+}
+
+// Использование в тесте
+@Test
+void fullRegistration() {
+    new RegistrationFlow()
+        .fillStep1("user@mail.com", "Secure123!")
+        .completeStep2("Иван", "+79001234567")
+        .shouldHaveHeader("Добро пожаловать");
+}
+```
+
+## Динамический контент: анимации, лоадеры, ленивая подгрузка
+
+- **Ожидание исчезновения лоадеров** — использование `waitWhile(visible, timeout)` вместо `Thread.sleep()`
+- **Стабилизация после анимаций** — Selenide автоматически повторяет запросы, но для сложных CSS-анимаций может потребоваться явная проверка `display: none` или `opacity`
+- **Ленивая подгрузка (Infinite Scroll)** — скролл до появления элементов, повторный запрос `$$()` после каждого рендера
+- **Отслеживание сетевых запросов** — проверка завершения AJAX через ожидание специфичного DOM-состояния или использование прокси
+
+```java
+// Ожидание исчезновения индикатора загрузки
+$(".loader-overlay").waitWhile(visible, Duration.ofSeconds(10)); // visible — экземпляр Condition, проверяющий, что элемент отображается на странице (не display: none, не visibility: hidden, имеет размеры)
+
+// Бесконечная прокрутка с проверкой подгрузки
+int initialSize = $$(".product-card").size();
+Selenide.executeJavaScript("window.scrollTo(0, document.body.scrollHeight)");
+$$(".product-card").shouldHave(sizeGreaterThan(initialSize));
+
+// Проверка завершения анимации через CSS-свойство
+$(".animated-box").shouldHave(cssValue("opacity", "1")); // cssValue — это Condition в Selenide. Проверяет, что CSS-свойство элемента имеет ожидаемое значение
+```
+
+## Всплывающие элементы и асинхронные уведомления
+
+- **Тултипы и поп-оверы** — использование `hover()` с последующим `should(appear)`
+- **Toast-уведомления** — проверка появления и автоматического скрытия через `waitWhile`
+- **Системные диалоги** — работа с `alert()`, `confirm()`, `prompt()` через встроенные методы Selenide
+- **Ожидание динамических модальных окон** — поиск по `data-` атрибутам или роли, проверка `isDisplayed()` перед взаимодействием
+
+```java
+// Взаимодействие с тултипом
+$(".info-icon").hover();
+$(".tooltip-content").shouldBe(visible);
+
+// Проверка toast-уведомления с таймаутом на появление и скрытие
+Selenide.executeJavaScript("triggerToast()"); // Эмуляция вызова
+$(".toast-message").withTimeout(ofSeconds(5)).should(appear);
+$(".toast-message").waitWhile(visible, ofSeconds(3)); // Ожидание авто-скрытия
+
+// Обработка системного диалога
+$("button.delete").click();
+alert().accept();
+$(".success-banner").should(appear);
+```
+
+## Внешние зависимости: моки, стабы и прокси
+
+- **Proxy-перехват запросов** — встроенный `Selenide proxy` или интеграция с BrowserMob Proxy / WireMock
+- **Мок API-ответов** — возврат фиктивных данных без вызова реального бэкенда
+- **Стабилизация тестов** — изоляция UI-логики от нестабильных внешних сервисов
+- **Верификация запросов** — проверка URL, заголовков и тела отправленных запросов
+
+```java
+// Настройка Selenide Proxy (встроенный)
+Configuration.proxyEnabled = true;
+Configuration.proxyHost = "localhost";
+
+// Использование BrowserMob Proxy для моков
+BrowserMobProxy proxy = new BrowserMobProxyServer();
+proxy.start(0);
+proxy.addResponseFilter((response, contents, messageInfo) -> {
+    if (messageInfo.getOriginalUrl().contains("/api/users")) {
+        contents.setText("[]"); // Возврат пустого списка
+        response.setStatus(HttpResponseStatus.OK);
+    }
+});
+
+// Интеграция с WireMock
+wireMockServer.stubFor(get(urlEqualTo("/api/config"))
+    .willReturn(aResponse()
+    .withStatus(200)
+    .withBody("{\"theme\":\"dark\"}")));
+```
+
+## Data-driven подход и параметризация
+
+- **Источники данных** — CSV, JSON, YAML, БД, внешние API-фикстуры
+- **JUnit 5 / TestNG** — `@ParameterizedTest`, `@CsvSource`, `@DataProvider`, `@ValueSource`
+- **Генерация уникальных данных** — использование библиотек вроде `DataFaker`, `UUID`, временных меток
+- **Изоляция данных** — очистка или использование транзакций для предотвращения конфликтов между параллельными запусками
+
+```java
+// JUnit 5 ParameterizedTest
+@ParameterizedTest(name = "Login attempt: {0}")
+@CsvSource({
+    "valid_user,  correct_pass, true",
+    "invalid_user, wrong_pass, false",
+    "admin, admin_123, true"
+})
+void dataDrivenLogin(String user, String pass, boolean expectedResult) {
+    open("/login");
+    $("#username").setValue(user);
+    $("#password").setValue(pass);
+    $("button[type=submit]").click();
+
+    if (expectedResult) {
+        $(".dashboard").should(appear);
+    } else {
+        $(".error-message").should(appear);
+    }
+}
+
+// Генерация данных через DataFaker
+Faker faker = new Faker(new Locale("ru"));
+String uniqueEmail = faker.internet().emailAddress();
+String randomName = faker.name().fullName();
+```
+
+## Best Practices
+
+- Используйте цепочки методов в Page Object для многошаговых сценариев, возвращая `this` или следующую страницу
+- Для ожидания лоадеров применяйте `waitWhile(visible)` вместо `Thread.sleep()` — это ускоряет тесты и делает их стабильнее
+- При работе с `Infinite Scroll` или ленивой подгрузкой всегда повторяйте запрос `$$()` после скролла, так как DOM меняется
+- Изолируйте UI-тесты от нестабильных внешних API через моки (WireMock) или встроенный прокси Selenide
+- Параметризуйте тесты через `@CsvSource` / `@DataProvider`, вынося данные в отдельные файлы для читаемости
+- Генерируйте уникальные данные (`UUID`, `DataFaker`) для каждого запуска, чтобы избежать конфликтов в БД или кэше
+- Не используйте `Thread.sleep()` для ожидания анимаций или сетевых запросов — это антипаттерн, ломающий стабильность
+- Не передавайте состояние между шагами через `static` поля или глобальные переменные — это нарушает изоляцию тестов
+- Не кешируйте элементы всплывающих окон в полях Page Object — они создаются динамически и часто меняются в DOM
+- Не смешивайте мок-данные с реальными вызовами API в одном тесте без явного разделения контекста — это усложняет отладку
+
+---
+
 # 11. Псевдоклассы CSS
 
 | Псевдокласс CSS      | Когда срабатывает                            | Проверка в Selenide                                    |
