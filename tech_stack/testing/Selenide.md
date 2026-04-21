@@ -1738,6 +1738,455 @@ void negativeInputValidation(String maliciousPayload) {
 
 ---
 
+# 9. Инфраструктура, CI/CD и кросс-браузерное тестирование
+
+> Масштабирование UI-тестов: параллельный запуск, интеграция с Docker/Selenoid/Grid, настройка CI/CD пайплайнов и кросс-браузерное тестирование.
+
+## Параллельное выполнение и многопоточность
+
+- **JUnit 5** — настройка через `junit-platform.properties` или `@Execution(ExecutionMode.CONCURRENT)`
+- **TestNG** — атрибут `parallel="methods"/"classes"/"tests"` в `testng.xml`
+- **Изоляция потоков** — Selenide автоматически привязывает `WebDriver` к текущему потоку (`ThreadLocal<WebDriver>`)
+- **Ограничения** — статические `Configuration` параметры применяются глобально.
+
+  Для разных настроек браузера в одном запуске используйте `WebDriverRunner.setWebDriver()` или `@BeforeEach` с кастомной инициализацией
+
+Пример для JUnit:
+
+> JUnit создаёт отдельный экземпляр тестового класса для каждого тестового метода, 
+> поэтому Selenide может автоматически управлять драйверами через ThreadLocal — вам достаточно просто добавить `@Execution(CONCURRENT)`.
+
+```java
+@Execution(ExecutionMode.CONCURRENT)  // JUnit запускает методы параллельно
+class ParallelTests {
+
+  @Test
+  void testA() {
+    open("/page1");      // ← Поток 1: свой браузер
+    $("button").click(); // ← Поток 1: работает с СВОИМ браузером
+  }
+
+  @Test
+  void testB() {
+    open("/page2");              // ← Поток 2: свой браузер (другой экземпляр)
+    $("input").setValue("test"); // ← Поток 2: работает с СВОИМ браузером
+  }
+}
+```
+
+Пример для TestNG (где в testng.xml настроен параллелизм на уровне методов (`parallel="methods"`):
+
+> TestNG по умолчанию создаёт один экземпляр класса для всех методов, 
+> поэтому при `parallel="methods"` вы обязаны вручную создавать драйвер и вызывать `WebDriverRunner.setWebDriver(driver)` в каждом тесте, 
+> иначе потоки будут использовать один и тот же браузер.
+
+```java
+public class ParallelTests {
+
+    @Test
+    void testChrome() {
+        // Создаём и устанавливаем драйвер прямо в методе
+        WebDriver driver = new ChromeDriver();
+        WebDriverRunner.setWebDriver(driver);
+        
+        open("/login");
+        $(".auth-form").shouldBe(visible);
+    }
+
+    @Test
+    void testFirefox() {
+        // Создаём и устанавливаем драйвер прямо в методе
+        WebDriver driver = new FirefoxDriver();
+        WebDriverRunner.setWebDriver(driver);
+        
+        open("/register");
+        $(".signup-form").shouldBe(visible);
+    }
+
+    @AfterMethod
+    void tearDown() {
+        // Закрываем драйвер после каждого теста
+        WebDriverRunner.closeWebDriver();
+    }
+}
+```
+
+Важные нюансы:
+
+- Статические параметры Configuration
+  
+  Хотя драйверы изолированы, Configuration глобален
+
+- Общие ресурсы (база данных, API)
+  
+  ThreadLocal защищает только WebDriver, но не ваши данные
+
+---
+
+## Запуск в Docker / Selenoid / Selenium Grid
+
+- **Удалённый WebDriver** — настройка через `Configuration.remote = "http://selenoid:4444/wd/hub"`
+- **Selenoid capabilities** — передача `browserVersion`, `enableVNC`, `enableVideo`, `screenResolution`
+- **Selenium Grid 4** — маршрутизация запросов через `http://<host>:4444`, поддержка Docker-образов
+- **Изоляция контейнеров** — каждый тест получает чистый экземпляр браузера с временным профилем
+
+```yaml
+# docker-compose.yml для Selenoid
+version: "3"
+services:
+  selenoid:
+    image: aerokube/selenoid:latest
+    ports: ["4444:4444"]
+    volumes:
+      - ./selenoid/config:/etc/selenoid
+      - ./selenoid/video:/opt/selenoid/video
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: ["-conf", "/etc/selenoid/browsers.json", "-video-output-dir", "/opt/selenoid/video"]
+```
+
+```bash
+# Запуск пайплайна с подключением к Selenoid
+docker-compose up -d selenoid
+mvn test -Dselenide.remote=http://localhost:4444/wd/hub \
+         -Dselenide.browser=chrome \
+         -Dselenide.headless=false
+```
+
+---
+
+## Параметры браузеров в удалённом режиме
+
+- **Версия браузера** — `browserVersion: "115.0"`, `browserName: "chrome"`
+- **Разрешение экрана** — `screenResolution: "1920x1080x24"`
+- **Дополнительные флаги** — `args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]`
+- **Кеширование и профили** — передача `--user-data-dir` для сохранения состояния между сессиями (не рекомендуется для изоляции)
+
+Пример 1: Базовая настройка Selenoid с capabilities:
+
+```java
+public class SelenoidSetup {
+    
+    @BeforeAll
+    static void setupSelenoid() {
+        // Адрес Selenoid
+        Configuration.remote = "http://localhost:4444/wd/hub";
+        
+        // Браузер и его версия
+        Configuration.browser = "chrome";
+        Configuration.browserVersion = "100.0";
+        
+        // Отключаем headless (Selenoid не поддерживает headless режим)
+        Configuration.headless = false;
+        
+        // Настройки Selenoid через capabilities
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        capabilities.setCapability("enableVNC", true);                  // Включить VNC для просмотра
+        capabilities.setCapability("enableVideo", true);                // Включить видео запись
+        capabilities.setCapability("screenResolution", "1920x1080x24"); // Разрешение экрана
+        capabilities.setCapability("enableLog", true);                  // Логи браузера
+        capabilities.setCapability("timeZone", "Europe/Moscow");        // Часовой пояс
+        
+        // Применяем capabilities
+        Configuration.browserCapabilities = capabilities;
+    }
+}
+```
+
+Пример 2: Глобальная конфигурация через static-блок:
+
+```java
+public class RemoteConfig {
+    static {
+        Configuration.remote = "http://selenoid:4444/wd/hub";
+        Configuration.browser = "chrome";
+        Configuration.browserVersion = "115.0";
+
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        capabilities.setCapability("enableVNC", true);
+        capabilities.setCapability("enableVideo", true);
+        capabilities.setCapability("screenResolution", "1920x1080x24");
+        capabilities.setCapability("args", List.of("--no-sandbox", "--disable-dev-shm-usage"));
+        Configuration.browserCapabilities = capabilities;
+    }
+}
+```
+
+---
+
+## Интеграция с CI/CD и параметризация сборок
+
+- **GitHub Actions / GitLab CI / Jenkins** — объявление stages: `test`, `report`, `notify`
+- **Матричные сборки** — параллельный прогон на разных ОС/браузерах через `strategy.matrix`
+- **Передача параметров** — `env` переменные или CLI флаги `-Dapp.env=staging -Dselenide.browser=chrome`
+- **Публикация артефактов** — отчёты Allure, скриншоты, видео-записи сохраняются в `artifacts`
+
+Для GitHub Actions:
+
+```yaml
+# .github/workflows/ui-tests.yml
+# Этот файл определяет CI/CD пайплайн для GitHub Actions
+
+# Название workflow (отображается в UI GitHub)
+name: UI Tests
+
+# Триггеры запуска: при push в любую ветку и при создании pull request
+on: [push, pull_request]
+
+# Описание одной или нескольких джоб
+jobs:
+  # Название джобы
+  e2e:
+    # Стратегия матричного запуска — создаёт комбинации параметров
+    strategy:
+      matrix:
+        # Список браузеров для тестирования
+        browser: [chrome, firefox]
+        # Список операционных систем (раннеров GitHub)
+        os: [ubuntu-latest, macos-latest]
+        # Будет создано 4 параллельные джобы:
+        # 1. chrome + ubuntu-latest
+        # 2. chrome + macos-latest  
+        # 3. firefox + ubuntu-latest
+        # 4. firefox + macos-latest
+
+    # Для каждой комбинации используется своя ОС
+    runs-on: ${{ matrix.os }}
+
+    # Шаги выполнения джобы
+    steps:
+      # 1. Клонируем репозиторий с кодом тестов
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Устанавливаем JDK (Java Development Kit)
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'           # Версия Java
+          distribution: 'temurin'      # Дистрибутив (Eclipse Temurin)
+
+      # 3. Запуск тестов с параметрами из матрицы
+      - name: Run Tests
+        # Переменные окружения, доступные в процессе тестирования
+        env:
+          SELENIDE_BROWSER: ${{ matrix.browser }}   # Какой браузер использовать
+          APP_ENV: staging                           # Окружение для тестов
+        # Команда запуска Maven (verify выполняет интеграционные тесты)
+        run: mvn verify -DskipFrontend=true
+
+      # 4. Сохраняем отчёты Allure как артефакты сборки
+      - name: Upload Allure Report
+        # always() — загружаем даже если тесты упали
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Уникальное имя артефакта (включает браузер для различия)
+          name: allure-report-${{ matrix.browser }}
+          # Путь к результатам Allure в проекте
+          path: target/allure-results/
+```
+
+Аналог для Jenkins:
+
+```groovy
+pipeline {
+    agent any
+    
+    parameters {
+        choice(name: 'BROWSER', choices: ['chrome', 'firefox'], description: 'Browser for tests')
+        choice(name: 'ENV', choices: ['dev', 'staging', 'prod'], description: 'Test environment')
+    }
+    
+    stages {
+        stage('Test') {
+            steps {
+                sh """
+                    mvn test \
+                        -Dselenide.browser=${params.BROWSER} \
+                        -Dapp.env=${params.ENV}
+                """
+            }
+        }
+    }
+    
+    post {
+        always {
+            allure includeProperties: false, jdk: '17', results: [[path: 'target/allure-results']]
+        }
+    }
+}
+```
+
+Аналог для GitLab CI:
+
+```yaml
+# .gitlab-ci.yml
+ui-tests:
+  parallel:
+    matrix:
+      - BROWSER: chrome
+      - BROWSER: firefox
+  variables:
+    APP_ENV: staging
+  script:
+    - mvn test -Dselenide.browser=$BROWSER
+  artifacts:
+    when: always
+    paths:
+      - target/allure-results/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+```
+
+```java
+// В коде тестов параметры можно получить так:
+public class TestConfig {
+    
+    @BeforeAll
+    static void loadFromEnv() {
+        // Переменная из CI окружения
+        String browser = System.getenv("SELENIDE_BROWSER");
+        if (browser != null) {
+            Configuration.browser = browser;
+        }
+        
+        String appEnv = System.getenv("APP_ENV");
+        if ("staging".equals(appEnv)) {
+            Configuration.baseUrl = "https://staging.example.com";
+        }
+    }
+}
+```
+
+---
+
+## Кросс-браузерное тестирование и эмуляция
+
+- **Матрица покрытия** — приоритизация браузеров по статистике пользователей (Chrome, Safari, Firefox, Edge)
+- **Headless-режим в CI** — ускорение прогона, экономия ресурсов, отключение `Xvfb`
+- **Эмуляция мобильных устройств** — `--mobile-emulation`, `deviceName` в capabilities, viewport scaling
+- **Выборочный запуск** — тегирование тестов (`@Smoke`, `@CrossBrowser`) и фильтрация в `testng.xml` или `@Tag`
+
+Конфигурация эмуляции мобильного устройства через selenide-mobile.properties:
+
+```properties
+# selenide-mobile.properties
+browser=chrome
+mobileEmulationEnabled=true
+mobileDeviceName=Pixel 5
+screenResolution=1080x1920x24
+headless=true
+```
+
+Настройка эмуляции Android-устройства через DesiredCapabilities:
+
+```java
+public class MobileConfig {
+    static {
+        browser = "chrome";
+        headless = true;
+        DesiredCapabilities caps = new DesiredCapabilities();
+        caps.setCapability("mobileEmulation", Map.of("deviceName", "Pixel 5"));
+        browserCapabilities = caps;
+    }
+}
+```
+
+Тегирование тестов для выборочного кросс-браузерного запуска:
+
+```java
+public class CrossBrowserTest {
+    
+    @Test
+    @Tag("smoke")                    // Дымовые тесты
+    @Tag("cross-browser")            // Требуют кросс-браузерной проверки
+    void loginTest() {
+        open("/login");
+        $("#username").setValue("user");
+        $(".auth-form").shouldBe(visible);
+    }
+    
+    @Test
+    @Tag("regression")               // Только критичные сценарии проверяем на всех браузерах
+    void complexWorkflowTest() {
+        open("/dashboard");
+        $(".report").shouldBe(visible);
+    }
+    
+    @Test
+    @Tag("mobile-only")              // Только для мобильной эмуляции
+    void mobileMenuTest() {
+        open("/menu");
+        $(".hamburger").click();
+        $(".mobile-nav").shouldBe(visible);
+    }
+}
+```
+
+Запуск только определённых тегов через Maven:
+
+```bash
+# Только кросс-браузерные тесты
+mvn test -Dgroups="cross-browser"
+
+# Дымовые тесты + кросс-браузерные
+mvn test -Dgroups="smoke,cross-browser"
+
+# Исключить мобильные тесты
+mvn test -DexcludedGroups="mobile-only"
+```
+
+Эмуляция разных мобильных устройств:
+
+```java
+class MobileEmulationTest {
+    
+    @ParameterizedTest(name = "Тест на {0}")
+    @CsvSource({
+        "Pixel 5, 1080x1920x24",
+        "iPhone 12, 1170x2532x24",
+        "iPad Pro, 1366x1024x24",
+        "Samsung Galaxy S20, 1440x3200x24"
+    })
+    void testMobileResponsive(String deviceName, String resolution) {
+        // Настройка эмуляции
+        DesiredCapabilities caps = new DesiredCapabilities();
+        caps.setCapability("mobileEmulation", Map.of("deviceName", deviceName));
+        caps.setCapability("screenResolution", resolution);
+        
+        Configuration.browserCapabilities = caps;
+        Configuration.browser = "chrome";
+        Configuration.headless = true;
+        
+        // Открываем адаптивный сайт
+        open("/responsive-page");
+        
+        // Проверяем мобильную версию
+        $(".mobile-header").shouldBe(visible);
+        $(".desktop-menu").shouldNotBe(visible);
+    }
+}
+```
+
+---
+
+## Best Practices
+
+- Настройте `ThreadLocal` изоляцию или используйте встроенный `WebDriverRunner` для безопасного параллельного запуска
+- Выносите конфигурацию удалённых браузеров в `browsers.json` (Selenoid) или `capabilities` файл
+- Используйте матричные сборки в CI для кросс-браузерного тестирования, но ограничьте `firefox` и `edge` критическими путями для экономии ресурсов
+- Включайте `headless=true` и `fastSetValue=true`(устанавливает значение через JavaScript одной операцией, а не нажатие каждой клавиши с событиями) в CI-профилях для ускорения прогона
+- Автоматически публикуйте артефакты (Allure, скриншоты, видео) при статусе `always()` или `failure`, чтобы не терять контекст падений
+- Эмулируйте мобильные устройства через `mobileEmulation` capabilities, а не через изменение `User-Agent` вручную
+- Не запускайте UI-тесты без `--no-sandbox` и `--disable-dev-shm-usage`(в Docker-контейнерах размер `/dev/shm` по умолчанию составляет всего 64 МБ; современным браузерам этого часто не хватает, 
+  особенно при работе со сложными страницами) в Docker-контейнерах — это вызовет краш браузера
+- Не используйте `Configuration.remote` локально без отключения прокси и видео-записи — это замедлит отладку
+- Не кешируйте `WebDriver` инстансы между разными пайплайнами или раннерами — каждый запуск должен быть изолирован
+- Не тестируйте все браузеры на каждом коммите — используйте триггеры по тегам или ночные прогоны для полной матрицы
+- Не игнорируйте `screenResolution` в удалённых запусках — адаптивная вёрстка может ломаться при нестандартных DPI
+
+---
+
 # 11. Псевдоклассы CSS
 
 | Псевдокласс CSS      | Когда срабатывает                            | Проверка в Selenide                                    |
