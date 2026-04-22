@@ -474,3 +474,639 @@ public void submitCreateOrderPayload(String jsonPayload) {
   Учитывайте это при настройке `cucumber.plugin`.
 
 ---
+
+# 4. Step Definitions: связь Gherkin с Java-кодом
+
+> Step Definitions — это Java-методы, связывающие описания шагов из Gherkin-файлов с исполняемой бизнес-логикой. 
+> 
+> Они выступают слоем адаптации между человеческим языком требований и технической реализацией тестов, обеспечивая однозначное соответствие спецификации и кода.
+
+---
+
+## Аннотации шагов и их семантика
+
+- `@Given` — настройка начального состояния, подготовка данных или контекста.
+- `@When` — выполнение действия, инициирующего изменение состояния.
+- `@Then` — валидация результата, проверка ожиданий.
+- `@And` / `@But` — логические продолжения предыдущего шага. Технически эквивалентны аннотации, идущей перед ними, но улучшают читаемость спецификации.
+
+```java
+@Given("the user navigates to the login page")
+public void navigateToLoginPage() {
+    authPage.open();
+}
+
+@When("the user enters valid credentials")
+public void enterValidCredentials() {
+    authPage.enterEmail("user@example.com");
+    authPage.enterPassword("securePassword123");
+    authPage.clickSubmit();
+}
+
+@Then("the system redirects the user to the dashboard")
+public void verifyDashboardRedirect() {
+    Assert.assertTrue(dashboardPage.isLoaded(), "Dashboard should be loaded after successful login");
+}
+```
+
+## Cucumber Expressions vs Regular Expressions
+
+- Cucumber Expressions — рекомендуемый подход, более читаемый, поддерживает встроенные типы и кастомные парсеры.
+- Regular Expressions — legacy-подход, гибкий, но сложный в поддержке и отладке. Cucumber Expressions имеют приоритет при совпадении.
+
+| Критерий             | Cucumber Expressions                  | Regular Expressions                        |
+|:---------------------|---------------------------------------|--------------------------------------------|
+| Синтаксис параметров | `{string}`, `{int}`, `{word}`         | `(.*)`, `(\\d+)`, `(\\w+)`                 |
+| Читаемость           | Высокая, близка к естественному языку | Низкая, требует экранирования спецсимволов |
+| Преобразование типов | Автоматическое через встроенные типы  | Ручное парсинг в теле метода               |
+| Приоритет в Cucumber | Выше (обрабатывается первым)          | Ниже (фоллбек при отсутствии совпадений)   |
+
+```gherkin
+Given the user navigates to the checkout page
+When the user enters order amount 1500
+And submits the payment
+Then the system shows confirmation "Success"
+```
+
+```java
+@When("the user enters order amount {int}")
+public void enterOrderAmount(Integer amount) {
+    checkoutPage.setAmount(amount);
+}
+
+@Then("the system shows confirmation {string}")
+public void verifyConfirmationMessage(String expectedMessage) {
+    assertEquals(checkoutPage.getConfirmationText(), expectedMessage);
+}
+```
+
+## Встроенные типы параметров
+
+- `{string}` — строка с кавычками или без, поддерживает экранирование.
+- `{int}` / `{double}` / `{float}` — числовые значения.
+- `{word}` — одно слово без пробелов.
+- `{bigdecimal}` / `{biginteger}` — точные финансовые и большие числовые значения.
+- `{byte}` / `{short}` / `{long}` — примитивные целочисленные типы.
+
+```java
+@Given("the system is configured with timeout {long} ms")
+public void setSystemTimeout(Long timeoutMs) {
+    config.setTimeout(Duration.ofMillis(timeoutMs));
+}
+```
+
+## Кастомные параметры через @ParameterType
+
+- Позволяют преобразовывать строковые значения из шагов в сложные доменные объекты, `Enum` или коллекции.
+- Регистрируются автоматически при сканировании `glue`-пакетов.
+
+> Cucumber требует уникальности имени для каждого `@ParameterType`. 
+>
+> Если есть несколько методов аннотированных `@ParameterType` возвращающих один тип, то, чтобы избежать конфликтов, 
+> нужно либо явно указать имя (`@ParameterType(name = "..."`), либо назвать метод так, как этот параметр будет указан в steps.
+> 
+> Явно задаём name:
+> 
+> ```java
+> // Для {userRole} в steps
+> @ParameterType(value = "Admin|User|Guest", name = "userRole")
+> public UserRole parseUserRole(String role) {
+>     return UserRole.valueOf(role);
+> }
+> ``` 
+> 
+> Выводим name из названия метода:
+> 
+> ```java
+> // Для {userRole} в steps
+> @ParameterType(value = "Admin|User|Guest") // без явного name
+> public UserRole userRole(String role) {    // выводим name из названия метода
+>     return UserRole.valueOf(role);
+> }
+> ```
+
+---
+
+### DataTable (рекомендуемый подход)
+
+- `DataTable` передается как последний параметр метода.
+- `asMap()` — преобразование в `List<Map<String, String>>`.
+- `asLists(Class<T>)` — строгая типизация, маппинг заголовков таблицы на поля класса.
+- Автоматический маппинг в POJO при совпадении имен колонок с полями класса (поддерживает `camelCase` и `snake_case`).
+
+```gherkin
+Scenario: Create order with multiple items
+  
+  # Вертикальная таблица - один объект
+Given delivery address:
+| street  | 123 Main St |
+| city    | Springfield |
+| zip     | 62701       |
+  
+  # Горизонтальная таблица - список объектов
+Given order items:
+| product    | quantity | price |
+| Laptop     | 1        | 999.99|
+| Mouse      | 2        | 29.99 |
+| Keyboard   | 1        | 89.99 |
+
+When place the order
+Then order total is 1149.96
+```
+
+```java
+public class OrderSteps {
+
+    private Address shippingAddress;
+    private List<OrderItem> items = new ArrayList<>();
+
+    @Given("delivery address:")
+    public void setAddress(DataTable dataTable) {
+        Map<String, String> addressData = dataTable.asMap(); // ОДИН Map
+        shippingAddress = new Address(
+                        addressData.get("street"),
+                        addressData.get("city"),
+                        addressData.get("zip")
+        );
+    }
+
+    @Given("order items:")
+    public void setItems(DataTable dataTable) {
+        List<Map<String, String>> itemsData = dataTable.asMaps(); // СПИСОК Map'ов
+
+        for (Map<String, String> row : itemsData) {
+            OrderItem item = new OrderItem(
+                            row.get("product"),
+                            Integer.parseInt(row.get("quantity")),
+                            new BigDecimal(row.get("price"))
+            );
+            items.add(item);
+        }
+    }
+
+    @When("place the order")
+    public void placeOrder() {
+        orderService.createOrder(shippingAddress, items);
+    }
+
+    @Then("order total is {bigdecimal}")
+    public void verifyTotal(BigDecimal expectedTotal) {
+        BigDecimal actualTotal = orderService.getCurrentOrder().getTotal();
+        Assert.assertEquals(expectedTotal, actualTotal);
+    }
+}
+```
+
+### Альтернатива: автоматический маппинг в POJO
+
+Cucumber умеет автоматически маппить горизонтальные таблицы на список объектов:
+
+```gherkin
+  Scenario: Order with snake_case column names
+    
+    Given the following order items:
+      | product_name | item_quantity | unit_price |
+      | Headphones   | 1             | 79.99      |
+      | Webcam       | 1             | 49.99      |
+    
+    When I place the order
+    
+    Then the order should contain 2 items
+    And the total price should be 129.98
+```
+
+```java
+// Класс должен иметь:
+// - Пустой конструктор
+// - Геттеры/сеттеры с именами, соответствующими заголовкам таблицы
+// Cucumber автоматически конвертирует snake_case (product_name) в camelCase (productName) при маппинге на поля класса
+public class OrderItem {
+    
+  private String productName;    // маппится с "product_name"
+  private int itemQuantity;      // маппится с "item_quantity"
+  private BigDecimal unitPrice;  // маппится с "unit_price"
+
+  public OrderItem() {}
+
+  // геттеры и сеттеры...
+}
+
+// Вместо ручного маппинга через asMaps()
+@Given("order items:")
+public void setItems(DataTable dataTable) {
+  List<OrderItem> items = dataTable.asList(OrderItem.class);
+  // Cucumber автоматически сопоставит колонки "product_name", "item_quantity", "unit_price"
+  // с полями класса OrderItem (поддерживает camelCase и snake_case)
+}
+```
+
+Можно использовать аннотацию `@ColumnName` если имена совсем не совпадают:
+
+```java
+public class OrderItem {
+
+    @DataTableType.ColumnName("product")
+    private String productName;
+
+    @DataTableType.ColumnName("quantity")
+    private int itemQuantity;
+    
+    @DataTableType.ColumnName("price")
+    private BigDecimal unitPrice;
+    
+    // конструктор, геттеры, сеттеры...
+}
+```
+
+Дополнительные возможности маппинга:
+
+Кастомные трансформации типов
+
+```java
+public class OrderItem {
+    private String productName;
+    private int itemQuantity;
+    private BigDecimal unitPrice;
+    private LocalDate deliveryDate;  // Автоматически парсит "2024-01-15"
+    private OrderStatus status;      // Enum: "PENDING" → OrderStatus.PENDING
+}
+```
+
+Работа с вложенными объектами
+
+```gherkin
+Given the following order:
+  | customer_name | shipping_address.street | shipping_address.city |
+  | John Doe      | 123 Main St             | Springfield           |
+```
+
+```java
+public class Order {
+    private String customerName;
+    private Address shippingAddress;  // Автоматически создаст вложенный объект
+}
+
+public class Adress {
+    private String street;
+    private String city;
+}
+```
+
+Игнорирование лишних колонок
+
+```java
+@Given("order items:")
+public void setItems(DataTable dataTable) {
+    // Cucumber игнорирует колонки, которых нет в классе
+    List<OrderItem> items = dataTable.asList(OrderItem.class);
+}
+```
+
+Трансформеры для сложной логики
+
+```java
+public class OrderItem {
+    
+    private List<String> tags;  // "featured,sale,new" → ["featured", "sale", "new"]
+    
+    @Transform
+    public static List<String> toTags(String value) {
+        return Arrays.asList(value.split(","));
+    }
+}
+```
+
+Работа с опциональными значениями
+
+```java
+public class OrderItem {
+    private String productName;
+    private Optional<String> promoCode;  // Может отсутствовать в таблице
+    private BigDecimal discount = BigDecimal.ZERO;  // Значение по умолчанию
+}
+```
+
+Полезные аннотации
+
+```java
+public class StepDefinitions {
+    
+    @DataTableType
+    public OrderItem orderItem(Map<String, String> entry) {
+        // Полный контроль над маппингом
+        return new OrderItem(
+            entry.get("product_name"),
+            Integer.parseInt(entry.get("item_quantity"))
+        );
+    }
+    
+    @Given("order with items:")
+    public void createOrder(@Transpose Order order) {
+        // Транспонирование таблицы: строки → колонки
+    }
+}
+```
+
+---
+
+### Enum:
+
+```gherkin
+# Используем кастомный тип {userRole} вместо {string}
+When user logs in as Admin
+Then user has role Moderator
+```
+
+```java
+// Перечисление ролей
+public enum UserRole {
+    Guest,      
+    User,
+    Moderator,
+    Admin
+}
+
+// Step Definitions
+public class RoleSteps {
+    
+    // Регистрируем кастомный тип {userRole}
+    // value = "Admin|User|Guest|Moderator" - список допустимых значений через |
+    // name не указан явно, поэтому имя будет взято из названия метода = userRole
+    @ParameterType("Admin|User|Guest|Moderator")
+    public UserRole userRole(String roleName) {
+        // roleName = "Admin" (строка из фича-файла)
+        // Преобразуем строку в элемент enum
+        return UserRole.valueOf(roleName);
+    }
+    
+    // Используем кастомный тип {userRole} в шаге
+    // Cucumber автоматически вызовет метод userRole() для преобразования строки
+    @When("user logs in as {userRole}")
+    public void loginWithRole(UserRole role) {
+        // role уже преобразован в UserRole.Admin
+        User user = new User();
+        user.setRole(role);
+        authService.login(user);
+    }
+    
+    @Then("user has role {userRole}")
+    public void verifyUserRole(UserRole expectedRole) {
+        UserRole actualRole = userService.getCurrentUser().getRole();
+        Assert.assertEquals(expectedRole, actualRole);
+    }
+}
+```
+
+---
+
+### Объект
+
+```gherkin
+# Используем встроенные типы {string}, {int}, {word}
+Given user "john_doe" with age 25 and role Admin
+When register this user
+Then user "john_doe" exists in system
+```
+
+```java
+// Доменная сущность
+public class User {
+    private String username;
+    private int age;
+    private UserRole role;
+    
+    // Конструктор + геттеры + сеттеры
+}
+
+// Step Definitions
+public class UserSteps {
+
+    private User currentUser;  // храним пользователя между шагами
+    
+    // Регистрируем кастомный тип {userRole}
+    @ParameterType("Admin|User|Guest|Moderator")
+    public UserRole userRole(String roleName) {
+        return UserRole.valueOf(roleName);
+    }
+    
+    // Шаг с использованием встроенных и кастомного типов
+    // {string} - строка в кавычках: "john_doe"
+    // {int}    - целое число: 25
+    // {userRole} - наш кастомный тип: Admin
+    @Given("user {string} with age {int} and role {userRole}")
+    public void createUser(String username, int age, UserRole role) {
+        currentUser = new User(username, age, role);
+    }
+    
+    @When("register this user")
+    public void registerUser() {
+        // Используем ранее созданного пользователя
+        userService.register(currentUser);
+    }
+    
+    @Then("user {string} exists in system")
+    public void verifyUserExists(String username) {
+        User found = userService.findByUsername(username);
+        Assert.assertNotNull("User should exist", found);
+        Assert.assertEquals(username, found.getUsername());
+    }
+}
+```
+
+### DocString
+
+- DocString (`"""`) автоматически передается в параметр типа `String`.
+- Используется для JSON, XML, SQL, HTML-фрагментов, конфигурационных блоков.
+
+```gherkin
+# Используем DocString (тройные кавычки) для передачи JSON
+# Это удобно для объектов с 5+ полями или вложенными структурами
+Given user profile:
+  """
+  {
+    "username": "jane_doe",
+    "age": 30,
+    "role": "Moderator",
+    "email": "jane@example.com",
+    "preferences": {
+      "notifications": true,
+      "theme": "dark"
+    }
+  }
+  """
+When save user profile
+Then profile is saved successfully
+```
+
+```java
+// Доменная сущность с вложенной структурой
+public class UserProfile {
+    private String username;
+    private int age;
+    private String role;
+    private String email;
+    private Map<String, Object> preferences;  // вложенный объект
+
+    // Пустой конструктор для Jackson + геттеры + сеттеры
+}
+
+// Step Definitions
+public class JsonUserSteps {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private UserProfile currentProfile;
+
+    // Обратите внимание: параметр типа String, НЕ UserProfile
+    // Cucumber передаёт содержимое DocString как обычную строку
+    @Given("user profile:")
+    public void setUserProfile(String jsonString) {
+        try {
+            // Вручную парсим JSON прямо в шаге
+            this.currentProfile = objectMapper.readValue(jsonString, UserProfile.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse JSON: " + e.getMessage(), e);
+        }
+    }
+
+    @When("save user profile")
+    public void saveUserProfile() {
+        profileService.save(currentProfile);
+    }
+
+    @Then("profile is saved successfully")
+    public void verifyProfileSaved() {
+        UserProfile saved = profileService.findByUsername(currentProfile.getUsername());
+        Assert.assertNotNull(saved);
+    }
+}
+```
+
+### @DocStringType
+
+```gherkin
+Given user profile:
+  """json
+  {
+    "username": "jane_doe",
+    "age": 30,
+    "role": "Moderator"
+  }
+  """
+```
+
+```java
+public class JsonUserSteps {
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // Специальная аннотация Cucumber, которая перехватывает Все DocString указанного типа
+    @DocStringType(contentType = "json") // Можно определять любые типы, главное, чтобы они были указанны в .feature файлах   
+    // contentType - это обязательный параметр @DocStringType 
+    // Если указать contentType = "", то метод будет вызван для ЛЮБОГО DocString у которого НЕ УКАЗАН тип (просто """)  
+    public Object parseJsonDocString(String jsonString, Type targetType) {
+        try {
+            // Cucumber передает targetType - ожидаемый тип параметра
+            return objectMapper.readValue(jsonString, objectMapper.constructType(targetType));
+            
+            // Ниже явно создается JavaType (тип Jackson), что дает больше контроля для сложных generic-типов
+            // Это нужно например для логирования типов или разной логики для разных типов
+            // JavaType javaType = objectMapper.constructType(targetType);
+            // return objectMapper.readValue(jsonString, javaType);
+          
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse JSON: " + e.getMessage(), e);
+        }
+    }
+
+    @Given("user profile:")
+    public void setUserProfile(UserProfile profile) {
+        // Автоматически преобразуется в UserProfile
+    }
+
+    @Given("product details:")
+    public void setProduct(Product product) {
+        // Автоматически преобразуется в Product
+    }
+
+    @Given("order data:")
+    public void setOrder(Order order) {
+        // Автоматически преобразуется в Order
+    }
+}
+```
+
+Также можно создать глобальный преобразователь (для всего проекта):
+
+```java
+public class GlobalJsonTransformer {
+    
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @DocStringType(contentType = "application/json")
+    public static Object transform(String jsonString, Type targetType) {
+        try {
+            return objectMapper.readValue(jsonString, 
+                objectMapper.constructType(targetType));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+
+// В Cucumber конфигурации:
+@Configuration
+public class CucumberConfig {
+
+    @Bean
+    public GlobalJsonTransformer globalJsonTransformer() {
+        return new GlobalJsonTransformer();
+    }
+}
+```
+
+> Для чистого Java проекта (без DI-контейнера) класс с `@DocStringType` просто должен лежать в пакете, 
+> который сканирует `@CucumberOptions(glue = "...")`.
+
+## Паттерн DRY и интеграция с Page Object Model
+
+- Выносите общую логику в `private` или `protected` методы внутри класса шагов или в отдельные сервисные классы.
+- Step Definitions должны оставаться тонким слоем адаптации: парсинг аргументов → вызов Page Object / API Client → простые ассерты.
+- Не создавайте `WebDriver` внутри шагов. Используйте Dependency Injection (PicoContainer/Spring) для передачи контекста.
+
+```java
+public class CheckoutStepDefinitions {
+    
+    private final WebDriver driver;
+    private final CheckoutPage checkoutPage;
+
+    public CheckoutStepDefinitions(TestContext context) {
+        this.driver = context.getDriver();
+        this.checkoutPage = PageFactory.initElements(driver, CheckoutPage.class);
+    }
+
+    @When("the user applies discount code {string}")
+    public void applyDiscount(String code) {
+        checkoutPage.enterPromoCode(code);
+        checkoutPage.clickApply();
+        waitForPromoApplied();
+    }
+
+    private void waitForPromoApplied() {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.textToBePresentInElement(checkoutPage.getPromoStatus(), "Applied"));
+    }
+}
+```
+
+## Best Practices
+
+- Используйте `Cucumber Expressions` вместо регулярных выражений для всех новых шагов.
+- Не дублируйте логику: если шаг встречается в нескольких фичах, вынесите его в общий `glue`-пакет или сервисный класс.
+- Ограничивайте количество параметров в шаге до 3–4. При необходимости используйте `DataTable` или `DocString`.
+- Не выполняйте бизнес-логику в Step Definitions: делегируйте вычисления, работу с БД и внешними API в отдельные компоненты.
+- Избегайте `static` полей для хранения состояния драйвера или контекста — это ломает параллельное выполнение.
+- При работе с `DataTable` используйте строгую типизацию `asList(Class<T>)` для раннего выявления ошибок маппинга на этапе запуска.
+- Всегда валидируйте входные параметры в начале метода шага, чтобы избежать `NullPointerException` в Page Objects.
+- Разделяйте `@Given`, `@When`, `@Then` по семантике, даже если технически они взаимозаменяемы. Это улучшает читаемость отчетов и поддержку командой.
+
+---
