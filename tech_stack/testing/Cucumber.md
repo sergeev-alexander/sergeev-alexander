@@ -595,6 +595,25 @@ public void setSystemTimeout(Long timeoutMs) {
 - Автоматический маппинг в POJO при совпадении имен колонок с полями класса (поддерживает `camelCase` и `snake_case`).
 
 ```gherkin
+Scenario: Process user roles
+  Given the following roles:
+    | "ADMIN"     |
+    | "MANAGER"   |
+    | "USER"      |
+    | "GUEST"     |
+```
+
+```java
+@Given("the following roles:")
+public void setRoles(DataTable dataTable) {
+    List<String> roles = dataTable.asList(String.class);
+    // roles = ["ADMIN", "MANAGER", "USER", "GUEST"]
+    
+    securityService.setRoles(roles);
+}
+```
+
+```gherkin
 Scenario: Create order with multiple items
   
   # Вертикальная таблица - один объект
@@ -762,20 +781,6 @@ public void setItems(DataTable dataTable) {
 }
 ```
 
-Трансформеры для сложной логики
-
-```java
-public class OrderItem {
-    
-    private List<String> tags;  // "featured,sale,new" → ["featured", "sale", "new"]
-    
-    @Transform
-    public static List<String> toTags(String value) {
-        return Arrays.asList(value.split(","));
-    }
-}
-```
-
 Работа с опциональными значениями
 
 ```java
@@ -786,7 +791,9 @@ public class OrderItem {
 }
 ```
 
-Полезные аннотации
+Аннотация `@DataTableType` 
+
+> Аннотация указывает Cucumber использовать аннотированный метод если в шаге есть таблица и ожидается объект OrderItem
 
 ```java
 public class StepDefinitions {
@@ -1097,6 +1104,54 @@ public class CheckoutStepDefinitions {
     }
 }
 ```
+
+## Программная регистрация типов: TypeRegistryConfigurer
+
+> Аннотационный подход покрывает 90% случаев, но для динамической регистрации, 
+> условной логики парсинга или работы с дженериками используется интерфейс `TypeRegistryConfigurer`.
+
+```java
+public class CustomTypeRegistry implements TypeRegistryConfigurer {
+    
+    @Override
+    public void configureTypeRegistry(TypeRegistry registry) {
+        // Регистрация параметра с кастомным регулярным выражением и парсером
+        registry.defineParameterType(new ParameterType<>(
+            "email",
+            "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+            String.class,
+            EmailAddress::new,  // Фабричный метод или конструктор
+            true,               // preferForRegexpMatch: приоритет над встроенными типами
+            false               // useForSnippets: не использовать при автогенерации шагов
+        ));
+        
+        // Регистрация трансформера для сложных таблиц с валидацией
+        registry.defineDataTableType(new DataTableType(
+            BulkOrder.class,
+            (Map<String, String> row) -> {
+                if (!row.containsKey("items_json")) {
+                    throw new IllegalArgumentException("Missing required column: items_json");
+                }
+                List<OrderItem> items = JsonParser.parseItems(row.get("items_json"));
+                return new BulkOrder(items);
+            }
+        ));
+    }
+}
+```
+
+### Приоритеты и разрешение конфликтов @ParameterType
+
+> Cucumber обрабатывает типы в порядке сканирования пакетов. 
+> При совпадении нескольких паттернов применяются правила приоритизации.
+
+| Ситуация конфликта                         | Решение                                                                                                  |
+|:-------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| Два `@ParameterType` возвращают один класс | Указать явный `name = "uniqueName"` у одного из них, иначе `DuplicateParameterTypeException`             |
+| Конфликт регулярных выражений              | Более специфичный шаблон регистрировать первым или использовать `preferForRegexpMatch = true`            |
+| Кастомный тип не срабатывает               | Проверить порядок сканирования `glue`-пакетов, убедиться, что метод не `static` и пакет указан в конфиге |
+| Ошибка `AmbiguousParameterTypeException`   | Использовать `@ParameterType(name = "...")` и явно вызывать тип в шаге `{uniqueName}`                    |
+
 
 ## Best Practices
 
