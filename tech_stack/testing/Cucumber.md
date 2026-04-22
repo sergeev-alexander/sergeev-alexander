@@ -15,18 +15,17 @@ This work is private property and is not licensed for copying, distribution, mod
 1. [Введение в BDD и Cucumber](#1-введение-в-bdd-и-cucumber)
 2. [Настройка окружения и проекта](#2-настройка-окружения-и-проекта)
 3. [Язык Gherkin: синтаксис и лучшие практики](#3-язык-gherkin-синтаксис-и-лучшие-практики)
-4. [Step Definitions: связь Gherkin с Java-кодом](#4-step-definitions-связь-gherkin-с-java-кодом)
+4. [Step Definitions и преобразование данных](#4-step-definitions-и-преобразование-данных)
 5. [Управление состоянием и зависимостями](#5-управление-состоянием-и-зависимостями)
 6. [Hooks: жизненный цикл сценариев](#6-хуки-жизненный-цикл-сценариев)
 7. [Теги (Tags): организация и фильтрация тестов](#7-теги-tags-организация-и-фильтрация-тестов)
 8. [Параметризация: Scenario Outline и Examples](#8-параметризация-scenario-outline-и-examples)
-9. [Продвинутые техники Step Definitions](#9-продвинутые-техники-step-definitions)
-10. [Интеграция с внешними системами](#10-интеграция-с-внешними-системами)
-11. [Плагины и отчетность](#11-плагины-и-отчетность)
-12. [Параллельное выполнение тестов](#12-параллельное-выполнение-тестов)
-13. [Отладка и диагностика](#13-отладка-и-диагностика)
-14. [Интеграция с CI/CD](#14-интеграция-с-cicd)
-15. [Поддержка и масштабирование проекта](#15-поддержка-и-масштабирование-проекта)
+9. [Интеграция с внешними системами](#9-интеграция-с-внешними-системами)
+10. [Плагины и отчетность](#10-плагины-и-отчетность)
+11. [Параллельное выполнение тестов](#11-параллельное-выполнение-тестов)
+12. [Отладка и диагностика](#12-отладка-и-диагностика)
+13. [Интеграция с CI/CD](#13-интеграция-с-cicd)
+14. [Поддержка и масштабирование проекта](#14-поддержка-и-масштабирование-проекта)
 
 ---
 
@@ -475,7 +474,7 @@ public void submitCreateOrderPayload(String jsonPayload) {
 
 ---
 
-# 4. Step Definitions: связь Gherkin с Java-кодом
+# 4. Step Definitions и преобразование данных
 
 > Step Definitions — это Java-методы, связывающие описания шагов из Gherkin-файлов с исполняемой бизнес-логикой. 
 > 
@@ -1165,3 +1164,603 @@ public class CustomTypeRegistry implements TypeRegistryConfigurer {
 - Разделяйте `@Given`, `@When`, `@Then` по семантике, даже если технически они взаимозаменяемы. Это улучшает читаемость отчетов и поддержку командой.
 
 ---
+
+# 5. Управление состоянием и зависимостями
+
+> Изоляция сценариев и корректное внедрение зависимостей — фундамент стабильных BDD-тестов. 
+> 
+> Cucumber предоставляет встроенные механизмы DI для автоматического управления жизненным циклом объектов на каждый сценарий, 
+> предотвращая гонки данных и flaky tests.
+
+---
+
+## Проблема общего состояния и `ThreadLocal`
+
+- **Статические поля** — главный источник нестабильности при параллельном запуске сценариев
+- **Гонки данных** — одновременная модификация переменных несколькими потоками приводит к непредсказуемым результатам
+- **`ThreadLocal<T>`** — базовое решение для изоляции потока, но усложняет архитектуру и требует ручной очистки в `@After`
+- **Cucumber DI** — заменяет ручное управление потоками, создавая отдельный граф зависимостей для каждого сценария
+
+```gherkin
+# login.feature
+
+Scenario: успешный логин
+  Given пользователь вводит логин "alice"
+  When нажимает войти
+  Then видит приветствие "Welcome alice"
+
+Scenario: неудачный логин
+  Given пользователь вводит логин "bob"
+  And вводит неверный пароль
+  When нажимает войти
+  Then видит ошибку "Invalid credentials"
+```
+
+```java
+// Этот класс будет создан 2 раза (по разу на каждый сценарий)
+public class LoginSteps {
+    
+    private final TestContext context;  // КАЖДЫЙ сценарий получает СВОЙ экземпляр
+    
+    public LoginSteps(TestContext context) {
+        this.context = context;
+        System.out.println("Создан LoginSteps для сценария: " + System.identityHashCode(this));
+    }
+    
+    @Given("пользователь вводит логин {string}")
+    public void enterLogin(String username) {
+        context.putData("username", username);  // Сохраняем в КОНТЕКСТ ЭТОГО СЦЕНАРИЯ
+    }
+}
+
+// Этот класс тоже будет создан 2 раза
+public class WelcomeSteps {
+    
+    private final TestContext context;  // ТОТ ЖЕ САМЫЙ объект TestContext, что и в LoginSteps в рамках одного сценария
+    
+    public WelcomeSteps(TestContext context) {
+        this.context = context;
+    }
+    
+    @Then("видит приветствие {string}")
+    public void seeWelcome(String expected) {
+        String username = context.getData("username", String.class);
+        // username будет "alice" для первого сценария
+        // и "bob" для второго сценария
+        assertEquals(expected, "Welcome " + username);
+    }
+}
+```
+
+---
+
+## Dependency Injection в Cucumber
+
+- Внедрение происходит исключительно через **конструкторы** классов со Step Definitions
+- Область видимости по умолчанию — **на один сценарий** (`ScenarioScope`)
+- Объекты автоматически инициализируются перед выполнением `@Before` и уничтожаются после `@After`
+- Требуется ровно одна DI-зависимость: `cucumber-picocontainer` или `cucumber-spring`
+  - Сканирует все классы с Step Definitions
+  - Смотрит на конструкторы (какие параметры нужны)
+  - PicoContainer создает экземпляры ВСЕХ необходимых классов
+  - Автоматически внедряет зависимости
+
+```xml
+<dependency>
+    <groupId>io.cucumber</groupId>
+    <artifactId>cucumber-picocontainer</artifactId>
+    <version>7.18.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+@Before (Hooks) выполняются после создания DI-объектов, поэтому в хуках уже можно использовать внедренные зависимости:
+
+```java
+public class Hooks {
+    
+    private final UserContext context;  // уже создан до @Before
+
+    public Hooks(UserContext context) {
+        this.context = context;
+    }
+
+    @Before
+    public void setup() {
+        context.setUsername("default_user");  // работает!
+    }
+
+    @After
+    public void cleanup() {
+        context.clear();  // объект еще жив, но скоро умрет
+    }
+}
+```
+
+---
+
+## Сравнение: PicoContainer vs Spring Integration
+
+| Критерий                | PicoContainer                                            | Spring Integration                                                                                              |
+|:------------------------|----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| **Время старта**        | Мгновенное (миллисекунды)                                | Зависит от размера контекста (секунды/минуты)                                                                   |
+| **Область видимости**   | `ScenarioScope` (строгая изоляция)                       | `ScenarioScope` + общий `ApplicationContext`                                                                    |
+| **Сложность настройки** | Нулевая (Zero-config, автоматический резолвинг)          | Требует `@CucumberContextConfiguration`, `@Bean`, `application.yml`                                             |
+| **Кейсы использования** | Быстрые UI/API тесты, легковесные сценарии, микросервисы | Интеграционные тесты, работа с БД (`@Transactional`, `EntityManager`), <br/>внешние моки, сложная бизнес-логика |
+
+---
+
+## Паттерн `TestContext`: централизация состояния
+
+- Единый класс для хранения данных сценария, драйверов, HTTP-клиентов и моков
+- Избегает "распыления" зависимостей по десяткам Step Definitions
+- Упрощает тестирование, отладку и поддержку (все состояние доступно через один объект)
+
+```java
+public class TestContext {
+    
+    private final WebDriver driver;
+    private final RestAssuredClient apiClient;
+    private final Map<String, Object> scenarioData = new ConcurrentHashMap<>();
+
+    public TestContext(WebDriver driver) {
+        this.driver = driver;
+        this.apiClient = new RestAssuredClient();
+    }
+
+    public WebDriver getDriver() { return driver; }
+    public RestAssuredClient getApiClient() { return apiClient; }
+    public <T> void putData(String key, T value) { scenarioData.put(key, value); }
+    public <T> T getData(String key, Class<T> type) { return type.cast(scenarioData.get(key)); }
+}
+```
+
+```java
+@CucumberContextConfiguration
+@SpringBootTest(classes = TestApplicationConfig.class)
+public class CucumberSpringConfiguration {
+
+    @Bean
+    @ScenarioScope
+    public TestContext testContext() {
+        return new TestContext(WebDriverFactory.createDriver());
+    }
+}
+
+public class OrderSteps {
+    
+    private final TestContext context;
+
+    public OrderSteps(TestContext context) {
+        this.context = context;
+    }
+
+    @When("оформляю заказ на сумму {int}")
+    public void placeOrder(int amount) {
+        context.getApiClient().post("/orders", Map.of("sum", amount));
+    }
+}
+```
+
+Типичные данные для scenarioData:
+
+```java
+// Что обычно хранят:
+context.putData("createdUserId", 12345);
+context.putData("authToken", "eyJhbGc...");
+context.putData("lastResponse", responseObject);
+context.putData("generatedEmail", "test+54321@example.com");
+context.putData("orderItems", List.of("item1", "item2"));
+```
+Многие называют этот паттерн `ScenarioContext`, чтобы подчеркнуть, что данные живут только в рамках одного сценария.
+
+---
+
+## Очистка состояния и изоляция тестов
+
+- **`@After` хуки** — гарантированный сброс состояния после каждого сценария, независимо от результата
+- **`ScenarioScope`** — автоматическое удаление объектов DI после завершения сценария (PicoContainer/Spring)
+- **Транзакционные откаты** — использование `@Transactional` в Spring для отката DML-операций в БД
+- **Избегание кэширования** — запрещено использовать `static` для хранения результатов API/UI запросов или токенов
+- **`ThreadLocal` fallback** — применяется только при интеграции с легаси-кодом, где DI невозможен
+
+Транзакционные откаты:
+
+```java
+@SpringBootTest
+public class CucumberSpringConfiguration {
+    
+    @Bean
+    @ScenarioScope
+    public UserService userService() {
+        return new UserService();
+    }
+}
+
+// В хуках
+public class DatabaseHooks {
+    
+    @Autowired
+    private TestTransactionManager transactionManager;
+    
+    @Before
+    public void beginTransaction() {
+        transactionManager.startTransaction();
+    }
+    
+    @After
+    public void rollbackTransaction() {
+        transactionManager.rollback();  // Откатывает ВСЕ изменения в БД
+    }
+}
+```
+
+Сброс состояния с порядком в `@After`:
+
+```java
+public class StateCleanupHooks {
+    
+    private final TestContext context;
+
+    public StateCleanupHooks(TestContext context) {
+        this.context = context;
+    }
+
+    @After(order = 1) // order — это приоритет выполнения хуков - чем меньше число, тем раньше выполняется.
+    public void resetContext(Scenario scenario) {
+        context.clearScenarioData(); // СНАЧАЛА очищаем данные
+    }
+
+    @After(order = 2)
+    public void cleanupBrowser(Scenario scenario) {
+        if (scenario.isFailed()) {
+            takeScreenshot(scenario.getName());
+        }
+        context.getDriver().quit();  // ПОТОМ закрываем браузер
+    }
+
+    // Без указания order — порядок НЕ ГАРАНТИРОВАН
+}
+```
+
+---
+
+## Best Practices
+
+- **Используйте конструкторную инъекцию** — Cucumber не поддерживает `@Inject` или `@Autowired` в полях
+- **Один `TestContext` на сценарий** — централизуйте все изменяемые данные, драйверы и клиенты
+- **Выбирайте DI осознанно** — `cucumber-picocontainer` для скорости и простоты, `cucumber-spring` для интеграций с Spring Boot
+- **Избегайте `static` полей** в Step Definitions, Page Objects и хелперах
+- **Помечайте бины как `@ScenarioScope`** в Spring, чтобы не переиспользовать состояние между сценариями
+- **Очищайте ресурсы в `@After`** — закрывайте HTTP-соединения, очищайте кэш, удаляйте временные файлы
+- **Не инжектируйте `WebDriver` напрямую** — оборачивайте его в контекст или фабрику для гибкого управления жизненным циклом
+- **Используйте `ThreadLocal` только как крайнюю меру** при работе со старыми фреймворками, не поддерживающими DI
+
+---
+
+# 6. Hooks: жизненный цикл сценариев
+
+> Хуки в Cucumber — это механизм внедрения логики до/после сценариев и шагов без загрязнения feature-файлов. 
+> 
+> Они обеспечивают инициализацию, очистку, логирование и сбор артефактов, гарантируя предсказуемость и изоляцию тестов.
+
+---
+
+## Типы хуков и области применения
+
+- **`@Before`** — выполняется перед каждым `Scenario`; идеален для инициализации драйверов, контекстов, моков
+- **`@After`** — выполняется после каждого `Scenario` (даже при падении); используется для скриншотов, очистки, закрытия ресурсов
+- **`@BeforeStep` / `@AfterStep`** — обёртка вокруг каждого шага; полезна для детального логирования, замеров времени, динамических проверок
+- **`@BeforeAll` / `@AfterAll`** — выполняются один раз за весь запуск; подходят для глобальной настройки (БД, конфигурация), но требуют осторожности при параллелизме
+
+```java
+public class LifecycleHooks {
+
+    // Выполняется ПЕРЕД каждым сценарием
+    // Можно фильтровать по тегам: @Before("@smoke")
+    @Before(order = 10) // order определяет приоритет: меньшие числа выполняются раньше
+    public void initBrowser(Scenario scenario) {
+        // scenario.getName() — имя сценария из .feature
+        // scenario.getId() — уникальный идентификатор (путь + строка)
+        System.out.println(">>> Запуск сценария: " + scenario.getName());
+        
+        // Инициализация драйвера только если ещё не создан (защита от дублей)
+        if (DriverHolder.get() == null) {
+            DriverHolder.set(WebDriverFactory.createHeadlessChrome());
+        }
+    }
+
+    // Выполняется ПОСЛЕ каждого сценария, даже если тест упал
+    @After(order = 100) // Высокий order = выполняется последним
+    public void cleanupAndAttachArtifacts(Scenario scenario) {
+        WebDriver driver = DriverHolder.get();
+        
+        if (scenario.isFailed() && driver != null) {
+            // Делаем скриншот при ошибке и прикрепляем к отчёту
+            byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+            scenario.attach(screenshot, "image/png", "failure_screenshot");
+        }
+        
+        // Закрываем браузер, но не удаляем из ThreadLocal — это сделает @AfterAll или следующий @Before
+        if (driver != null) {
+            driver.quit();
+            DriverHolder.clear();
+        }
+    }
+
+    // Выполняется ДО каждого шага (Given/When/Then)
+    @BeforeStep
+    public void logStepStart(Scenario scenario) {
+        // Полезно для отладки: видим, какой шаг начал выполняться
+        System.out.println("[STEP START] " + scenario.getName() + " → текущий шаг");
+    }
+
+    // Выполняется ПОСЛЕ каждого шага
+    @AfterStep
+    public void logStepResult(Scenario scenario) {
+        // scenario.getStatus() возвращает Status.PASSED/FAILED/SKIPPED/UNDEFINED
+        System.out.println("[STEP END] Статус: " + scenario.getStatus());
+    }
+}
+```
+
+Что можно делать со Scenario:
+
+```java
+@After
+public void richHooks(Scenario scenario) {
+    // 1. Получить информацию
+    String name = scenario.getName();
+    String uri = scenario.getUri().toString();    // откуда загружен сценарий
+    boolean failed = scenario.isFailed();
+    
+    // 2. Прикрепить артефакты в отчёт Cucumber
+    scenario.attach(logContent, "text/plain", "execution.log");
+    scenario.attach(json, "application/json", "api-response.json");
+    scenario.attach(html, "text/html", "page-source.html");
+    
+    // 3. Добавить лог в вывод
+    scenario.log("Пользователь с ID 42 создан");
+    scenario.log("Время выполнения: " + duration + "ms");
+    
+    // 4. Пропустить сценарий динамически (редко, но можно)
+    if (someCondition) {
+        throw new SkipException("Пропускаем из-за...");
+    }
+    
+    // Они не принимают сам шаг (его текст), только сценарий.
+}
+```
+
+```java
+// Глобальные хуки — выполняются ОДИН РАЗ на весь запуск тестов
+// ВАЖНО: не используйте для хранения состояния сценариев — оно будет общим для всех потоков!
+public class GlobalSetupHooks {
+
+    @BeforeAll
+    public static void globalInit() {
+        // Инициализация тяжелых ресурсов: подключение к БД, загрузка конфигов, старт WireMock
+        System.out.println(">>> Глобальная инициализация (один раз на запуск)");
+        DatabaseHelper.initConnectionPool();
+    }
+
+    @AfterAll
+    public static void globalCleanup() {
+        // Очистка глобальных ресурсов
+        System.out.println(">>> Глобальная очистка");
+        DatabaseHelper.closeConnectionPool();
+    }
+}
+```
+
+---
+
+## Порядок выполнения и фильтрация по тегам
+
+- **`order = N`** — числовой приоритет: хуки с меньшим `order` выполняются раньше; хуки без `order` имеют приоритет `10000`
+- **Фильтрация по тегам** — `@Before("@smoke")` выполнится только для сценариев с тегом `@smoke`
+- **Логические операторы в тегах** — `@Before("@api and not @wip")` для гибкой селекции
+- **Комбинация `order` + `tags`** — позволяет тонко настраивать последовательность для разных групп тестов
+
+```gherkin
+@ui @smoke
+Scenario: Successful login to the system
+  Given user is on the login page
+  When he enters valid credentials
+  Then he is redirected to the dashboard
+
+@api @integration
+Scenario: Creating an order via API
+  Given the system is ready to accept orders
+  When a POST request is sent with order data
+  Then status 201 and order ID are returned
+
+@debug
+Scenario: Debugging complex business logic
+  Given detailed logging is configured
+  When a chain of 10+ steps is executed
+  Then each state transition is visible in the logs
+```
+
+```java
+public class TaggedHooks {
+
+    // Выполнится ТОЛЬКО для сценариев с тегом @ui
+    @Before(value = "@ui", order = 5)
+    public void setupUiContext(TestContext context) {
+        context.setDriver(WebDriverFactory.createChromeWithExtensions());
+    }
+
+    // Выполнится для сценариев с @api ИЛИ @integration
+    @Before(value = "@api or @integration", order = 10)
+    public void setupApiClient(TestContext context) {
+        context.setApiClient(new RestAssuredClient("https://api.staging.example.com"));
+    }
+
+    // НЕ выполнится для сценариев с тегом @skip-cleanup
+    @After(value = "not @skip-cleanup", order = 200)
+    public void cleanupTestData(Scenario scenario) {
+        // Очистка тестовых данных после сценария
+        TestDataCleaner.removeCreatedEntities(scenario.getId());
+    }
+
+    // Выполнится ПЕРЕД шагом, но только в сценариях с @debug
+    @BeforeStep(value = "@debug", order = 1)
+    public void enableVerboseLogging() {
+        // Включаем детальные логи только для отладочных прогонов
+        LoggerContext.setLevel(Level.DEBUG);
+    }
+}
+```
+
+---
+
+## Доступ к объекту `Scenario`: метаданные и артефакты
+
+- **`scenario.getName()`** — человекочитаемое имя сценария (из заголовка `Scenario:`)
+- **`scenario.getId()`** — уникальный ключ (путь к файлу + номер строки), удобен для логирования
+- **`scenario.getStatus()`** — возвращает `Status` enum: `PASSED`, `FAILED`, `SKIPPED`, `UNDEFINED`, `PENDING`, `AMBIGUOUS`
+- **`scenario.attach(byte[], String mimeType, String name)`** — добавление вложений в отчёт (скриншоты, логи, JSON)
+- **`scenario.write(String)`** — добавление текстовых заметок в отчёт (например, отладочная информация)
+- **`scenario.getSourceTagNames()`** — список тегов, применённых к сценарию (для динамической логики)
+
+```java
+public class ArtifactHooks {
+
+    @After
+    public void attachDetailedReport(Scenario scenario) {
+        // Если сценарий упал — прикрепляем максимум диагностической информации
+        if (scenario.getStatus() == Status.FAILED) {
+            
+            // 1. Скриншот (для UI-тестов)
+            WebDriver driver = DriverHolder.get();
+            if (driver != null) {
+                byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+                scenario.attach(screenshot, "image/png", "screenshot_on_failure");
+            }
+            
+            // 2. HTML-источник страницы (полезно для отладки верстки/селекторов)
+            if (driver != null && driver.getPageSource() != null) {
+                String pageSource = driver.getPageSource();
+                scenario.attach(pageSource.getBytes(StandardCharsets.UTF_8), "text/html", "page_source");
+            }
+            
+            // 3. Логи приложения (если собраны в память)
+            String appLogs = LogCollector.getRecentLogs();
+            scenario.attach(appLogs.getBytes(StandardCharsets.UTF_8), "text/plain", "application_logs");
+            
+            // 4. Текстовая заметка с метаданными
+            scenario.write("=== DIAGNOSTIC INFO ===");
+            scenario.write("Scenario ID: " + scenario.getId());
+            scenario.write("Tags: " + String.join(", ", scenario.getSourceTagNames()));
+            scenario.write("Browser: " + (driver != null ? ((RemoteWebDriver) driver).getCapabilities().getBrowserName() : "N/A"));
+            scenario.write("=======================");
+        }
+    }
+}
+```
+
+---
+
+### Инициализация браузера с параметрами из тегов
+
+```java
+public class BrowserSetupHooks {
+
+    @Before("@ui")
+    public void setupBrowser(Scenario scenario) {
+        // Динамический выбор браузера на основе тега: @chrome, @firefox, @headless
+        String browser = "chrome"; // дефолт
+        
+        if (scenario.getSourceTagNames().contains("@firefox")) {
+            browser = "firefox";
+        } else if (scenario.getSourceTagNames().contains("@headless")) {
+            browser = "chrome-headless";
+        }
+        
+        // Создание драйвера с нужной конфигурацией
+        WebDriver driver = WebDriverFactory.create(browser);
+        DriverHolder.set(driver);
+        
+        // Базовые настройки для всех UI-тестов
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        driver.manage().window().maximize();
+    }
+}
+```
+
+### Скриншоты + видео-запись
+
+```java
+public class RecordingHooks {
+
+    private static final ThreadLocal<ScreenRecorder> recorder = new ThreadLocal<>();
+
+    @Before(value = "@record", order = 1)
+    public void startRecording(Scenario scenario) {
+        // Запускаем запись экрана только для сценариев с тегом @record
+        ScreenRecorder r = new ScreenRecorder(scenario.getName());
+        r.start();
+        recorder.set(r);
+    }
+
+    @After(value = "@record", order = 1000)
+    public void stopAndAttachRecording(Scenario scenario) {
+        ScreenRecorder r = recorder.get();
+        if (r != null) {
+            // Останавливаем запись и получаем путь к видеофайлу
+            String videoPath = r.stop();
+            
+            // Читаем файл и прикрепляем к отчёту (Allure/Extent поддерживают video/mp4)
+            try {
+                byte[] videoBytes = Files.readAllBytes(Paths.get(videoPath));
+                scenario.attach(videoBytes, "video/mp4", "scenario_recording");
+                
+                // Опционально: удаляем временный файл после прикрепления
+                Files.deleteIfExists(Paths.get(videoPath));
+            } catch (IOException e) {
+                scenario.write("Warning: failed to attach video: " + e.getMessage());
+            }
+            
+            recorder.remove();
+        }
+    }
+}
+```
+
+### Логирование шагов с контекстом (для отладки CI/CD)
+
+```java
+public class LoggingHooks {
+
+    @BeforeStep
+    public void logStepContext(Scenario scenario) {
+        // Выводим в консоль/лог: [SCENARIO: Имя] [STEP: №] [TAGS: ...] — удобно для анализа в Jenkins/GitLab CI
+        String stepInfo = String.format(
+            "[SCENARIO: %s] [TAGS: %s] [STEP START]",
+            scenario.getName(),
+            String.join(",", scenario.getSourceTagNames())
+        );
+        System.out.println(stepInfo);
+    }
+
+    @AfterStep
+    public void logStepOutcome(Scenario scenario) {
+        String outcome = scenario.getStatus() == Status.PASSED ? "✓" : "✗";
+        System.out.println(String.format("[STEP %s] %s", outcome, scenario.getStatus()));
+    }    
+}
+```
+
+---
+
+## Best Practices
+
+- **Всегда указывайте `order`** для хуков с побочными эффектами — это делает порядок выполнения предсказуемым и документированным
+- **Используйте `ThreadLocal`** для хранения `WebDriver`, `ApiClient` и других потоко-специфичных ресурсов при параллельном запуске
+- **Не перегружайте `@BeforeStep`/`@AfterStep`** тяжелой логикой — они выполняются десятки раз за сценарий и могут замедлить прогон
+- **Фильтруйте хуки по тегам** вместо условной логики внутри — это чище, быстрее и легче тестировать
+- **Прикрепляйте артефакты только при необходимости** (например, при `FAILED`) — чтобы не раздувать отчёты и не тратить место в CI
+- **Очищайте `ThreadLocal` в `@After`** — утечки памяти при долгом запуске (особенно в CI) — частая причина `OutOfMemoryError`
+- **Избегайте `static` состояния в хуках** — оно нарушает изоляцию сценариев и делает тесты нестабильными при параллелизме
+- **Документируйте теги для хуков** в README — чтобы новые члены команды понимали, как работает `@record`, `@debug`, `@skip-cleanup` и т.п.
