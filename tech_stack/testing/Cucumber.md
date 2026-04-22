@@ -210,6 +210,9 @@ src/
 
 ## Конфигурация Test Runner: JUnit 5 vs TestNG
 
+- JUnit 4 — можно использовать `@CucumberOptions`
+- JUnit 5 — НЕ поддерживает `@CucumberOptions`
+
 ```java
 // JUnit 5 Runner: используется @Suite и конфигурационные параметры
 import org.junit.platform.suite.api.*;
@@ -225,8 +228,11 @@ import static io.cucumber.junit.platform.engine.Constants.*;
 @ConfigurationParameter(key = EXECUTION_PARALLEL_CONFIG_FIXED_PARALLELISM_PROPERTY_NAME, value = "4") // Количество потоков
 public class CucumberJUnitRunner {
     // Пустой класс, служит только точкой входа для JUnit Platform
+    // Как конфигурационный файл, но в виде Java-класса
 }
 ```
+
+- TestNG использует только `@CucumberOptions` — это единственный способ конфигурации.
 
 ```java
 // TestNG Runner: наследование от AbstractTestNGCucumberTests
@@ -244,6 +250,8 @@ import io.cucumber.testng.AbstractTestNGCucumberTests;
 )
 public class CucumberTestNGRunner extends AbstractTestNGCucumberTests {
 
+    // Как конфигурационный файл, но в виде Java-класса
+
     // Можно переопределить scenarios() для кастомной группировки или параллелизма
     @Override
     @DataProvider(parallel = true) // Включаем параллельный запуск сценариев
@@ -251,6 +259,38 @@ public class CucumberTestNGRunner extends AbstractTestNGCucumberTests {
         return super.scenarios();
     }
 }
+```
+
+Разделение на несколько раннеров:
+
+```java
+// Конфигурация для smoke-тестов в CI
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@smoke and not @wip")
+public class SmokeTestRunner { }
+
+// Конфигурация для регресса (всё, кроме дыма)
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "not @smoke")
+public class RegressionRunner { }
+
+// Конфигурация только для API-тестов высокого приоритета
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@api and (@high or @critical)")
+public class ApiTestRunner { }
+
+// Конфигурация для Work In Progress сценариев
+// Запускает только тесты, которые находятся в разработке
+@ConfigurationParameter(key = FILTER_TAGS_PROPERTY_NAME, value = "@wip")
+public class WipTestRunner { }
+```
+
+```text
+project/
+├── runners/
+│   ├── SmokeTestRunner.java      // @smoke and not @wip
+│   ├── RegressionRunner.java     // not @smoke
+│   ├── ApiTestRunner.java        // @api
+│   └── WipTestRunner.java        // @wip (для разработки)
+└── features/
+    └── login.feature             // сценарии с разными тегами
 ```
 
 Разбор ключевых параметров `@CucumberOptions` / `Constants`:
@@ -1764,3 +1804,324 @@ public class LoggingHooks {
 - **Очищайте `ThreadLocal` в `@After`** — утечки памяти при долгом запуске (особенно в CI) — частая причина `OutOfMemoryError`
 - **Избегайте `static` состояния в хуках** — оно нарушает изоляцию сценариев и делает тесты нестабильными при параллелизме
 - **Документируйте теги для хуков** в README — чтобы новые члены команды понимали, как работает `@record`, `@debug`, `@skip-cleanup` и т.п.
+
+# 7. Теги (Tags): организация и фильтрация тестов
+
+> Теги в Cucumber — это механизм метаданных для гибкой классификации, фильтрации и управления выполнением сценариев. 
+> 
+> Они позволяют запускать подмножества тестов по типу, слою, стабильности или среде без изменения кода, что критично для CI/CD пайплайнов и локальной отладки.
+
+---
+
+## Синтаксис и размещение тегов
+
+- **Формат тега** — начинается с `@`, без пробелов, допускаются дефисы и нижнее подчёркивание: `@smoke`, `@api-v2`, `@regression_ui`
+- **Регистр** — теги чувствительны к регистру: `@Smoke` ≠ `@smoke`, используйте единый стиль (рекомендуется: `lowercase-kebab-case`)
+- **Размещение** — теги ставятся **перед** `Feature`, `Scenario`, `Scenario Outline` или `Examples`
+- **Наследование** — теги на `Feature` применяются ко всем сценариям внутри, но можно переопределить на уровне сценария
+- **Несколько тегов** — перечисляются через пробел на одной строке или на отдельных строках
+
+```gherkin
+@ui @smoke @critical
+Feature: User Authentication
+
+  @positive @login
+  Scenario: Successful login with valid credentials
+    Given the user is on the login page
+    When they enter a correct username and password
+    Then they are redirected to the dashboard
+
+  @negative @login @wip
+  Scenario: Login with incorrect password
+    Given the user is on the login page
+    When they enter a valid username and an invalid password
+    Then an authentication error message is displayed
+
+  # Теги на Examples позволяют фильтровать отдельные наборы данных
+  @boundary-values
+  Scenario Outline: Password length validation
+    Given the user enters password "<password>"
+    When they click the login button
+    Then the system <result>
+
+    Examples:
+      | password  | result              |
+      | a         | rejects the request |
+      | abc123    | accepts the request |
+      | aBc123!@# | accepts the request |
+```
+
+```java
+// Пример: запуск только сценариев с тегом @smoke И без @wip
+@CucumberOptions(
+    features = "src/test/resources/features",
+    glue = "com.example.steps",
+    // Логическое выражение для фильтрации: запустить @smoke, но исключить @wip
+    tags = "@smoke and not @wip",
+    plugin = {"pretty", "html:target/cucumber-report.html"}
+)
+public class RunCucumberTest {
+    // Раннер-класс: не требует логики, только конфигурация через аннотации
+}
+```
+
+---
+
+## Логические операторы в тегах
+
+- **`and`** (или запятая `,`) — все условия должны быть истинны: `@api and @critical`
+- **`or`** — достаточно одного истинного условия: `@smoke or @regression`
+- **`not`** — исключение: `not @wip`, `not @flaky`
+- **Приоритет операций** — `not` > `and` > `or`; используйте скобки для явного группирования
+- **Запятая как `and`** — `@api,@critical` эквивалентно `@api and @critical`
+
+```java
+@CucumberOptions(
+        features = "src/test/resources/features",
+        glue = "com.example.steps",
+
+        // Запустить: (API-тесты И критические) ИЛИ (UI-тесты И smoke)
+        tags = "(@api and @critical) or (@ui and @smoke)",
+
+        // ВАЖНО: оператор not применяется к ближайшему выражению
+        // Например: "not @flaky and @wip" означает (NOT @flaky) AND @wip
+        // Чтобы исключить оба тега, используйте скобки: "not (@flaky or @wip)"
+        
+        plugin = {"json:target/cucumber.json"}
+)
+public class SelectiveRun {
+  // Такой запуск идеален для PR-проверок: только стабильные критические тесты
+}
+```
+
+```bash
+# CLI-запуски с тегами (через Maven)
+
+# Только smoke-тесты
+mvn test -Dcucumber.filter.tags="@smoke"
+
+# API-тесты, но не flaky
+mvn test -Dcucumber.filter.tags="@api and not @flaky"
+
+# Все тесты, кроме WIP и manual
+mvn test -Dcucumber.filter.tags="not (@wip or @manual)"
+
+# Сложная логика: (ui И critical) ИЛИ (api И smoke), но не wip
+mvn test -Dcucumber.filter.tags="((@ui and @critical) or (@api and @smoke)) and not @wip"
+```
+
+---
+
+## Стратегии тегирования
+
+| Категория                | Примеры тегов                                   | Назначение                            |
+|:-------------------------|-------------------------------------------------|---------------------------------------|
+| **Тип тестирования**     | `@smoke`, `@regression`, `@e2e`, `@integration` | Группировка по цели проверки          |
+| **Технологический слой** | `@ui`, `@api`, `@db`, `@mobile`, `@graphql`     | Фильтрация по тестируемому интерфейсу |
+| **Стабильность**         | `@stable`, `@flaky`, `@wip`, `@ignore`          | Управление надёжностью в CI           |
+| **Приоритет**            | `@critical`, `@high`, `@medium`, `@low`         | Приоритезация для nightly vs PR runs  |
+| **Окружение**            | `@dev`, `@staging`, `@prod-sandbox`, `@local`   | Запуск под конкретный стенд           |
+
+```gherkin
+# Пример комплексного тегирования для одного сценария
+
+@ui @smoke @critical @team-auth @req-login-001 @staging
+Scenario: Quick login check after deployment
+  Given the system is up and running
+  When the user logs in with default credentials
+  Then the main dashboard loads successfully
+  # Этот сценарий:
+  # - выполняется в smoke-прогоне после каждого деплоя
+  # - принадлежит команде авторизации
+  # - покрывает требование req-login-001
+  # - запускается только на staging-окружении
+  # - помечен как критичный (блокатор релиза)
+```
+
+---
+
+## Запуск через CLI и `@CucumberOptions`
+
+- **`@CucumberOptions(tags = "...")`** — статическая фильтрация в коде раннера
+- **CLI-параметр `-Dcucumber.filter.tags="..."`** — динамическая фильтрация при запуске, переопределяет код
+- **Приоритет** — CLI > `@CucumberOptions` > дефолт (все теги)
+- **Комбинация с другими фильтрами** — `--name`, `--lines`, `--glue` работают независимо от `tags`
+
+```java
+// Базовый раннер с гибкой конфигурацией через properties
+@CucumberOptions(
+    features = "classpath:features",
+    glue = {"com.example.steps", "com.example.hooks"},
+
+    // Дефолтные теги: запускать всё, кроме @ignore и @manual
+    // Но это можно переопределить через CLI: -Dcucumber.filter.tags="@smoke"
+    tags = "not (@ignore or @manual)",
+
+    plugin = {
+        "pretty",
+        "html:target/cucumber-html-report",
+        "json:target/cucumber.json",
+        "rerun:target/rerun.txt"  // Для повторного запуска упавших
+    },
+    monochrome = true  // Читаемый цветной вывод в консоли
+)
+public class CucumberTestRunner {
+    // Пустой Ruunner класс — вся логика в аннотациях
+}
+```
+
+```properties
+# cucumber.properties (в src/test/resources/)
+# Глобальные настройки, применяемые ко всем раннерам
+
+cucumber.filter.tags=not @wip
+cucumber.plugin=pretty, json:target/cucumber.json
+cucumber.monochrome=true
+cucumber.execution.dry-run=false
+
+# dry-run = true - это только проверка — Cucumber проходит по всем сценариям, проверяет, что для каждого шага есть реализация, но ничего не выполняет
+```
+
+```bash
+# Переопределение тегов через CLI (самый частый кейс в CI)
+
+# Запустить только smoke на PR
+mvn test -Dcucumber.filter.tags="@smoke"
+
+# Запустить regression, но пропустить flaky и wip
+mvn test -Dcucumber.filter.tags="@regression and not (@flaky or @wip)"
+
+# Локальная отладка: один сценарий по имени + тег
+mvn test -Dcucumber.filter.name="Successful login" -Dcucumber.filter.tags="@ui"
+
+# Запуск по номерам строк в feature-файле (для быстрой отладки)
+mvn test -Dcucumber.filter.lines="src/test/resources/features/login.feature:12:25"
+```
+
+---
+
+## Редкие кейсы: динамические теги в runtime
+
+- **Проблема** — теги определяются на этапе парсинга `.feature`, их нельзя изменить во время выполнения сценария
+- **Рабочие обходные пути** — программная фильтрация в хуках, генерация feature-файлов перед запуском, параметризация через `Examples`
+
+Динамическая фильтрация с Examples:
+
+```gherkin
+Feature: Payment Processing
+
+  Scenario Outline: Process payment with different cards
+    
+    When user initiates payment of $<amount> using card <card_type>
+    Then payment status should be <expected_status>
+
+    # SMOKE-набор: только успешные платежи с валидными картами
+    @smoke @positive
+    Examples:
+      | amount | card_type | expected_status |
+      | 10.00  | VISA      | SUCCESS         |
+      | 25.50  | MASTERCARD| SUCCESS         |
+      | 100.00 | AMEX      | SUCCESS         |
+
+    # РЕГРЕСС-набор: проверка граничных сумм
+    @regression @boundary
+    Examples:
+      | amount | card_type | expected_status |
+      | 0.01   | VISA      | SUCCESS         |
+      | 9999.99| MASTERCARD| SUCCESS         |
+      | 10000.00| AMEX     | SUCCESS         |
+
+    # НЕГАТИВНЫЙ набор: только в полном прогоне
+    @negative @security
+    Examples:
+      | amount | card_type | expected_status |
+      | -10.00 | VISA      | DECLINED        |
+      | 0.00   | MASTERCARD| INVALID_AMOUNT  |
+      | 999999 | AMEX      | LIMIT_EXCEEDED  |
+
+    # FLAKY-набор: проблемные тесты, требуют особого окружения
+    @flaky @requires-3ds
+    Examples:
+      | amount | card_type | expected_status |
+      | 500.00 | VISA_3DS  | REDIRECT_3DS    |
+      | 750.00 | MC_3DS    | REDIRECT_3DS    |
+```
+
+```java
+public class DynamicTestFilter {
+
+    private static String testSuite = System.getenv("TEST_SUITE"); // "smoke", "regression", "full"
+    private static boolean runFlaky = Boolean.parseBoolean(System.getProperty("run.flaky", "false"));
+    private static boolean has3DSMock = Boolean.parseBoolean(System.getProperty("mock.3ds", "false"));
+
+    @Before
+    public void filterByTagsAndEnvironment(Scenario scenario) {
+        List<String> tags = scenario.getSourceTagNames();
+        
+        // 1. В smoke-прогоне пропускаем всё, кроме @smoke
+        if ("smoke".equals(testSuite) && !tags.contains("@smoke")) {
+            Assume.assumeTrue("Skipping non-smoke test in smoke suite: " + tags, false);
+        }
+        
+        // 2. В regression-прогоне: @smoke + @regression, но не @negative
+        if ("regression".equals(testSuite)) {
+            if (tags.contains("@negative") || tags.contains("@flaky")) {
+                Assume.assumeTrue("Skipping negative/flaky in regression", false);
+            }
+        }
+        
+        // 3. Негативные тесты требуют специальной конфигурации
+        if (tags.contains("@negative") && !isNegativeTestEnvReady()) {
+            Assume.assumeTrue("Negative tests require special environment", false);
+        }
+        
+        // 4. Flaky тесты запускаем только если явно попросили
+        if (tags.contains("@flaky") && !runFlaky) {
+            Assume.assumeTrue("Flaky tests skipped. Use -Drun.flaky=true", false);
+        }
+        
+        // 5. Тесты с 3DS проверкой требуют мок-сервер
+        if (tags.contains("@requires-3ds") && !has3DSMock) {
+            Assume.assumeTrue("3DS tests need mock server. Use -Dmock.3ds=true", false);
+        }
+    }
+    
+    private boolean isNegativeTestEnvReady() {
+        // Например, нужна отдельная БД с плохими данными
+        return "full".equals(testSuite) || "negative".equals(System.getProperty("test.profile"));
+    }
+}
+```
+
+```bash
+# 1. Быстрый smoke-прогон (только @smoke Examples)
+# Запустятся: VISA, MASTERCARD, AMEX на 10.00, 25.50, 100.00
+mvn test -DTEST_SUITE=smoke
+
+# 2. Регресс (@smoke + @regression, без @negative)
+# Запустятся: smoke + граничные значения (0.01, 9999.99, 10000.00)
+mvn test -DTEST_SUITE=regression
+
+# 3. Полный прогон (всё, кроме flaky)
+# Запустятся: все Examples кроме @flaky
+mvn test -DTEST_SUITE=full
+
+# 4. Полный + flaky (всё)
+mvn test -DTEST_SUITE=full -Drun.flaky=true
+
+# 5. Только негативные тесты
+mvn test -Dtest.profile=negative -Dcucumber.filter.tags="@negative"
+```
+
+---
+
+## Best Practices
+
+- **Используйте единый стиль именования тегов** — `lowercase-kebab-case` (`@api-test`, а не `@APITest` или `@api_test`)
+- **Документируйте теги в README** — таблица с описанием: `@flaky` — временно нестабильный тест, требует фикса
+- **Избегайте избыточного тегирования** — 3–5 релевантных тегов на сценарий достаточно
+- **Фильтруйте в CI через CLI**, а не через правку `@CucumberOptions` — это быстрее и не требует пересборки
+- **Используйте `@wip` для новых сценариев** — исключайте их из основных прогонов до завершения разработки
+- **Помечайте `@ignore` вместо удаления** — чтобы сохранить историю и легко восстановить при необходимости
+- **Комбинируйте теги с `Examples`** — для параметризованных сценариев это даёт тонкую фильтрацию на уровне данных
+- **Не используйте теги для передачи данных** — для этого есть `DataTable`, `DocString` и параметры сценариев
