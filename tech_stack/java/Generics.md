@@ -10,9 +10,20 @@ This work is private property and is not licensed for copying, distribution, mod
 
 # Generics
 
+## Содержание
+
+1. [Ковариантность (Covariance)](#1-ковариантность-covariance)
+2. [Стирание типов (Type Erasure)](#2-стирание-типов-type-erasure))
+3. [Type witness](#3-type-witness)
+
+---
+
 > Generics в Java - это механизм, позволяющий создавать классы, интерфейсы и методы, которые могут работать с различными типами данных, обеспечивая при этом безопасность типов. 
+> 
 > Обобщения позволяют создавать более абстрактный и гибкий код, который может быть использован с разными типами данных, сохраняя при этом статическую типизацию.
-> Generics в Java обеспечивают параметризацию типов, что позволяет создавать обобщенные классы и методы, способные работать с разными типами данных. 
+> 
+> Generics обеспечивают параметризацию типов, что позволяет создавать обобщенные классы и методы, способные работать с разными типами данных. 
+> 
 > Этот механизм позволяет использовать полиморфизм при работе с объектами различных типов, сохраняя при этом статическую типизацию.
 
 ## Параметризованный полиморфизм:
@@ -23,10 +34,7 @@ This work is private property and is not licensed for copying, distribution, mod
 - Ограничения могут быть использованы для добавления ограничений на типы, которые могут быть использованы с параметризованными классами или методами.
 Это позволяет использовать полиморфизм только для определенных типов, удовлетворяющих определенным критериям.
 
-<details>
-    <summary>
-        <b>Ковариантность (Covariance)</b>
-    </summary>
+# 1. Ковариантность (Covariance)
 
 > Суть ковариантности - это сохранение иерархии наследования в прямом направлении для составных типов (коллекций, массивов, обобщений).
 
@@ -45,7 +53,7 @@ This work is private property and is not licensed for copying, distribution, mod
 - Используйте ковариантность (`? extends T`), когда контейнер является `producer` (поставщиком данных) 
 - Для контейнеров-потребителей (`consumer`) используйте контравариантность (`? super T`)
 
-## 1. Ковариантность массивов в Java
+## Ковариантность массивов в Java
 
 ### Массивы в Java ковариантны по умолчанию. Это было сделано для совместимости с ранними версиями языка, но может приводить к ошибкам времени выполнения.
 
@@ -109,7 +117,7 @@ public class CovarianceExample {
 
 ---
 
-## 2. Ковариантность в дженериках (Generics)
+## Ковариантность в дженериках (Generics)
 
 ### Дженерики в Java инвариантны по умолчанию, но можно сделать их ковариантными с помощью wildcards (`? extends X`).
 
@@ -220,7 +228,7 @@ public class TypeSafety {
 
 ---
 
-## 3. Ковариантность в возвращаемых типах методов
+## Ковариантность в возвращаемых типах методов
 
 ### Java поддерживает ковариантность возвращаемых типов при переопределении методов:
 
@@ -273,7 +281,7 @@ public class ReturnTypeCovarianceDemo {
 
 ---
 
-## 4. Когда использовать ковариантность?
+## Когда использовать ковариантность?
 
 ### Ковариантность полезна, когда вы только читаете данные из контейнера (producer):
 
@@ -317,16 +325,13 @@ public class PracticalExample {
 - ### `Producer Extends` - если коллекция производит элементы, используйте `? extends T`
 - ### `Consumer Super` - если коллекция потребляет элементы, используйте `? super T`
 - ### `Both` - если и то, и другое, не используйте `wildcards`
-</details>
 
-<br>
+---
 
-<details>
-    <summary>
-        <b>Стирание типов(Type Erasure)</b>
-    </summary>
+# 2. Стирание типов (Type Erasure)
 
 > Type erasure — это механизм в Java, при котором информация о generic-типах удаляется во время компиляции и заменяется на их границы (`bounds`).
+> 
 > Если границы не обозначены, то информация о типе во время компиляции заменяется на Object (верхняя граница всех классов).
 
 ```java
@@ -380,8 +385,6 @@ public class NumberBox {
     }
 }
 ```
-
-###
 
 В Java можно указывать несколько ограничений для generic-параметра! Синтаксис: <T extends A & B & C>
 
@@ -464,6 +467,7 @@ public class BridgeMethodDemo {
     }
 }
 ```
+
 ```text
 Методы класса Child:
 public void Child.set(java.lang.String) - bridge: false
@@ -606,7 +610,7 @@ public class ErasureAndArrays {
 
 ## Обход ограничений type erasure
 
-### 1. Передача Class<T> для сохранения типа:
+### Передача Class<T> для сохранения типа:
 
 ```java
 public class TypeToken<T> {
@@ -627,7 +631,7 @@ TypeToken<String> token = new TypeToken<>(String.class);
 System.out.println(token.getType()); // class java.lang.String
 ```
 
-### 2. Super Type Token (GSON/Gson, Jackson):
+### Super Type Token (GSON/Gson, Jackson):
 
 ```java
 import java.lang.reflect.*;
@@ -711,16 +715,10 @@ public class SortedNumberContainer<T extends Number & Comparable<T>> {
 // T extends Number & Comparable<T> -> заменяется на Number (первое ограничение)
 // Но компилятор помнит, что есть и Comparable
 ```
-</details>
 
-<br>
+---
 
-<details>
-    <summary>
-        <b>Type witness</b>
-    </summary>
-
-# Type witness
+# 3. Type witness
 
 > Type witness (свидетель типа) — специальный синтаксис Java для явного указания generic-типов при вызове generic-метода.
 >
@@ -802,4 +800,3 @@ Collectors.<String, ?, List<String>>collectingAndThen(...)
 - ### Компилятор не может вывести тип (ошибка "cannot infer type-variable")
 - ### Нужно явно указать тип для читаемости
 - ### Работаете с wildcard-типами (`?`, `? super T`, `? extends T`)
-</details>

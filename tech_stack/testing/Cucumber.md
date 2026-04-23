@@ -2346,3 +2346,57 @@ public class OrderSteps {
     }
 }
 ```
+
+---
+
+### Альтернативы: генерация данных в @Before + обычные сценарии
+
+- Когда `Scenario Outline` не подходит — нужна сложная логика генерации, внешние API, Faker, случайные данные, зависимости между шагами
+- Паттерн — использовать обычный `Scenario`, а данные заполнять в `@Before` или первом шаге через фабрику/генератор
+- Преимущества — полный контроль над Java-кодом, возможность использовать Mockito, WireMock, Faker, динамическую валидацию
+- Недостатки — сценарий теряет декларативность, данные "спрятаны" в коде, сложнее читать бизнес-пользователям
+
+```java
+public class DataGenerationSteps {
+
+    private final TestContext context;
+    private final Faker faker = new Faker(); // Генератор реалистичных данных (имена, email, телефоны)
+
+    // Инъекция контекста через конструктор (PicoContainer или Spring)
+    public DataGenerationSteps(TestContext context) {
+        this.context = context;
+    }
+
+    // Хук выполняется ДО каждого сценария с тегом @generated-data
+    // Идеально для подготовки сложных зависимостей или моков
+    @Before("@generated-data")
+    public void prepareTestData(Scenario scenario) {
+        // Генерация сложных данных перед сценарием
+        UserProfile profile = new UserProfile(
+            faker.name().fullName(),
+            faker.internet().emailAddress(),
+            faker.phoneNumber().phoneNumber()
+        );
+        // Сохраняем сгенерированный профиль в контекст для доступа в шагах
+        context.put("userProfile", profile);
+        
+        // Подготовка моков или тестовых данных в БД (если требуется)
+        DatabaseSeeder.seedUser(profile);
+    }
+
+    @Given("a new user is created with random data")
+    public void createRandomUser() {
+        // Данные уже сгенерированы в @Before, просто извлекаем их из контекста
+        UserProfile profile = (UserProfile) context.get("userProfile");
+        RegistrationApi.register(profile);
+    }
+
+    @Then("user profile is saved in the system")
+    public void verifyProfileSaved() {
+        UserProfile profile = (UserProfile) context.get("userProfile");
+        // Проверяем, что пользователь действительно появился в системе/БД
+        assertThat(Database.findUserByEmail(profile.getEmail())).isNotNull();
+    }
+}
+```
+
