@@ -1303,7 +1303,7 @@ Scenario: неудачный логин
 // Этот класс будет создан 2 раза (по разу на каждый сценарий)
 public class LoginSteps {
     
-    private final TestContext context;  // КАЖДЫЙ сценарий получает СВОЙ экземпляр
+    private final TestContext context;  // КАЖДЫЙ сценарий получает СВОЙ экземпляр TestContext
     
     public LoginSteps(TestContext context) {
         this.context = context;
@@ -1314,6 +1314,8 @@ public class LoginSteps {
     public void enterLogin(String username) {
         context.putData("username", username);  // Сохраняем в КОНТЕКСТ ЭТОГО СЦЕНАРИЯ
     }
+    
+    // When...
 }
 
 // Этот класс тоже будет создан 2 раза
@@ -1357,7 +1359,7 @@ public class WelcomeSteps {
 </dependency>
 ```
 
-@Before (Hooks) выполняются после создания DI-объектов, поэтому в хуках уже можно использовать внедренные зависимости:
+`@Before` (Hooks) выполняются после создания DI-объектов, поэтому в хуках уже можно использовать внедренные зависимости:
 
 ```java
 public class Hooks {
@@ -1798,35 +1800,35 @@ public class BrowserSetupHooks {
 public class RecordingHooks {
 
     private static final ThreadLocal<ScreenRecorder> recorder = new ThreadLocal<>();
+    private static final Path VIDEO_DIR = Paths.get("build/test-videos");
 
     @Before(value = "@record", order = 1)
     public void startRecording(Scenario scenario) {
-        // Запускаем запись экрана только для сценариев с тегом @record
-        ScreenRecorder r = new ScreenRecorder(scenario.getName());
+        // ScreenRecorder — ваша реализация или библиотека
+        ScreenRecorder r = new ScreenRecorder(safeFileName(scenario.getName()));
         r.start();
         recorder.set(r);
     }
 
     @After(value = "@record", order = 1000)
-    public void stopAndAttachRecording(Scenario scenario) {
+    public void stopRecording(Scenario scenario) {
         ScreenRecorder r = recorder.get();
-        if (r != null) {
-            // Останавливаем запись и получаем путь к видеофайлу
-            String videoPath = r.stop();
-            
-            // Читаем файл и прикрепляем к отчёту (Allure/Extent поддерживают video/mp4)
-            try {
-                byte[] videoBytes = Files.readAllBytes(Paths.get(videoPath));
-                scenario.attach(videoBytes, "video/mp4", "scenario_recording");
-                
-                // Опционально: удаляем временный файл после прикрепления
-                Files.deleteIfExists(Paths.get(videoPath));
-            } catch (IOException e) {
-                scenario.write("Warning: failed to attach video: " + e.getMessage());
+        try {
+            if (r != null) {
+                String videoPath = r.stop();
+                // Вместо attach: логируем путь или добавляем ссылку в Allure
+                Allure.addAttachment("Video", "video/mp4",
+                                Files.newInputStream(Paths.get(videoPath)), "webm");
             }
-            
-            recorder.remove();
+        } catch (Exception e) {
+            scenario.write("Warning: video processing failed: " + e.getMessage());
+        } finally {
+            if (r != null) recorder.remove();
         }
+    }
+
+    private static String safeFileName(String name) {
+        return name.replaceAll("[^a-zA-Z0-9._-]", "_"); // Защита от спецсимволов
     }
 }
 ```
