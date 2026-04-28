@@ -2201,7 +2201,8 @@ mvn test -Dtest.profile=negative -Dcucumber.filter.tags="@negative"
 
 ## Синтаксис `<параметр>` + `Examples`
 
-- **Плейсхолдеры** — параметры оборачиваются в `<` и `>`: `<login>`, `<amount>`, `<status>`
+- **Плейсхолдеры** — параметры оборачиваются в `"<` и `>"`: `"<login>"`, `"<amount>"`, `"<status>"`
+- **Плейсхолдеры** внутри шагов всегда заключаются в двойные кавычки (`"<param>"`), а заголовки таблицы `Examples` пишутся без кавычек (`param`)
 - **Таблица `Examples`** — заголовки колонок должны совпадать с плейсхолдерами; каждая строка генерирует отдельный сценарий
 - **Типизация** — Cucumber автоматически преобразует строки из таблицы в Java-типы (Integer, Double, Boolean, Enum, кастомные типы через `@ParameterType`)
 - **Порядок выполнения** — строки `Examples` выполняются последовательно в порядке объявления
@@ -2347,6 +2348,28 @@ public class OrderSteps {
 }
 ```
 
+Также плейсхолдеры можно использовать в DocString:
+
+```gherkin
+Scenario Outline: Create user
+  Given user configures base URL "https://api.example.com"
+  When user sends POST to "/v1/users" with body:
+    """
+    {
+      "name": "<name>",
+      "role": "<role>",
+      "department": "<department>",
+      "salary": <salary>
+    }
+    """
+  Then response status is 201 and contains field "id"
+
+  Examples:
+    | name  | role   | department | salary |
+    | Alice | admin  | IT         | 75000  |
+    | Bob   | viewer | HR         | 60000  |
+```
+
 ---
 
 ### Альтернативы: генерация данных в @Before + обычные сценарии
@@ -2355,6 +2378,18 @@ public class OrderSteps {
 - Паттерн — использовать обычный `Scenario`, а данные заполнять в `@Before` или первом шаге через фабрику/генератор
 - Преимущества — полный контроль над Java-кодом, возможность использовать Mockito, WireMock, Faker, динамическую валидацию
 - Недостатки — сценарий теряет декларативность, данные "спрятаны" в коде, сложнее читать бизнес-пользователям
+
+```gherkin
+Feature: User Registration with Generated Data
+
+  Background:
+    Given the system is ready for registration
+
+  @generated-data
+  Scenario: Register a new user with random generated data
+    Given a new user is created with random data
+    Then user profile is saved in the system
+```
 
 ```java
 public class DataGenerationSteps {
@@ -2400,3 +2435,513 @@ public class DataGenerationSteps {
 }
 ```
 
+---
+
+## Best Practices
+
+- Держите `Examples` читаемыми — 3–10 строк на таблицу; для больших наборов используйте внешние `CSV`/`JSON` и/или `@Before` генерацию
+- Явно называйте таблицы — `Examples: Positive cases`, `Examples: Boundary values` вместо безымянных блоков
+- Избегайте дублирования данных — выносите общие значения в `Background` или используйте константы / Enum
+- Параметризуйте только изменяемые данные — статические конфигурации (URL, базовые настройки) лучше хранить в `cucumber.properties` или `@Before`
+- Проверяйте типы данных — `Cucumber` парсит `Examples` как String; используйте `@ParameterType` или кастомные `DataTableType` для сложных типов (`LocalDate`, `Money`, `UUID`)
+- Не смешивайте бизнес-логику и данные — если сценарий становится нечитаемым из-за `Scenario Outline`, разбейте его на несколько конкретных `Scenario`
+- Используйте теги на `Examples` для CI — это позволяет запускать критические наборы данных в PR, а полные — в nightly
+- Логгируйте параметры шагов — в `@BeforeStep` или внутри шагов выводите `<param>` значения для упрощения отладки упавших прогонов
+
+---
+
+# 9. Интеграция с внешними системами
+
+> Интеграция с браузерами, HTTP-клиентами, базами данных и сервисами-моками обеспечивает полный цикл автоматизации. 
+> 
+> Выбор инструментов зависит от уровня тестирования, требований к стабильности и скорости выполнения пайплайна.
+
+---
+
+## UI-тесты: Selenium WebDriver vs Selenide
+
+- **WebDriver** — низкоуровневый стандарт W3C, требует ручной настройки ожиданий и обработки исключений
+- **Ожидания** — `WebDriverWait` + `ExpectedConditions` против встроенных `$.should(Condition)` с автоматическим повтором
+- **Стабильность** — Selenide автоматически повторяет действия при `StaleElementReferenceException` и скроллит к элементам
+- **Отчёты** — Selenium требует кастомных плагинов, Selenide генерирует скриншоты и HTML-артефакты автоматически при падении
+
+| Критерий                     | Selenium WebDriver                        | Selenide                                          |
+|:-----------------------------|-------------------------------------------|---------------------------------------------------|
+| **Ожидания элементов**       | Ручная настройка `WebDriverWait`          | Встроенные `$.should(Condition)`                  |
+| **Обработка `StaleElement`** | Падает тест, требуется `Retry`            | Автоматический поиск и повтор клика               |
+| **Скриншоты при ошибках**    | Требует кастомной реализации в `@After`   | Генерируются автоматически в `target/screenshots` |
+| **Синтаксис селекторов**     | `driver.findElement(By.cssSelector())`    | `$(By.cssSelector())` или `$()`                   |
+| **Кроссбраузерность**        | Полная поддержка через `WebDriverManager` | Полная, обёртка над Selenium                      |
+
+```gherkin
+Feature: UI Integration
+
+  Scenario: User registration flow
+    Given user opens registration page
+    When user clicks the "Submit" button
+    Then user sees message "Success"
+```
+
+```java
+public class UiIntegrationSteps {
+    
+    // Given...
+    
+    // Selenide упрощает шаг "когда нажимает кнопку"
+    @When("user clicks the {string} button")
+    public void clickButton(String buttonText) {
+        // Автоматический скролл, ожидание кликабельности и сам клик
+        $(byText(buttonText)).click();
+    }
+
+    // WebDriver требует явных ожиданий для стабильности
+    @Then("user sees message {string}")
+    public void verifyMessage(String expectedText) {
+        WebDriverWait wait = new WebDriverWait(context.getDriver(), Duration.ofSeconds(10));
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".alert")));
+        assertThat(element.getText()).contains(expectedText);
+    }
+}
+```
+
+---
+
+## API-тесты: REST Assured + DataTable
+
+- **REST Assured** — DSL для отправки и валидации HTTP-запросов, идеально интегрируется с `DataTable`
+- **Параметризация** — `asMaps()` конвертирует Gherkin-таблицы в `List<Map<String, String>>` для формирования JSON/Payload
+- **Валидация** — `JsonPath` и `Hamcrest` для проверки структуры ответа, статус-кодов и заголовков
+
+```gherkin
+Feature: API Integration
+
+  Scenario: Create resource
+    Given user configures base URL "https://api.example.com"
+    When user sends POST request to "/v1/users" with payload:
+      | name  | role   | department | salary |
+      | Alice | admin  | IT         | 75000  |
+    Then response status is 201 and contains field "id"
+```
+
+```java
+public class ApiIntegrationSteps {
+    
+    private RequestSpecification requestSpec;
+    private Response response;
+
+    @Given("user configures base URL {string}")
+    public void configureBaseUrl(String baseUrl) {
+        requestSpec = new RequestSpecBuilder()
+            .setBaseUri(baseUrl)
+            .setContentType(ContentType.JSON)
+            .build();
+    }
+
+    @When("user sends POST request to {string} with payload:")
+    public void sendPostRequest(String endpoint, DataTable dataTable) {
+        // Преобразование DataTable в Map для динамического формирования JSON
+        Map<String, Object> payload = dataTable.asMaps(String.class, Object.class).get(0);
+        // [{"name": "Alice", "role": "admin", "department": "IT", "salary": "75000"}]
+        
+        response = given(requestSpec)
+            .body(payload)
+            .when()
+            .post(endpoint);
+    }
+
+    @Then("response status is {int} and contains field {string}")
+    public void verifyResponse(int statusCode, String fieldName) {
+        response.then()
+            .statusCode(statusCode)
+            .body(fieldName, notNullValue());
+    }
+}
+```
+
+---
+
+## Работа с БД: JDBC и транзакционные откаты
+
+- **JDBC / JDBI** — прямое выполнение `SELECT/INSERT/UPDATE` для проверки состояния данных после UI/API шагов
+- **Транзакционные откаты** — `@Transactional` (Spring) или ручное `Connection.setAutoCommit(false)` + `rollback()` в `@After`
+- **Изоляция** — избегайте коммитов в тестовой БД, используйте временные схемы или `Testcontainers`
+
+```java
+public class DatabaseSteps {
+    
+    private final DataSource dataSource;
+    private Connection connection;
+
+    public DatabaseSteps(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Before("@db-test")
+    public void initTransaction() throws SQLException {
+        connection = dataSource.getConnection();
+        // Отключаем автокоммит для возможности отката изменений
+        connection.setAutoCommit(false);
+    }
+
+    @Then("user {string} exists in database with role {string}")
+    public void verifyUserInDb(String email, String role) throws SQLException {
+        String query = "SELECT role FROM users WHERE email = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            assertTrue(rs.next(), "User not found");
+            assertThat(rs.getString("role")).isEqualTo(role);
+        }
+    }
+
+    @After("@db-test")
+    public void rollbackTransaction(Scenario scenario) throws SQLException {
+        // Гарантированный откат всех изменений, независимо от статуса теста
+        if (connection != null && !connection.isClosed()) {
+            connection.rollback();
+            connection.close();
+        }
+    }
+}
+```
+
+Конфигурация теста с embedded БД:
+
+```java
+@SpringBootTest
+
+// Spring автоматически подменит реальную БД на встроенную (H2, HSQLDB или Derby)
+// replace = ANY - заменяет ЛЮБУЮ настроенную DataSource (даже если есть своя)
+// Альтернативы: 
+//   - Replace.NONE (оставить реальную БД, например, Postgres)
+//   - @TestPropertySource(properties = "spring.datasource.url=jdbc:postgresql://testdb")
+// Это гарантирует, что тесты не испортят данные в разработческой/боевой БД
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+
+// TestExecutionListener - механизм Spring Test для перехвата жизненного цикла теста
+// TransactionalTestExecutionListener - отвечает за:
+//   1. Запуск транзакции ПЕРЕД выполнение тестового метода (если есть @Transactional)
+//   2. Откат (rollback) транзакции ПОСЛЕ выполнения метода (по умолчанию)
+//   3. Обработку @Rollback, @Commit, @BeforeTransaction, @AfterTransaction
+// 
+// mergeMode = MERGE_WITH_DEFAULTS - добавляет этот слушатель к стандартным:
+//   - DependencyInjectionTestExecutionListener (внедрение зависимостей)
+//   - DirtiesContextTestExecutionListener (очистка контекста)
+//   - EventPublishingTestExecutionListener (публикация событий теста)
+// Без MERGE_WITH_DEFAULTS вы бы потеряли стандартные слушатели
+@TestExecutionListeners(
+    listeners = {TransactionalTestExecutionListener.class},
+    mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
+)
+public class DatabaseStepsTest {
+
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // Прямая проверка через JDBC внутри транзакции
+    @Test
+    @Transactional
+    @Rollback  // гарантированный откат после теста
+    void testUserCreation_TransactionalRollback() {
+        // 1. Выполняем действие через API/сервис
+        User newUser = new User("test@example.com", "ADMIN");
+        userService.saveUser(newUser);
+        
+        // 2. Проверяем напрямую через JDBC в той же транзакции
+        String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, "test@example.com");
+        
+        assertThat(count).isEqualTo(1);
+        
+        // 3. Проверяем роль
+        String role = jdbcTemplate.queryForObject(
+            "SELECT role FROM users WHERE email = ?", 
+            String.class, 
+            "test@example.com"
+        );
+        assertThat(role).isEqualTo("ADMIN");
+        
+        // 4. После @AfterTransaction (или @After с @Transactional) данные будут откатаны
+    }
+    
+    // Пример с проверкой после UI шагов (Cucumber + Spring)
+    @Test
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    void testAfterUiActions() {
+        // Симулируем UI шаги: POST запрос через REST клиента
+        restTemplate.postForEntity("/api/users", 
+                                   new UserRequest("john@test.com", "USER"), 
+                                   Void.class);
+        
+        // Проверяем в БД (видим незакоммиченные данные благодаря @Transactional)
+        Boolean exists = jdbcTemplate.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE email = 'john@test.com')",
+            Boolean.class
+        );
+        
+        assertThat(exists).isTrue();
+        
+        // Тест завершится с rollback'ом (по умолчанию для @Transactional в тестах)
+    }
+}
+```
+
+Альтернативный подход с чистым Spring + TestNG/JUnit:
+
+```java
+@ContextConfiguration(classes = TestDbConfig.class)
+@Transactional
+@Rollback(true)  // откат после каждого метода
+public class UserRepositoryRollbackTest {
+
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private DataSource dataSource;
+    
+    @Test
+    public void testWithExplicitRollbackFlag() {
+        User user = new User("rollback@test.com", "MODERATOR");
+        userRepository.save(user);
+        
+        // Верификация в рамках транзакции
+        User found = userRepository.findByEmail("rollback@test.com");
+        assertThat(found.getRole()).isEqualTo("MODERATOR");
+        
+        // При выходе из метода - автоматический rollback
+    }
+    
+    @Test
+    @Commit  // переопределяем поведение - данные реально сохранятся (осторожно!)
+    public void testWithCommitInsteadOfRollback() {
+        userRepository.save(new User("permanent@test.com", "GUEST"));
+        // Изменения закоммитятся в БД после теста
+    }
+}
+```
+
+Пример комплексного теста с контроллером + БД:
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestDatabase
+@Transactional
+public class CompleteFlowTest {
+
+    @LocalServerPort
+    private int port;
+    
+    @Autowired
+    private TestRestTemplate restTemplate;
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    @Test
+    public void fullIntegrationTest() {
+        // Шаг UI: создаём пользователя через API
+        String email = "api-user@test.com";
+        restTemplate.postForEntity("http://localhost:" + port + "/users", 
+                                   new UserDto(email, "EDITOR"), 
+                                   Long.class);
+        
+        // Прямая проверка БД (увидит данные до коммита)
+        String storedRole = jdbcTemplate.queryForObject(
+            "SELECT role FROM users WHERE email = ?", 
+            String.class, 
+            email
+        );
+        assertThat(storedRole).isEqualTo("EDITOR");
+        
+        // Шаг UI: обновляем роль
+        restTemplate.put("http://localhost:" + port + "/users/" + email + "/role", 
+                         "ADMIN");
+        
+        // Верификация
+        String updatedRole = jdbcTemplate.queryForObject(
+            "SELECT role FROM users WHERE email = ?", 
+            String.class, 
+            email
+        );
+        assertThat(updatedRole).isEqualTo("ADMIN");
+        
+        // Автоматический откат обеих операций
+    }
+}
+```
+
+---
+
+## Моки и стабы: WireMock и Mockito
+
+- **WireMock** — HTTP-заглушки для внешних сервисов (банки, SMS-шлюзы, сторонние API)
+- **Mockito** — мокирование внутренних зависимостей (`UserRepository`, `NotificationService`) в шагах
+- **Управление жизненным циклом** — старт/стоп сервера в `@BeforeAll`/`@AfterAll`, сброс маппингов в `@Before`
+
+```java
+public class MockIntegrationSteps {
+    
+    private static WireMockServer wireMockServer;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @BeforeAll
+    public static void startWireMock() {
+        wireMockServer = new WireMockServer(options().port(8089)); // Создаём сервер на порту 8089
+        wireMockServer.start();
+    }
+
+    @Before
+    public void resetMappings() {
+        wireMockServer.resetAll();
+    }
+
+    @Given("payment service responds with {int}")
+    public void mockPaymentResponse(int status) {
+        wireMockServer.stubFor(post(urlEqualTo("/pay")) // Настраиваем заглушку
+            .willReturn(aResponse()
+                .withStatus(status)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"status\": \"" + (status == 200 ? "OK" : "FAIL") + "\"}")));
+    }
+
+    @AfterAll
+    public static void stopWireMock() {
+        wireMockServer.stop();
+    }
+}
+```
+
+```bash
+# WireMock Standalone через Maven Surefire/Failsafe
+mvn test -Dcucumber.filter.tags="@mocks" -Dwiremock.port=8089
+```
+
+---
+
+## Генерация данных и работа с файловой системой
+
+- **Faker** — библиотека `net.datafaker` для генерации реалистичных данных (имена, адреса, IBAN, номера карт)
+- **Временные директории** — `java.nio.file.Files.createTempDirectory()` для тестов загрузки/выгрузки файлов
+- **Очистка** — удаление временных ресурсов в `@After` или через `@TempDir` (JUnit 5)
+
+```java
+public class DataAndFileSteps {
+    
+    private final Faker faker = new Faker();
+    private Path tempDir;
+
+    @Before("@file-upload")
+    public void setupTempDir() throws IOException {
+        // Создание изолированной временной директории для каждого сценария
+        tempDir = Files.createTempDirectory("cucumber-upload-");
+    }
+
+    @Given("user generates valid personal data")
+    public void generatePersonalData() {
+        String fullName = faker.name().fullName();
+        String email = faker.internet().emailAddress();
+        String phone = faker.phoneNumber().phoneNumber();
+        // Сохранение в TestContext для использования в последующих шагах
+        context.put("userData", Map.of("name", fullName, "email", email));
+    }
+
+    @When("user uploads file {string}")
+    public void uploadFile(String filename) throws IOException {
+        Path testFile = tempDir.resolve(filename);
+        Files.writeString(testFile, "Test content for " + filename);
+        FileUploadPage.attachFile(testFile.toFile());
+    }
+
+    @After("@file-upload")
+    public void cleanupTempDir() throws IOException {
+        // Рекурсивное удаление временной директории
+        if (tempDir != null && Files.exists(tempDir)) {
+            Files.walk(tempDir)
+                .sorted(Comparator.reverseOrder())
+                .forEach(path -> {
+                    try { Files.delete(path); } catch (IOException e) { /* ignore */ }
+                });
+        }
+    }
+}
+```
+
+```text
+src/test/resources/data/
+├── payloads/
+│   ├── valid_user.json
+│   └── invalid_order.xml
+└── fixtures/
+    ├── seed_users.sql
+    └── mock_responses.yaml
+```
+
+Пример использования @TempDir — это более чистый способ, так как JUnit 5 сам управляет жизненным циклом временной директории:
+
+```java
+public class FileUploadTest {
+
+    // JUnit 5 автоматически создаст временную директорию перед тестом
+    // и удалит её вместе со всем содержимым после завершения теста
+    @TempDir
+    Path tempDir;  // поле уровня класса — новая директория для каждого теста
+
+    @Test
+    void shouldUploadValidPdfFile() throws IOException {
+        // 1. Подготовка — создаём тестовый файл во временной директории
+        Path testFile = tempDir.resolve("document.pdf");
+        Files.writeString(testFile, "PDF content for upload test");
+
+        // 2. Действие — загружаем файл через UI (пример с Selenide)
+        FileUploadPage.open();
+        FileUploadPage.attachFile(testFile.toFile());  // Path легко конвертируется в File
+
+        // 3. Проверка
+        FileUploadPage.assertFileUploaded("document.pdf");
+    }
+
+    @Test
+    void shouldRejectEmptyFile() throws IOException {
+        // Можно создавать поддиректории — JUnit всё рекурсивно удалит
+        Path nested = tempDir.resolve("nested/folder");
+        Files.createDirectories(nested);  // создаём вложенную структуру
+
+        Path emptyFile = nested.resolve("empty.txt");
+        Files.createFile(emptyFile);      // пустой файл
+
+        FileUploadPage.open();
+        FileUploadPage.attachFile(emptyFile.toFile());
+
+        FileUploadPage.assertErrorDisplayed("File must not be empty");
+    }
+
+    // Никакого @After не нужно — JUnit 5 сам вызовет
+    // Files.walk(tempDir).sorted(reverseOrder())... при завершении теста
+}
+```
+
+Ключевые отличия от ручной очистки:
+
+- Не нужны методы с `@Before` / `@After` для управления временными файлами
+- JUnit 5 использует тот же механизм `Files.walk().sorted(reverseOrder())` под капотом
+- Каждый тест получает гарантированно чистую, изолированную директорию
+- При падении теста очистка всё равно происходит (JUnit выполняет её в блоке finally)
+
+---
+
+## Best Practices
+
+- Выбирайте **Selenide** для быстрой разработки UI-тестов, если не требуется тонкий контроль над `WebDriver`
+- Используйте **`DataTable.asMaps()`** для параметризации API-запросов, избегайте хардкода в `@When` шагах
+- Всегда откатывайте изменения в БД через `@Transactional` или ручной `rollback()` в `@After`
+- Сбрасывайте маппинги **WireMock** в `@Before`, чтобы избежать побочных эффектов между сценариями
+- Генерируйте данные через **Faker** только для позитивных сценариев; негативные кейсы требуют фиксированных граничных значений
+- Очищайте временные директории в `@After` через `Files.walk().sorted(reverseOrder())`, чтобы не забивать диск в CI
+- Изолируйте тяжелые интеграции (БД, внешние API) тегами `@slow`, чтобы запускать их только в ночных сборках
+- Используйте `Testcontainers` для поднятия реальных зависимостей (PostgreSQL, Redis, Kafka) вместо моков, когда важна валидация бизнес-логики
+
+---
