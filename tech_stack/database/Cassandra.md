@@ -595,9 +595,21 @@ CREATE TABLE users (
 );
 ```
 
-
 - **Partition Key** (user_id) - Определяет, на каком узле хранятся данные. Должен быть в WHERE для большинства запросов
 - **Clustering Key** (timestamp) - Определяет порядок сортировки внутри партиции | Можно использовать в RANGE-запросах
+
+> Clustering Key — зачем нужен
+> Clustering Key решает проблему моделирования связей "один-ко-многим" в рамках одной партиции. Без него вы могли бы 
+> хранить только одну строку на каждый Partition Key — любая повторная вставка просто перезаписывала бы данные. 
+> 
+> Он позволяет хранить неограниченное количество строк внутри одной партиции, физически отсортированных по значению 
+> Clustering Key.
+>
+> Зачем всё складывать в одну партицию: это даёт возможность получить все связанные данные одним эффективным чтением 
+> (без распределённых JOIN-ов), а сортировка позволяет делать range-запросы (WHERE timestamp > X) и выбирать, например, 
+> последние N записей без сканирования всей таблицы.
+>
+> Clustering Key превращает партицию из "одной ячейки" в "упорядоченный контейнер", что и делает Cassandra пригодной для хранения лент, истории, связей many-to-many и любых других списков, привязанных к одной сущности.
 
 **Важно понимать:**
 
@@ -1115,9 +1127,9 @@ USING TIMESTAMP 1705315800000000;
 
 ### Принципы моделирования в Cassandra
 
-**Золотое правило:** Модель данных проектируется под запросы, а не под сущности!
-
-В отличие от RDBMS, где мы нормализуем данные, в Cassandra мы **денормализуем** для оптимизации чтения.
+> **Золотое правило:** Модель данных проектируется под запросы, а не под сущности!
+> 
+> В отличие от RDBMS, где мы нормализуем данные, в Cassandra мы **денормализуем** для оптимизации чтения.
 
 ### Anti-Patterns (чего избегать):
 
@@ -1133,11 +1145,11 @@ USING TIMESTAMP 1705315800000000;
 
 #### 1. Bucketing (разделение больших партиций):
 
-Bucketing означает:
-
-- Использование составного partition key (user_id, event_date)
-- Все данные в одной таблице, но распределены по разным партициям
-- Каждый день — отдельная партиция (bucket) внутри таблицы
+> Bucketing означает:
+>
+> - Использование составного partition key (user_id, event_date)
+> - Все данные в одной таблице, но распределены по разным партициям
+> - Каждый день — отдельная партиция (bucket) внутри таблицы
 
 ```sql
 CREATE TABLE events_by_day (
@@ -1171,9 +1183,9 @@ PRIMARY KEY ((user_id, event_date), event_time)  -- партиция на user_i
 
 #### 2. Denormalization (дублирование данных):
 
-**Денормализация** в Cassandra нужна для обеспечения высокой производительности чтения, 
-так как она позволяет получать все необходимые данные из одной партиции за один запрос, 
-избегая дорогостоящих JOIN-операций, которые Cassandra не поддерживает.
+> **Денормализация** в Cassandra нужна для обеспечения высокой производительности чтения, 
+> так как она позволяет получать все необходимые данные из одной партиции за один запрос, 
+> избегая дорогостоящих JOIN-операций, которые Cassandra не поддерживает.
 
 ```sql
 -- Таблица для просмотра профиля
@@ -1188,17 +1200,19 @@ CREATE TABLE user_profiles (
 CREATE TABLE news_feed (
     feed_id UUID,
     user_id UUID,
-    user_name TEXT,  -- Дублируем из user_profiles
+    user_name TEXT,  -- Дублируем из user_profiles для отображения имени пользователя без отдельных запросов к user_profiles
     post_content TEXT,
     created_at TIMESTAMP,
     PRIMARY KEY (feed_id, created_at)
 );
 ```
 
+
+
 #### 3. Composite Partition Key (распределение нагрузки):
 
-Composite Partition Key с bucket — это искусственно добавляемое поле в partition key для распределения "горячих" данных по разным узлам кластера, 
-чтобы избежать перегрузки одного узла при интенсивной записи.
+> Composite Partition Key с bucket — это искусственно добавляемое поле в partition key для распределения "горячих" данных 
+> по разным узлам кластера, чтобы избежать перегрузки одного узла при интенсивной записи.
 
 ```sql
 CREATE TABLE sensor_data (
@@ -1216,23 +1230,24 @@ WHERE sensor_id = ? AND bucket IN (0, 1, 2, 3, 4);
 
 #### 4. Time-Series Data (временные ряды):
 
-Паттерн Time-Series Data — это организация хранения событий во времени, где данные партиционируются по временным интервалам для контроля размера, 
-а сортируются по убыванию времени для эффективного получения самых новых записей.
+> Паттерн Time-Series Data — это организация хранения событий во времени, где данные партиционируются по временным интервалам 
+> для контроля размера, а сортируются по убыванию времени для эффективного получения самых новых записей.
 
 ```sql
 CREATE TABLE metrics (
     metric_name TEXT,
-    bucket_date DATE,
+    bucket_date DATE, -- Партиционируем по дате 
     timestamp TIMESTAMP,
     value DOUBLE,
-    PRIMARY KEY ((metric_name, bucket_date), timestamp)
+    PRIMARY KEY ((metric_name, bucket_date), timestamp) -- Добавляем дату к PRIMARY KEY
 ) WITH CLUSTERING ORDER BY (timestamp DESC);
 ```
 
 #### 5. Many-to-Many через отдельные таблицы:
 
-Паттерн Many-to-Many через отдельные таблицы — это создание двух денормализованных таблиц связей, 
-каждая из которых оптимизирована для эффективного запроса в одном направлении: `user_groups` для получения всех групп пользователя и `group_users` для получения всех участников группы.
+> Паттерн Many-to-Many через отдельные таблицы — это создание двух денормализованных таблиц связей, каждая из которых 
+> оптимизирована для эффективного запроса в одном направлении: `user_groups` для получения всех групп пользователя и 
+> `group_users` для получения всех участников группы.
 
 ```sql
 -- Пользователи
@@ -1287,8 +1302,8 @@ CREATE INDEX ON users(country);
 
 ### Materialized Views:
 
-Materialized View — это автоматически синхронизируемая денормализованная копия таблицы с альтернативным первичным ключом, 
-обеспечивающая эффективные запросы к данным по разным измерениям за счёт дополнительной нагрузки на запись.
+> Materialized View — это автоматически синхронизируемая денормализованная копия таблицы с альтернативным первичным ключом, 
+> обеспечивающая эффективные запросы к данным по разным измерениям за счёт дополнительной нагрузки на запись.
 
 ```sql
 CREATE MATERIALIZED VIEW users_by_email AS
@@ -1296,7 +1311,50 @@ SELECT user_id, name, email, age
 FROM users
 WHERE email IS NOT NULL AND user_id IS NOT NULL
 PRIMARY KEY (email, user_id);
+
+-- Этот запрос идёт в MATERIALIZED VIEW users_by_email
+-- Он использует НОВЫЙ ПЕРВИЧНЫЙ КЛЮЧ, где email на первом месте (быстро!)
+SELECT * FROM users_by_email WHERE email = 'alex@example.com';
+
+-- Тоже допустимо (email + user_id)
+SELECT * FROM users_by_email
+WHERE email = 'alex@example.com'
+  AND user_id = 123e4567-e89b-12d3-a456-426614174000;
+
+-- А ВОТ ЭТО ЗАПРЕЩЕНО (нет email в WHERE):
+SELECT * FROM users_by_email WHERE user_id = 123e4567-e89b-12d3-a456-426614174000;
 ```
+
+### Зачем user_id в PRIMARY KEY View:
+
+На первый взгляд кажется, что `PRIMARY KEY (email)` было бы достаточно. Но `user_id` там нужен по двум критическим причинам:
+
+### 1. Гарантия уникальности
+  
+Что будет, если создать View с `PRIMARY KEY (email)`, а два разных пользователя (с разными `user_id`) укажут одинаковый email?
+
+```text
+Пользователь 1: user_id = UUID-AAAA, email = "alex@example.com"
+Пользователь 2: user_id = UUID-BBBB, email = "alex@example.com"
+Если ключ — только email, вторая вставка в View просто перезапишет первую (Last Write Wins). 
+Вы потеряете данные одного из пользователей.
+```
+
+С ключом `PRIMARY KEY (email, user_id)` обе записи будут существовать как отдельные строки в одной партиции. 
+
+При запросе `WHERE email = 'alex@example.com'` вы получите две строки, и приложение сможет разобраться.
+
+### 2. Cassandra требует этого
+   
+Технически, `Partition Key` в Materialized View обязан содержать все колонки первичного ключа исходной таблицы. 
+
+Исходный ключ `users` — это `user_id`, поэтому он обязан присутствовать в первичном ключе View (как часть Clustering Key).
+
+Без этого Cassandra не смогла бы гарантировать однозначное сопоставление строк View со строками исходной таблицы при обновлениях и удалениях.
+
+### Итог: 
+
+> `user_id` в ключе View — это защита от коллизий данных и требование архитектуры самой Cassandra.
 
 **Ограничения:**
 
@@ -1418,7 +1476,7 @@ import com.datastax.oss.driver.api.core.servererrors.*;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 
 try {
-session.execute(statement);
+    session.execute(statement);
 } catch (NoHostAvailableException e) {
     // Ни один узел не доступен
     logger.error("No Cassandra nodes available", e);
@@ -1568,7 +1626,7 @@ User found = userMapper.get(userId);      // SELECT
 userMapper.delete(userId);                // DELETE
 
 // 3. Если нужен Statement (для транзакций или TTL):
-Statement stmt = userMapper.saveQuery(user).setIdempotent(true);
+Statement stmt = userMapper.saveQuery(user).setIdempotent(true); // это подсказка драйверу Cassandra, что данный запрос идемпотентен
 session.execute(stmt);
 ```
 
@@ -1665,7 +1723,8 @@ CqlSession session = CqlSession.builder()
 
 #### RBAC (Role-Based Access Control):
 
-Гранты (GRANT) — это разрешения (права доступа), которые выдаются ролям на выполнение определенных операций с объектами базы данных.
+> Гранты (GRANT) — это разрешения (права доступа), которые выдаются ролям на выполнение определенных операций 
+> с объектами базы данных.
 
 Основные типы грантов в Cassandra:
 
@@ -1686,7 +1745,7 @@ CREATE ROLE app_user WITH PASSWORD = 'secret' AND LOGIN = true;
 Уровни объектов:
 
 ```sql
--- На уровне ключейпейса
+-- На уровне пространства ключей
 GRANT SELECT ON KEYSPACE myapp TO app_user;
 
 -- На уровне конкретной таблицы
@@ -1758,13 +1817,5 @@ nodetool status
 -- Информация об узле
 nodetool info
 ```
-
-### Полезные ссылки
-
-- Официальная документация: https://cassandra.apache.org/doc/latest/
-- DataStax Driver Docs: https://docs.datastax.com/en/developer/java-driver/
-- CQL Reference: https://cassandra.apache.org/doc/latest/cql/index.html
-- GitHub драйвера: https://github.com/datastax/java-driver
-- Cassandra Best Practices: https://cassandra.apache.org/doc/latest/cassandra/getting_started/best_practices.html
 
 ---
