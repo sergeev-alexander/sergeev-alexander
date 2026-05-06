@@ -200,11 +200,17 @@ src/
 - **`@Path`** — задаёт динамическую часть URL, поддерживает плейсхолдеры `{param}`.
 - **`@Query`** — добавляет параметры в строку запроса (`?key=value&...`).
 - **`@Header`** — инжектит заголовки в конкретный запрос или класс.
+- **`@Timeout`** — переопределение таймаутов для конкретного запроса.
+- **`@ContentType`** — принудительно задаёт Content-Type (обычно определяется автоматически по контексту).
+- **`@Form`** — помечает параметры как поля формы (application/x-www-form-urlencoded). Можно вешать на метод (флаг) и на параметры (имя поля).
 - **`@Body`** — определяет тело запроса. Поддерживает:
   - Прямую передачу объекта (автосериализация в JSON): `@Body UserCreateRequest newUser`
   - Сырую строку: `@Body String rawJson` ← "{\"name\": \"Ivan\"}"
   - Шаблоны с плейсхолдерами: `@Body("{\"name\": \"{userName}\", \"email\": \"{userEmail}\", \"role\": \"{role}\"}")`
   - Файлы для multipart-запросов: `@Body File image`
+- **`@Multipart`** — флаг на методе, указывающий, что запрос будет multipart (автоматически выставляет Content-Type: multipart/form-data с boundary).
+  - `@FilePart` — бинарная часть multipart-запроса (файл).
+  - `@Part` — текстовая часть multipart-запроса.
 
 ### Пример конфигурации интерфейса
 
@@ -399,7 +405,7 @@ public interface FileApi {
     @Form
     // @Form({"username", "password"}) // ← принудительный порядок
     Response<AuthResult> loginForm(@Form("username") String user, @Form("password") String pass);
-    // Если (@Form String user, @Form String pass) -> если имена полей не указывать, то они беруться из параметров -> user, pass
+    // (@Form String user, @Form String pass) -> если имена полей не указывать, то они беруться из параметров -> user, pass
 
     // Multipart-запрос для загрузки файла с метаданными
     // JDI Dark автоматически формирует boundary и заголовок Content-Type
@@ -449,3 +455,112 @@ public interface AnalyticsApi {
   или используя Bean Validation (`@NotNull`), если проект интегрирован с Jakarta Validation
 
 ---
+
+# 5. Данные и сериализация
+
+> JDI Dark берёт на себя преобразование Java-объектов в HTTP-пейлоады и обратно, минимизируя ручной парсинг.
+> 
+> Фреймворк делегирует сериализацию подключённым библиотекам (Jackson или Gson) и предоставляет хуки для кастомной логики.
+
+## Автоматический маппинг JSON ↔ POJO
+
+- При передаче POJO в аннотации `@Body` фреймворк вызывает `ObjectMapper` для конвертации объекта в JSON-строку.
+- При получении `Response<T>` тело ответа автоматически десериализуется в указанный дженерик-тип.
+- Поддержка аннотаций Jackson/Gson позволяет гибко управлять именами полей, игнорированием null-значений и форматами дат.
+
+```java
+// POJO для тела запроса/ответа
+public class OrderPayload {
+
+    // @JsonProperty сопоставляет Java-поле с JSON-ключом, если они различаются
+    // Это критично при работе с API, использующими snake_case
+    @JsonProperty("order_id")
+    private String id;
+
+    // Стандартное маппирование без аннотаций работает camelCase ↔ camelCase
+    private String status;
+
+    // @JsonIgnore исключает поле из сериализации/десериализации
+    // Поле остаётся в памяти для тестовой логики, но не уходит в сеть
+    @JsonIgnore
+    private String internalDebugId;
+
+    // @JsonFormat задаёт паттерн для дат, что критично для совместимости с legacy-API
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    private LocalDateTime createdAt;
+
+    // геттеры/сеттеры
+}
+```
+
+## Обход автоматической сериализации
+
+- Иногда сервер требует XML, CSV, сырой JSON с нестандартной структурой или GraphQL-запрос.
+- JDI Dark позволяет передавать `String`, `byte[]` или `File` напрямую, отключая POJO-конвертер.
+
+```java
+@Service
+@Endpoint("/api")
+public interface RawDataApi {
+
+    // Отправка сырого JSON-тела как String
+    // Content-Type можно задать явно через @Header или оставить дефолтным
+    @POST
+    @Path("/graphql")
+    @Header("Content-Type", "application/json")
+    Response<GraphQlResponse> sendRawGraphql(@Body String graphqlPayload);
+
+    // Отправка XML-строки с явным указанием MIME-типа
+    @POST
+    @Path("/import/xml")
+    @Header("Content-Type", "application/xml")
+    Response<ImportStatus> uploadXml(@Body String xmlContent);
+
+    // Загрузка бинарного файла (byte[]) без сериализации в текст
+    // Фреймворк автоматически выставит Content-Length и application/octet-stream
+    @PUT
+    @Path("/backup/{name}")
+    Response<BackupMeta> uploadBinary(@Path("name") String filename, @Body byte[] data);
+}
+```
+
+## Кастомные сериализаторы и мапперы
+
+- Если стандартный Jackson не справляется с полиморфными схемами, вложенными массивами или кастомными форматами, 
+  можно подключить свой маппер.
+- JDI Dark поддерживает регистрацию `ObjectMapper` через `JDISettings` или использование утилиты `JsonUtils` для ручного контроля.
+
+```java
+// Конфигурация кастомного ObjectMapper на старте тестового сьюта
+public class SerializationConfig {
+    
+    static {
+        // Создаём экземпляр маппера с нужными фичами
+        ObjectMapper customMapper = new ObjectMapper()
+            // Включаем поддержку Java 8 Date/Time API (LocalDateTime, Instant и т.д.)
+            .registerModule(new JavaTimeModule())
+            // Включить форматирование для читаемости логов (только локально)
+            .enable(SerializationFeature.INDENT_OUTPUT)
+            // Игнорировать неизвестные поля, чтобы тесты не падали при расширении API
+            .disable(SerializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            // Принудительно сериализовать null-поля как "null" в JSON
+            .enable(SerializationFeature.WRITE_NULL_MAP_VALUES);
+
+        // Регистрируем маппер в глобальных настройках JDI Dark
+        // Все последующие @Body и Response<T> будут использовать его
+        JDISettings.settings().setObjectMapper(customMapper);
+    }
+}
+```
+
+## Best Practices
+
+- Всегда используйте POJO для сложных JSON-структур, чтобы получить compile-time проверку типов и автодополнение в IDE
+- Для полей, которые могут отсутствовать в ответе сервера, используйте `Optional<T>` или примитивы с дефолтными значениями, 
+  чтобы избежать `NullPointerException` при десериализации
+- Выносите `@JsonFormat` и кастомные десериализаторы в отдельные DTO-пакеты, не смешивайте их с тестовой логикой
+- При работе с большими файлами (>50MB) передавайте `InputStream` или используйте `@Multipart` с чанками, чтобы не переполнять heap
+  `@FilePart(value = "file", filename = "backup.zip") InputStream fileStream`
+- Включайте `FAIL_ON_UNKNOWN_PROPERTIES = false` только на время миграции или для черновиков API; в стабильных контрактах 
+  это скрывает ошибки версионирования
+- Логируйте сырые пейлоады только в `DEBUG`-режиме; в CI-средах отключайте `INDENT_OUTPUT`, чтобы сократить размер отчётов Allure
