@@ -200,6 +200,11 @@ src/
 - **`@Path`** — задаёт динамическую часть URL, поддерживает плейсхолдеры `{param}`.
 - **`@Query`** — добавляет параметры в строку запроса (`?key=value&...`).
 - **`@Header`** — инжектит заголовки в конкретный запрос или класс.
+- **`@Body`** — определяет тело запроса. Поддерживает:
+  - Прямую передачу объекта (автосериализация в JSON): `@Body UserCreateRequest newUser`
+  - Сырую строку: `@Body String rawJson` ← "{\"name\": \"Ivan\"}"
+  - Шаблоны с плейсхолдерами: `@Body("{\"name\": \"{userName}\", \"email\": \"{userEmail}\", \"role\": \"{role}\"}")`
+  - Файлы для multipart-запросов: `@Body File image`
 
 ### Пример конфигурации интерфейса
 
@@ -314,5 +319,133 @@ System.out.println("Location: " + res.getHeader("Location"));
 - Используйте @Path с плейсхолдерами вместо ручной сборки URL — это даёт проверку на этапе инициализации фреймворка и защищает от опечаток в путях.
 - Избегайте хардкода заголовков в `@Header` — передавайте их через параметры методов для поддержки разных окружений
 - Если требуется сложная модификация запроса перед отправкой, используйте `JDIHttpClient.call()` напрямую или кастомные интерцепторы
+
+---
+
+# 4. HTTP-методы и параметры
+
+> Раздел охватывает поддержку всех стандартных HTTP-методов и способы передачи параметров в JDI Dark.
+>
+> Фреймворк унифицирует работу с методами через аннотации, автоматически обрабатывая маршрутизацию, 
+> кодирование и формирование тела запроса.
+
+## Поддерживаемые HTTP-методы
+
+JDI Dark предоставляет аннотации-маркеры для каждого метода, что позволяет декларативно описывать контракты API 
+без ручного конструирования `HttpRequest`.
+
+- `@GET` — извлечение данных, параметры передаются только через URL или заголовки
+- `@POST` — создание ресурсов, поддерживает тело в формате JSON, Form или Multipart
+- `@PUT` — полная замена ресурса, требует передачи полного тела запроса
+- `@PATCH` — частичное обновление, отправляются только изменённые поля
+- `@DELETE` — удаление ресурса, может принимать `@Path` или `@Query` для идентификации
+
+### Пример декларативного интерфейса
+
+```java
+// Аннотация @Service активирует сканирование интерфейса JDI Dark
+@Service
+public interface OrderApi {
+
+    // Базовый путь для всех методов вложенного класса
+    // Относительно BASE_URL клиента полный путь: /api/v2/orders
+    @Endpoint("/orders")
+    public class Orders {
+
+        // GET-запрос без тела, возвращает список заказов
+        // @Query автоматически кодирует параметры в URL: /orders?status=active&page=1
+        @GET
+        @Query({"status", "page"})
+        Response<List<OrderDto>> getOrders(@Query("status") String status, @Query("page") int page);
+
+        // POST-запрос с JSON-телом
+        // Фреймворк автоматически сериализует объект CreateOrderRequest через Jackson
+        @POST
+        Response<OrderDto> createOrder(@Body CreateOrderRequest payload);
+
+        // PATCH-запрос для частичного обновления
+        // Передаётся только DTO с изменёнными полями, Content-Type: application/json
+        @PATCH
+        @Path("/{orderId}")
+        Response<OrderDto> updateOrder(@Path("orderId") String id, @Body UpdateOrderRequest patchData);
+
+        // DELETE-запрос с динамическим путём
+        // Возвращает статус 204 No Content, тело ответа игнорируется
+        @DELETE
+        @Path("/{orderId}")
+        Response<Void> deleteOrder(@Path("orderId") String id);
+    }
+}
+```
+
+## Работа с параметрами запроса
+
+- **Path-параметры** — подставляются в плейсхолдеры `{param}` внутри URL
+- **Query-параметры** — добавляются после `?` с автоматическим URL-кодированием
+- **Form-параметры** — отправляются как `application/x-www-form-urlencoded`
+- **Multipart-параметры** — поддерживают загрузку файлов и смешанные типы данных
+
+### Form и Multipart примеры
+
+```java
+@Service
+@Endpoint("/api")
+public interface FileApi {
+
+    // Отправка данных формы: Content-Type устанавливается автоматически
+    // @Form аннотация принимает массив строк-ключей или маппит имя параметра
+    @POST
+    @Path("/login")
+    @Form
+    // @Form({"username", "password"}) // ← принудительный порядок
+    Response<AuthResult> loginForm(@Form("username") String user, @Form("password") String pass);
+    // Если (@Form String user, @Form String pass) -> если имена полей не указывать, то они беруться из параметров -> user, pass
+
+    // Multipart-запрос для загрузки файла с метаданными
+    // JDI Dark автоматически формирует boundary и заголовок Content-Type
+    @POST
+    @Path("/documents")
+    @Multipart
+    Response<DocumentMeta> uploadDocument(
+        // @Part для обычного текстового поля внутри multipart
+        @Part("category") String category,
+        // @FilePart для бинарных данных, указывается имя файла и MIME-тип
+        @FilePart(value = "file", filename = "report.pdf", contentType = "application/pdf") File reportFile
+    );
+}
+```
+
+## Комбинирование параметров и тело запроса
+
+В сложных сценариях допустимо комбинировать `@Path`, `@Query` и `@Body` в одном методе.
+Порядок следования аргументов в Java-методе не влияет на порядок их применения в HTTP-запросе.
+
+```java
+@Service
+@Endpoint("/analytics")
+public interface AnalyticsApi {
+
+    // Сложный POST-запрос: динамический путь + фильтры в URL + тело запроса
+    @POST
+    @Path("/{region}/export")
+    @Query({"format", "dateRange"})
+    Response<ExportTask> exportReport(
+        @Path("region") String region,           // Подставляется в URL: /analytics/eu-west-1/export
+        @Query("format") String format,          // Добавляется в строку: ?format=csv
+        @Query("dateRange") String dateRange,    // Добавляется в строку: &dateRange=2026-01-01_2026-05-07
+        @Body ExportFilters filters              // Сериализуется в JSON-тело запроса
+    );
+}
+```
+
+## Best Practices
+
+- Используйте `@Path` для обязательных идентификаторов ресурса, а `@Query` — для фильтрации, пагинации или сортировки
+- Для `@Multipart` всегда указывайте `contentType` в `@FilePart`, чтобы сервер корректно интерпретировал бинарные данные
+- Избегайте передачи чувствительных данных через `@Query` — URL логируются прокси-серверами и попадают в историю браузера/CI-логов
+- При работе с `@Form` используйте кодировку UTF-8 по умолчанию, но проверяйте поддержку на стороне legacy-сервисов
+- Не смешивайте `@Body` и `@Form`/`@Multipart` в одном запросе — это нарушает спецификацию HTTP и может привести к 400 Bad Request
+- Валидируйте обязательность параметров на этапе компиляции, добавляя проверки `Objects.requireNonNull()` 
+  или используя Bean Validation (`@NotNull`), если проект интегрирован с Jakarta Validation
 
 ---
