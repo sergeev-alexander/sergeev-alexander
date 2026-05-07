@@ -188,143 +188,361 @@ src/
 
 # 3. Основные абстракции
 
-> JDI Dark использует аннотации для декларативного описания HTTP-запросов, автоматически преобразуя Java-интерфейсы
-> в готовые HTTP-вызовы.
+> JDI Dark использует аннотации для декларативного описания HTTP-запросов, автоматически преобразуя Java-интерфейсы в готовые HTTP-вызовы.
 >
-> Этот подход отделяет контракт API от тестовой логики, упрощает рефакторинг и снижает дублирование кода.
+> Этот подход отделяет контракт API от тестовой логики, упрощает рефакторинг, обеспечивает типобезопасность и снижает дублирование кода.
 
 ## Декларативные аннотации
 
-- **`@Service`** — базовая аннотация для интерфейса, указывающая, что данный тип содержит декларативные HTTP-вызовы.
-- **`@Endpoint`** — определяет конкретный REST-ресурс и базовый путь относительно URL клиента.
-- **`@Path`** — задаёт динамическую часть URL, поддерживает плейсхолдеры `{param}`.
-- **`@Query`** — добавляет параметры в строку запроса (`?key=value&...`).
-- **`@Header`** — инжектит заголовки в конкретный запрос или класс.
-- **`@Timeout`** — переопределение таймаутов для конкретного запроса.
-- **`@ContentType`** — принудительно задаёт Content-Type (обычно определяется автоматически по контексту).
-- **`@Form`** — помечает параметры как поля формы (application/x-www-form-urlencoded). Можно вешать на метод (флаг) и на параметры (имя поля).
-- **`@Body`** — определяет тело запроса. Поддерживает:
-    - Прямую передачу объекта (автосериализация в JSON): `@Body UserCreateRequest newUser`
-    - Сырую строку: `@Body String rawJson` ← "{\"name\": \"Ivan\"}"
-    - Шаблоны с плейсхолдерами: `@Body("{\"name\": \"{userName}\", \"email\": \"{userEmail}\", \"role\": \"{role}\"}")`
-    - Файлы для multipart-запросов: `@Body File image`
-- **`@Multipart`** — флаг на методе, указывающий, что запрос будет multipart (автоматически выставляет Content-Type: multipart/form-data с boundary).
-    - `@FilePart` — бинарная часть multipart-запроса (файл).
-    - `@Part` — текстовая часть multipart-запроса.
+Аннотации в JDI Dark делятся на две категории: **классового уровня** (применяются ко всему сервису) 
+и **методного уровня** (переопределяют или дополняют настройки для конкретного эндпоинта).
 
-### Пример конфигурации интерфейса
+## Аннотации классового уровня
+
+Применяются к интерфейсу или классу, помеченному `@Service`. Задают глобальную конфигурацию для всех запросов сервиса.
+
+- `@Service` — базовая аннотация, регистрирующая тип как источник декларативных эндпоинтов. Фреймворк сканирует только помеченные классы при инициализации.
+  - `value` / `name` — логическое имя сервиса для логирования и отладки
+  - `url` — переопределение базового URL (если не используется `@ServiceDomain`)
+  - `headers` — массив `@Header`, применяемых ко всем запросам сервиса
+  - `connectionTimeout` / `readTimeout` — таймауты для этого сервиса
+
+- `@ServiceDomain` — задаёт базовый URI сервиса. 
+
+    Поддерживает подстановку значений из `test.properties` через синтаксис `${key}`. 
+    
+    Позволяет легко переключаться между окружениями (dev/stage/prod) без изменения кода.
+    ```java
+    @ServiceDomain("${api.base}") // из test.properties: api.base=https://api.example.com
+    ```
+- `@QueryParameter` — декларативно добавляет query-параметр ко всем запросам сервиса. 
+
+    Можно указывать несколько раз или использовать контейнер `@QueryParameters`.
+    ```java
+    @QueryParameter(name = "api_version", value = "v2") // добавит ?api_version=v2 ко всем запросам
+    @QueryParameters({
+        @QueryParameter(name = "locale", value = "ru"),
+        @QueryParameter(name = "timezone", value = "UTC+3")
+    })
+    ```
+
+- `@Header` (на классе) — глобальный заголовок для всех методов сервиса. 
+
+    Удобно для `Accept`, `X-Client-ID`, `User-Agent`.
+    ```java
+    @Header(name = "Accept", value = "application/json")
+    @Header(name = "X-Client", value = "mobile-app-v2")
+    ```
+
+- `@Cookie` — добавляет cookie ко всем запросам сервиса. Значение может резолвиться из переменных окружения.
+    ```java
+    @Cookie(name = "session_id", value = "${SESSION_ID}")
+    ```
+
+---
+
+## Аннотации методного уровня
+
+Применяются к методам внутри `@Endpoint`-класса. Переопределяют или дополняют настройки классового уровня.
+
+- `@Endpoint` — определяет базовый путь ресурса относительно `@ServiceDomain`. Все методы внутри класса наследуют этот путь.
+    ```java
+    @Endpoint("/users") // базовый путь: /users
+    ```
+- `@Path` — задаёт динамическую часть URL с поддержкой плейсхолдеров `{param}`. Значение подставляется из аргумента метода с аннотацией `@Path("param")`.
+    ```java
+    @Path("/{userId}/orders") // при userId=42 → /users/42/orders
+    ```
+- `@Query` — добавляет параметр в строку запроса. Поддерживает плейсхолдеры и резолвинг из конфига.
+    ```java
+    @Query("details") // ?details={значение_аргумента}
+    @Query("api_key=${API_KEY}") // ?api_key=значение_из_переменной_окружения
+    ```
+- `@QueryParameter` (на методе) — локальное дополнение или переопределение классовых query-параметров.
+    ```java
+    @QueryParameter(name = "filter", value = "active") // добавит ?filter=active только к этому методу
+    ```
+- `@Header` (на методе) — локальный заголовок, имеет приоритет над классовым. Позволяет передавать кастомные токены или флаги трассировки.
+    ```java
+    @Header(name = "Authorization", value = "Bearer ${auth_token}")
+    ```
+- `@Form` — флаг на методе, указывающий, что запрос использует `application/x-www-form-urlencoded`. Параметры метода с `@FormParameter` будут сериализованы в форму.
+- `@FormParameter` — помечает аргумент метода как поле формы. Имя поля задаётся в `name`.
+    ```java
+    @FormParameter(name = "username") String login
+    ```
+- `@FormParameters` — контейнер для группировки нескольких форм-параметров (альтернатива повторению аннотации).
+- `@Body` — определяет тело запроса. Поддерживает четыре режима:
+  - **POJO-объект** (автосериализация в JSON через Jackson/Gson):
+      ```java
+      @Body UserCreateRequest newUser // → {"name":"Alex","email":"a@b.com"}
+      ```
+  - **Сырая строка** (для кастомного JSON или XML):
+      ```java
+      @Body String rawPayload // ← "{\"name\":\"Ivan\"}"
+      ```
+  - **Шаблон с плейсхолдерами** (значения подставляются из аргументов метода):
+      ```java
+      @Body("{\"name\": \"{userName}\", \"email\": \"{userEmail}\"}")
+      // при вызове: create("{\"name\": \"{userName}\"}", "Alex", "a@b.com")
+      ```
+  - **Файл** (для `multipart` или бинарных запросов):
+      ```java
+      @Body File image // отправляется как application/octet-stream или multipart
+      ```
+- `@Multipart` — флаг на методе, указывающий, что запрос будет `multipart/form-data`. Автоматически выставляет `Content-Type` с `boundary`.
+  - `@FilePart` — бинарная часть multipart-запроса (файл). Требует указания `controlName` и `fileName`.
+      ```java
+      @FilePart(controlName = "avatar", fileName = "photo.jpg") File image
+      ```
+  - `@Part` — текстовая часть multipart-запроса (метаданные, поля формы).
+      ```java
+      @Part(name = "description") String desc
+      ```
+- `@Timeout` — переопределение таймаутов для конкретного запроса (в миллисекундах).
+    ```java
+    @Timeout(connection = 5000, read = 30000)
+    ```
+- `@ContentType` — принудительно задаёт `Content-Type` (обычно определяется автоматически по контексту: `@Body POJO` → `application/json`).
+    ```java
+    @ContentType("application/xml") // для SOAP или legacy-API
+    ```
+- `@RetryOnFailure` — декларативная настройка повторных попыток при сетевых ошибках или определённых статус-кодах.
+    ```java
+    @RetryOnFailure(maxAttempts = 3, statusCodes = {502, 503, 504})
+    ```
+
+---
+
+## Пример конфигурации интерфейса
 
 ```java
-// Аннотация @Service помечает интерфейс как источник декларативных эндпоинтов
-// Фреймворк сканирует только помеченные классы/интерфейсы при инициализации теста
+// Файл: src/test/java/com/project/api/endpoints/UserApi.java
+
+// @Service регистрирует интерфейс как источник эндпоинтов
+// @ServiceDomain подставляет базовый URL из test.properties (${api.users})
+// @QueryParameter добавляет глобальный параметр api_version=v2 ко всем запросам
+// @Header задаёт глобальный Accept-заголовок
 @Service
-/*
-Может содержать параметры:
-value/name — логическое имя сервиса для логирования и отладки
-url — переопределение базового URL для этого сервиса
-headers — массив @Header, применяемых ко всем запросам сервиса
-connectionTimeout/readTimeout — таймауты для этого сервиса
-*/
+@ServiceDomain("${api.users}")
+@QueryParameter(name = "api_version", value = "v2")
+@Header(name = "Accept", value = "application/json")
 public interface UserApi {
 
-    // @Endpoint определяет базовый путь для всех методов внутри вложенного класса
-    // Относительно BASE_URL, указанного в клиенте, полный путь будет: /v1/users
+    // Все методы внутри Users наследуют базовый путь /users из @Endpoint
     @Endpoint("/users")
     public class Users {
 
-        // @GET указывает HTTP-метод. Метод возвращает объект Response или конкретный POJO
-        // @Path подставляет значение аргумента userId в URL: /v1/users/{userId}
-        // @Query добавляет параметр фильтрации: /v1/users/{userId}?details=full
+        // GET /users/{id}?api_version=v2&details=full
+        // @Path подставляет userId в URL
+        // @Query добавляет параметр details из аргумента метода
         @GET
         @Path("/{userId}")
         @Query("details")
-        Response<UserDetails> getUserById(
-                @Path("userId") String id,
-                @Query("details") String expandType
+        Response<UserProfile> getUserById(
+                @Path("userId") String id,        // подставляется в {userId}
+                @Query("details") String expand   // добавляется как ?details=full
         );
 
-        // @Header на уровне метода переопределяет глобальные заголовки только для этого вызова
-        // Позволяет передавать кастомные токены или флаги трассировки без изменения глобальных настроек
-        @GET
-        @Path("/{userId}/history")
-        @Header("Accept-Language")
-        Response<List<UserEvent>> getUserHistory(
-                @Path("userId") String id,
-                @Header("Accept-Language") String lang
+        // POST /users?api_version=v2&source=mobile
+        // @Body сериализует POJO в JSON
+        // @Header переопределяет Authorization только для этого запроса
+        @POST
+        @QueryParameter(name = "source", value = "mobile")
+        @Header(name = "Authorization", value = "Bearer ${auth_token}")
+        Response<UserProfile> createUser(
+                @Body UserCreateRequest payload   // автосериализация в JSON
         );
+
+        // PUT /users/{id}/avatar — загрузка файла через multipart
+        // @Multipart выставляет Content-Type: multipart/form-data
+        // @FilePart описывает бинарную часть, @Part — текстовые метаданные
+        @PUT
+        @Path("/{userId}/avatar")
+        @Multipart
+        Response<UploadResult> uploadAvatar(
+                @Path("userId") String id,
+                @FilePart(controlName = "file", fileName = "avatar.jpg") File image,
+                @Part(name = "description") String description
+        );
+
+        // DELETE /users/{id} с кастомным таймаутом и повторами при 502/503
+        @DELETE
+        @Path("/{userId}")
+        @Timeout(connection = 3000, read = 15000)
+        @RetryOnFailure(maxAttempts = 2, statusCodes = {502, 503})
+        Response<Void> deleteUser(@Path("userId") String id);
     }
 }
 ```
 
-Приоритеты заголовков (от низшего к высшему):
+---
 
-1. `JDISettings.settings().addDefaultHeader()` — глобальные для всех запросов
-2. `@Service(headers = {...})` — на уровне API-интерфейса
-3. `@Endpoint(value = "/path", headers = {...})` — на уровне ресурса
-4. `@Header` на методе — для конкретного запроса (наивысший приоритет)
+## Приоритеты и разрешение конфликтов
 
-Более специфичный уровень переопределяет значения с более общих уровней. Непересекающиеся заголовки объединяются.
+> JDI Dark разрешает конфликты конфигурации по принципу **наиболее специфичный переопределяет общий**. 
+> 
+> Непересекающиеся параметры объединяются.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│              ЦЕПОЧКА ПРИОРИТЕТОВ (от низшего к высшему)                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. ГЛОБАЛЬНЫЕ НАСТРОЙКИ (JDISettings)                                  │
+│     │                                                                   │
+│     └─► JDISettings.settings().addDefaultHeader("X-Global", "1")        │
+│         Применяется ко ВСЕМ запросам во всём проекте                    │
+│                                                                         │
+│  2. @Service (уровень интерфейса)                                       │
+│     │                                                                   │
+│     ├─► @Service(headers = {@Header("X-Service", "2")})                 │
+│     └─► Применяется ко всем методам внутри UserApi                      │
+│                                                                         │
+│  3. @ServiceDomain / @QueryParameter (классовый уровень)                │
+│     │                                                                   │
+│     ├─► @ServiceDomain("${api.base}")                                   │
+│     ├─► @QueryParameter(name="v", value="2")                            │
+│     └─► Применяется ко всем @Endpoint внутри интерфейса                 │
+│                                                                         │
+│  4. @Endpoint (уровень ресурса)                                         │
+│     │                                                                   │
+│     ├─► @Endpoint("/users") + @Header("X-Resource", "3")                │
+│     └─► Применяется ко всем методам внутри класса Users                 │
+│                                                                         │
+│  5. @Header / @QueryParameter / @Path (уровень метода) ← НАИВЫСШИЙ      │
+│     │                                                                   │
+│     ├─► @Header("Authorization", "Bearer ${token}")                     │
+│     ├─► @QueryParameter(name="debug", value="true")                     │
+│     └─► Переопределяет все предыдущие значения с тем же именем          │
+│                                                                         │
+│  ИТОГ:                                                                  │
+│  ┌─────────────────────────────────────────────────┐                    │
+│  │ Запрос: GET /users/42?v=2&debug=true            │                    │
+│  │ Headers:                                        │                    │
+│  │   X-Global: 1          ← из JDISettings         │                    │
+│  │   X-Service: 2         ← из @Service            │                    │
+│  │   X-Resource: 3        ← из @Endpoint           │                    │
+│  │   Authorization: Bearer xyz ← из @Header (метод)│                    │
+│  └─────────────────────────────────────────────────┘                    │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Ключевые правила:**
+
+- **Заголовки**: метод > ресурс > сервис > глобальные. При совпадении имён — переопределение, при разных — объединение.
+- **Query-параметры**: метод > класс. Дубликаты имён **не объединяются** — локальный параметр заменяет глобальный.
+- **Плейсхолдеры** `${key}` резолвятся в порядке: `System.getProperty()` → `test.properties` → переменные окружения.
+- **Таймауты**: `@Timeout` на методе переопределяет настройки из `@Service` и глобальные `JDISettings`.
+
+---
 
 ## Request и Response объекты
 
-- **`Request`** — обёртка над `HttpRequest.Builder`, содержит тело, заголовки, параметры и метаданные перед отправкой.
-- **`Response<T>`** — типобезопасная обёртка над `HttpResponse`, хранит статус-код, заголовки, тело и время выполнения.
-- Поддержка дженериков позволяет автоматически десериализовать JSON в POJO через Jackson/Gson.
+- `Request` — иммутабельная обёртка над `HttpRequest.Builder`, содержащая тело, заголовки, параметры и метаданные перед отправкой. 
+
+  Создаётся автоматически при декларативном вызове или вручную через `Request.builder()`.
+
+- `Response<T>` — типобезопасная обёртка над `HttpResponse`, хранящая статус-код, заголовки, распарсенное тело и метрики выполнения.
+- Поддержка дженериков позволяет автоматически десериализовать JSON в POJO через подключённый сериализатор (Jackson по умолчанию, Gson при настройке).
 
 ### Работа с типами ответов
 
 ```java
-// Response<T> автоматически парсит тело ответа в указанный тип T
-// Если T = String, возвращается сырой JSON или текст
-// Если T = POJO, вызывается десериализатор из подключённой библиотеки
-Response<UserProfile> profileResponse = userApi.getUserById("123", "full");
+// Response<T> автоматически парсит тело ответа в указанный тип при вызове .getBody()
+// Если T = String — возвращается сырой JSON/текст без десериализации
+// Если T = POJO — вызывается десериализатор из подключённой библиотеки
+Response<UserProfile> profileResponse = userApi.Users.getUserById("123", "full");
 
-// Получение статуса, заголовков и распарсенного тела
-int status = profileResponse.getCode();
-String contentType = profileResponse.getHeader("Content-Type");
-UserProfile data = profileResponse.getBody();
+// Получение метаданных ответа
+int statusCode = profileResponse.getCode();                     // 200
+String contentType = profileResponse.getHeader("Content-Type"); // application/json
+long executionTime = profileResponse.getTime();                 // время выполнения в мс
 
-// Ручная обработка сырого тела (fallback при сложных схемах или частичном JSON)
-String rawJson = profileResponse.getRawBody();
+// Получение распарсенного тела (типобезопасно)
+UserProfile userProfile = profileResponse.getBody();            // готовый POJO
+String userName = userProfile.getName();                        // доступ к полям
+
+// Fallback: ручная обработка сырого тела (для сложных схем или частичного JSON)
+String rawJson = profileResponse.getRawBody();                  // "{\"id\":123,\"name\":\"Alex\"}"
+// Кастомная десериализация через утилиту проекта
 UserProfile customParsed = JsonUtils.fromJson(rawJson, UserProfile.class);
+
+// Проверка статуса через встроенные хелперы (читаемее, чем сравнение кодов)
+if (profileResponse.isSuccess()) {      // true для 200–299
+    // обработка успешного ответа
+}
+if (profileResponse.isCreated()) {      // true для 201
+    // обработка создания ресурса
+}
 ```
+
+---
 
 ## JDIHttpClient и низкоуровневый доступ
 
-- `JDIHttpClient` — центральный компонент, управляющий соединениями, таймаутами и пулом потоков.
-- При декларативном вызове `@Endpoint` фреймворк автоматически инстанциирует клиента, если он не передан явно.
-- Для кастомной логики можно работать с `JDIHttpClient` напрямую, минуя аннотации.
+- `JDIHttpClient` — центральный компонент фреймворка, управляющий пулом соединений, таймаутами, прокси и стратегиями повторных попыток.
+- При декларативном вызове `@Endpoint` фреймворк автоматически инстанциирует и кэширует клиента. Явная передача требуется только для кастомной логики.
+- Для динамических сценариев (генерация URL в рантайме, сложная модификация запроса) можно работать с `JDIHttpClient` напрямую, минуя аннотации.
 
 ### Прямой вызов через клиент
 
 ```java
-// Создание клиента с явной конфигурацией
-JDIHttpClient client = new JDIHttpClient("https://api.example.com");
-
-// Ручное формирование запроса без аннотаций (полезно для динамических URL)
-Request req = Request.builder()
-        .method("POST")
-        .path("/v1/orders")
-        .header("Content-Type", "application/json")
-        .body("{\"productId\": 42, \"quantity\": 2}")
+// Создание клиента с явной конфигурацией (альтернатива декларативной инициализации)
+JDIHttpClient client = new JDIHttpClient.Builder()
+        .baseUrl("https://api.example.com")                     // базовый домен
+        .connectionTimeout(5000)                                // таймаут соединения, мс
+        .readTimeout(30000)                                     // таймаут чтения, мс
+        .addDefaultHeader("X-Client", "test-runner")            // глобальный заголовок
         .build();
 
-// Отправка и получение ответа с указанием типа десериализации
-Response<String> res = client.call(req, String.class);
+// Ручное формирование запроса без аннотаций (полезно для динамических путей)
+Request req = Request.builder()
+        .method("POST")                                         // HTTP-метод
+        .path("/v1/orders")                                     // путь относительно baseUrl
+        .header("Content-Type", "application/json")             // заголовок
+        .header("X-Request-Id", UUID.randomUUID().toString())   // динамический заголовок
+        .body("{\"productId\": 42, \"quantity\": 2}")           // сырое тело (JSON-строка)
+        .queryParam("source", "mobile")                         // query-параметр
+        .build();
 
-// Извлечение метрик выполнения и заголовков ответа
-System.out.println("Status: " + res.getCode());
-        System.out.println("Time: " + res.getTime() + " ms");
-        System.out.println("Location: " + res.getHeader("Location"));
+// Отправка запроса с указанием типа десериализации ответа
+// Если указать String.class — тело вернётся как сырая строка
+// Если указать POJO.class — произойдёт автоматическая десериализация
+Response<OrderConfirmation> res = client.call(req, OrderConfirmation.class);
+
+// Извлечение метрик и данных ответа
+System.out.println("Status: " + res.getCode());                         // 201
+System.out.println("Execution time: " + res.getTime() + " ms");         // 245 ms
+System.out.println("Location header: " + res.getHeader("Location"));    // /v1/orders/789
+
+// Работа с распарсенным телом
+if (res.isSuccess()) {
+    OrderConfirmation order = res.getBody();
+    System.out.println("Order ID: " + order.getId());           // 789
+}
 ```
+
+---
 
 ## Best Practices
 
-- Выносите `@Endpoint`-интерфейсы в отдельный пакет `endpoints` и не смешивайте их с логикой тестов
-- Используйте `Response<T>` вместо `void` или `String`, чтобы сохранить типобезопасность и доступ к заголовкам
-- Используйте @Path с плейсхолдерами вместо ручной сборки URL — это даёт проверку на этапе инициализации фреймворка и защищает от опечаток в путях.
-- Избегайте хардкода заголовков в `@Header` — передавайте их через параметры методов для поддержки разных окружений
-- Если требуется сложная модификация запроса перед отправкой, используйте `JDIHttpClient.call()` напрямую или кастомные интерцепторы
+- **Выносите `@Endpoint`-интерфейсы в отдельный пакет** `com.project.api.endpoints` и не смешивайте их с логикой тестов — это упрощает навигацию и рефакторинг.
+- **Используйте `Response<T>` вместо `void` или `String`** — это сохраняет типобезопасность, даёт доступ к заголовкам и метрикам выполнения.
+- **Используйте `@Path` с плейсхолдерами** вместо ручной сборки строк `"/users/" + id` — фреймворк проверяет корректность путей на этапе инициализации и защищает от опечаток.
+- **Избегайте хардкода чувствительных значений** в `@Header` или `@QueryParameter` — передавайте токены и ключи через параметры методов или переменные окружения `${API_KEY}`.
+- **Для сложной модификации запроса** (динамические заголовки, условная логика) используйте `JDIHttpClient.call()` напрямую или кастомные интерцепторы, а не перегружайте аннотации.
+- **Группируйте связанные эндпоинты** во вложенные классы внутри `@Service` (как `Users`, `Orders`) — это улучшает структуру кода и автодополнение в IDE.
+- **Документируйте плейсхолдеры** в `@Body`-шаблонах через JavaDoc параметров метода — это помогает новым членам команды понимать, какие аргументы куда подставляются.
+
+### Антипаттерны
+
+- **Хардкод доменов** в `@ServiceDomain("http://...")` вместо `${api.base}` — усложняет переключение между окружениями и требует изменения кода при деплое.
+- **Дублирование `@QueryParameter`** на классе и методе с одинаковым именем — создаёт путаницу в приоритетах; используйте явное переопределение с комментарием.
+- **Использование `@Body String` для простых объектов** вместо POJO — отключает автосериализацию, увеличивает риск ошибок в ручном формате JSON.
+- **Игнорирование `@Timeout`** для долгих эндпоинтов — приводит к преждевременным `SocketTimeoutException` в CI-средах с ограниченной пропускной способностью.
+- **Смешивание `@Form` и `@Body`** в одном методе — вызывает конфликт `Content-Type`; выберите один способ передачи данных.
 
 ---
 
@@ -386,10 +604,10 @@ public interface OrderApi {
 
 ## Работа с параметрами запроса
 
-- **Path-параметры** — подставляются в плейсхолдеры `{param}` внутри URL
-- **Query-параметры** — добавляются после `?` с автоматическим URL-кодированием
-- **Form-параметры** — отправляются как `application/x-www-form-urlencoded`
-- **Multipart-параметры** — поддерживают загрузку файлов и смешанные типы данных
+- Path-параметры — подставляются в плейсхолдеры `{param}` внутри URL
+- Query-параметры — добавляются после `?` с автоматическим URL-кодированием
+- Form-параметры — отправляются как `application/x-www-form-urlencoded`
+- Multipart-параметры — поддерживают загрузку файлов и смешанные типы данных
 
 ### Form и Multipart примеры
 
@@ -621,7 +839,7 @@ public interface ProductApi {
                 @Header("X-Request-Id") String requestId  // ← значение из теста
         );
 
-        // Динамическая передача кастомных заголовков через Map 
+        // Или динамическая передача кастомных заголовков через Map 
         @POST
         Response<Product> create(
                 @Body Product newProduct,
@@ -760,7 +978,7 @@ public class ApiConfig {
 
 ---
 
-# 7. Валидация и Asserts
+## 7. Валидация и Asserts
 
 > Валидация ответов — критический этап API-тестирования. 
 > 
@@ -769,7 +987,7 @@ public class ApiConfig {
 > 
 > Подход ориентирован на читаемость, быстрый фидбэк и лёгкую отладку.
 
-## Проверка статус-кодов и заголовков
+### Проверка статус-кодов и заголовков
 
 JDI Dark оборачивает HTTP-ответ в объект `Response`, который содержит готовые методы для быстрой проверки статуса и 
 HTTP-заголовков без необходимости ручного парсинга.
@@ -813,7 +1031,7 @@ response.assertHeader("Server", containsString("nginx"))
 
 ---
 
-## Валидация тела ответа и JSONPath
+### Валидация тела ответа и JSONPath
 
 > JDI Dark предоставляет встроенный парсер JSON, работающий поверх стандартной библиотеки JSONPath. 
 >
@@ -862,11 +1080,12 @@ String token = response.body().get("$.auth.token");
 
 ---
 
-## Hamcrest-матчеры и кастомные ассерты
+### Hamcrest-матчеры и кастомные ассерты
 
 > JDI Dark полностью совместим с `org.hamcrest.Matchers`. 
 > 
-> Это даёт гибкость при построении сложных условий проверки. Кроме стандартных матчеров, фреймворк позволяет писать собственные `BaseMatcher` для бизнес-логики.
+> Это даёт гибкость при построении сложных условий проверки. 
+> Кроме стандартных матчеров, фреймворк позволяет писать собственные `BaseMatcher` для бизнес-логики.
 
 - `equalTo()`, `is()`, `not()` — базовое сравнение
 - `hasItem()`, `hasItems()` — проверка вхождения в коллекцию
@@ -917,7 +1136,7 @@ response.assertBody("$.reportDate", IsValidDateMatcher.isValidDate());
 
 ---
 
-## Логирование запросов и ответов
+### Логирование запросов и ответов
 
 > JDI Dark интегрирован с подсистемой логирования JDI Light. 
 > 
@@ -1001,7 +1220,7 @@ jdi.dark.log.body.limit=2048
 
 ---
 
-## Best Practices
+### Best Practices
 
 - Всегда используйте `assertStatusCode()` перед валидацией тела — это экономит ресурсы парсера и даёт чёткий фидбэк о сетевой ошибке
 - Группируйте проверки одного эндпоинта в один блок `assert`-вызовов для читаемости отчёта
