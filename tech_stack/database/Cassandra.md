@@ -133,7 +133,7 @@ This work is private property and is not licensed for copying, distribution, mod
 │  2. FLUSH                                                                   │
 │     Когда Memtable заполняется → сбрасывается на диск                       │
 │     │                                                                       │
-│     └─► SSTable #1 (immutable)                                             │
+│     └─► SSTable #1 (immutable)                                              │
 │         ┌──────────────────────────────────┐                                │
 │         │ Partition: id=1                  │                                │
 │         │ ├─ [name:Alex] [age:30] [ts:Jan] │  ← тут ДУБЛИКАТЫ и старые      │
@@ -1839,6 +1839,8 @@ start_rpc: true
 rpc_address: 0.0.0.0
 client_encryption_options: enabled
 ```
+
+---
 
 ### Чек-лист перед Production:
 

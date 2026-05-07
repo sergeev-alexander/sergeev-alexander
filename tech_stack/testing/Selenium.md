@@ -369,12 +369,7 @@ selenium-manager --browser chrome --driver-version 120.0.6099.109 --force
 ```
 
 ```java
-// Ручная настрой
-// 
-// 
-// ---
-// 
-// ## 4. Взаимодействие с элементами (WebElement & Actions API)## 4. Взаимодействие с элементами (WebElement & Actions API)## 4. Взаимодействие с элементами (WebElement & Actions API)ка перед созданием драйвера
+// Ручная настройка
 WebDriverManager.chromedriver()
     .browserVersion("119")
     .driverVersion("119.0.6045.105")
