@@ -84,7 +84,7 @@ This work is private property and is not licensed for copying, distribution, mod
         <version>2.4.1</version>
         <scope>test</scope>
     </dependency>
-    
+
     <!-- Jackson для автоматической сериализации JSON ↔ POJO -->
     <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
@@ -129,10 +129,10 @@ public class ApiConfig {
         // Установка глобального таймаута подключения и чтения (мс)
         JDISettings.settings().setConnectionTimeout(5000);
         JDISettings.settings().setReadTimeout(10000);
-        
+
         // Включение полного логирования запросов/ответов в консоль
         JDISettings.settings().setLogAll(true);
-        
+
         // Добавление заголовка по умолчанию для всех исходящих запросов
         JDISettings.settings().addDefaultHeader("Accept", "application/json");
         JDISettings.settings().addDefaultHeader("User-Agent", "JDI-Dark-Tests/1.0");
@@ -172,23 +172,23 @@ src/
 ## Best Practices
 
 - **Используйте `scope=test`** — зависимости JDI Dark предназначены только для тестового кода, не включайте их в продакшн-артефакты
-- **Храните `BASE_URL` в `*.properties`** — выносите URL и чувствительные данные во внешние файлы, используйте `System.getenv()` 
+- **Храните `BASE_URL` в `*.properties`** — выносите URL и чувствительные данные во внешние файлы, используйте `System.getenv()`
   для безопасной работы в CI/CD пайплайнах
-- **Один клиент на сьют** — переиспользуйте один экземпляр `JDIHttpClient` через `static` блок или `@BeforeAll`, 
+- **Один клиент на сьют** — переиспользуйте один экземпляр `JDIHttpClient` через `static` блок или `@BeforeAll`,
   чтобы не пересоздавать `ConnectionPool` и не тратить ресурсы на handshake
-- **Отключайте `setLogAll(true)` в CI** — подробные логи занимают много места в отчётах Allure, 
+- **Отключайте `setLogAll(true)` в CI** — подробные логи занимают много места в отчётах Allure,
   оставляйте их только для локальной отладки, в CI используйте `JDISettings.settings().setLogLevel(LogLevel.WARN)`
-- Используйте `JDIHttpClient` как единый инстанс в рамках тестового сьюта, чтобы переиспользовать `ConnectionPool` 
+- Используйте `JDIHttpClient` как единый инстанс в рамках тестового сьюта, чтобы переиспользовать `ConnectionPool`
   и глобальные конфигурации.
 - Выносите базовые URL, таймауты и credentials во внешние `*.properties` или environment-переменные, не хардкодьте их в аннотациях.
-- Держите `@Endpoint` классы чистыми от бизнес-логики — они должны описывать только контракт API, 
+- Держите `@Endpoint` классы чистыми от бизнес-логики — они должны описывать только контракт API,
   а валидацию и ассерты выносите в отдельные `@Test` методы.
 
 ---
 
 # 3. Основные абстракции
 
-> JDI Dark использует аннотации для декларативного описания HTTP-запросов, автоматически преобразуя Java-интерфейсы 
+> JDI Dark использует аннотации для декларативного описания HTTP-запросов, автоматически преобразуя Java-интерфейсы
 > в готовые HTTP-вызовы.
 >
 > Этот подход отделяет контракт API от тестовой логики, упрощает рефакторинг и снижает дублирование кода.
@@ -204,13 +204,13 @@ src/
 - **`@ContentType`** — принудительно задаёт Content-Type (обычно определяется автоматически по контексту).
 - **`@Form`** — помечает параметры как поля формы (application/x-www-form-urlencoded). Можно вешать на метод (флаг) и на параметры (имя поля).
 - **`@Body`** — определяет тело запроса. Поддерживает:
-  - Прямую передачу объекта (автосериализация в JSON): `@Body UserCreateRequest newUser`
-  - Сырую строку: `@Body String rawJson` ← "{\"name\": \"Ivan\"}"
-  - Шаблоны с плейсхолдерами: `@Body("{\"name\": \"{userName}\", \"email\": \"{userEmail}\", \"role\": \"{role}\"}")`
-  - Файлы для multipart-запросов: `@Body File image`
+    - Прямую передачу объекта (автосериализация в JSON): `@Body UserCreateRequest newUser`
+    - Сырую строку: `@Body String rawJson` ← "{\"name\": \"Ivan\"}"
+    - Шаблоны с плейсхолдерами: `@Body("{\"name\": \"{userName}\", \"email\": \"{userEmail}\", \"role\": \"{role}\"}")`
+    - Файлы для multipart-запросов: `@Body File image`
 - **`@Multipart`** — флаг на методе, указывающий, что запрос будет multipart (автоматически выставляет Content-Type: multipart/form-data с boundary).
-  - `@FilePart` — бинарная часть multipart-запроса (файл).
-  - `@Part` — текстовая часть multipart-запроса.
+    - `@FilePart` — бинарная часть multipart-запроса (файл).
+    - `@Part` — текстовая часть multipart-запроса.
 
 ### Пример конфигурации интерфейса
 
@@ -239,7 +239,7 @@ public interface UserApi {
         @Path("/{userId}")
         @Query("details")
         Response<UserDetails> getUserById(
-                @Path("userId") String id, 
+                @Path("userId") String id,
                 @Query("details") String expandType
         );
 
@@ -249,8 +249,8 @@ public interface UserApi {
         @Path("/{userId}/history")
         @Header("Accept-Language")
         Response<List<UserEvent>> getUserHistory(
-            @Path("userId") String id,
-            @Header("Accept-Language") String lang
+                @Path("userId") String id,
+                @Header("Accept-Language") String lang
         );
     }
 }
@@ -303,19 +303,19 @@ JDIHttpClient client = new JDIHttpClient("https://api.example.com");
 
 // Ручное формирование запроса без аннотаций (полезно для динамических URL)
 Request req = Request.builder()
-    .method("POST")
-    .path("/v1/orders")
-    .header("Content-Type", "application/json")
-    .body("{\"productId\": 42, \"quantity\": 2}")
-    .build();
+        .method("POST")
+        .path("/v1/orders")
+        .header("Content-Type", "application/json")
+        .body("{\"productId\": 42, \"quantity\": 2}")
+        .build();
 
 // Отправка и получение ответа с указанием типа десериализации
 Response<String> res = client.call(req, String.class);
 
 // Извлечение метрик выполнения и заголовков ответа
 System.out.println("Status: " + res.getCode());
-System.out.println("Time: " + res.getTime() + " ms");
-System.out.println("Location: " + res.getHeader("Location"));
+        System.out.println("Time: " + res.getTime() + " ms");
+        System.out.println("Location: " + res.getHeader("Location"));
 ```
 
 ## Best Practices
@@ -332,12 +332,12 @@ System.out.println("Location: " + res.getHeader("Location"));
 
 > Раздел охватывает поддержку всех стандартных HTTP-методов и способы передачи параметров в JDI Dark.
 >
-> Фреймворк унифицирует работу с методами через аннотации, автоматически обрабатывая маршрутизацию, 
+> Фреймворк унифицирует работу с методами через аннотации, автоматически обрабатывая маршрутизацию,
 > кодирование и формирование тела запроса.
 
 ## Поддерживаемые HTTP-методы
 
-JDI Dark предоставляет аннотации-маркеры для каждого метода, что позволяет декларативно описывать контракты API 
+JDI Dark предоставляет аннотации-маркеры для каждого метода, что позволяет декларативно описывать контракты API
 без ручного конструирования `HttpRequest`.
 
 - `@GET` — извлечение данных, параметры передаются только через URL или заголовки
@@ -413,10 +413,10 @@ public interface FileApi {
     @Path("/documents")
     @Multipart
     Response<DocumentMeta> uploadDocument(
-        // @Part для обычного текстового поля внутри multipart
-        @Part("category") String category,
-        // @FilePart для бинарных данных, указывается имя файла и MIME-тип
-        @FilePart(value = "file", filename = "report.pdf", contentType = "application/pdf") File reportFile
+            // @Part для обычного текстового поля внутри multipart
+            @Part("category") String category,
+            // @FilePart для бинарных данных, указывается имя файла и MIME-тип
+            @FilePart(value = "file", filename = "report.pdf", contentType = "application/pdf") File reportFile
     );
 }
 ```
@@ -436,10 +436,10 @@ public interface AnalyticsApi {
     @Path("/{region}/export")
     @Query({"format", "dateRange"})
     Response<ExportTask> exportReport(
-        @Path("region") String region,           // Подставляется в URL: /analytics/eu-west-1/export
-        @Query("format") String format,          // Добавляется в строку: ?format=csv
-        @Query("dateRange") String dateRange,    // Добавляется в строку: &dateRange=2026-01-01_2026-05-07
-        @Body ExportFilters filters              // Сериализуется в JSON-тело запроса
+            @Path("region") String region,           // Подставляется в URL: /analytics/eu-west-1/export
+            @Query("format") String format,          // Добавляется в строку: ?format=csv
+            @Query("dateRange") String dateRange,    // Добавляется в строку: &dateRange=2026-01-01_2026-05-07
+            @Body ExportFilters filters              // Сериализуется в JSON-тело запроса
     );
 }
 ```
@@ -451,7 +451,7 @@ public interface AnalyticsApi {
 - Избегайте передачи чувствительных данных через `@Query` — URL логируются прокси-серверами и попадают в историю браузера/CI-логов
 - При работе с `@Form` используйте кодировку UTF-8 по умолчанию, но проверяйте поддержку на стороне legacy-сервисов
 - Не смешивайте `@Body` и `@Form`/`@Multipart` в одном запросе — это нарушает спецификацию HTTP и может привести к 400 Bad Request
-- Валидируйте обязательность параметров на этапе компиляции, добавляя проверки `Objects.requireNonNull()` 
+- Валидируйте обязательность параметров на этапе компиляции, добавляя проверки `Objects.requireNonNull()`
   или используя Bean Validation (`@NotNull`), если проект интегрирован с Jakarta Validation
 
 ---
@@ -459,7 +459,7 @@ public interface AnalyticsApi {
 # 5. Данные и сериализация
 
 > JDI Dark берёт на себя преобразование Java-объектов в HTTP-пейлоады и обратно, минимизируя ручной парсинг.
-> 
+>
 > Фреймворк делегирует сериализацию подключённым библиотекам (Jackson или Gson) и предоставляет хуки для кастомной логики.
 
 ## Автоматический маппинг JSON ↔ POJO
@@ -526,25 +526,25 @@ public interface RawDataApi {
 
 ## Кастомные сериализаторы и мапперы
 
-- Если стандартный Jackson не справляется с полиморфными схемами, вложенными массивами или кастомными форматами, 
+- Если стандартный Jackson не справляется с полиморфными схемами, вложенными массивами или кастомными форматами,
   можно подключить свой маппер.
 - JDI Dark поддерживает регистрацию `ObjectMapper` через `JDISettings` или использование утилиты `JsonUtils` для ручного контроля.
 
 ```java
 // Конфигурация кастомного ObjectMapper на старте тестового сьюта
 public class SerializationConfig {
-    
+
     static {
         // Создаём экземпляр маппера с нужными фичами
         ObjectMapper customMapper = new ObjectMapper()
-            // Включаем поддержку Java 8 Date/Time API (LocalDateTime, Instant и т.д.)
-            .registerModule(new JavaTimeModule())
-            // Включить форматирование для читаемости логов (только локально)
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            // Игнорировать неизвестные поля, чтобы тесты не падали при расширении API
-            .disable(SerializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            // Принудительно сериализовать null-поля как "null" в JSON
-            .enable(SerializationFeature.WRITE_NULL_MAP_VALUES);
+                // Включаем поддержку Java 8 Date/Time API (LocalDateTime, Instant и т.д.)
+                .registerModule(new JavaTimeModule())
+                // Включить форматирование для читаемости логов (только локально)
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                // Игнорировать неизвестные поля, чтобы тесты не падали при расширении API
+                .disable(SerializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                // Принудительно сериализовать null-поля как "null" в JSON
+                .enable(SerializationFeature.WRITE_NULL_MAP_VALUES);
 
         // Регистрируем маппер в глобальных настройках JDI Dark
         // Все последующие @Body и Response<T> будут использовать его
@@ -556,11 +556,204 @@ public class SerializationConfig {
 ## Best Practices
 
 - Всегда используйте POJO для сложных JSON-структур, чтобы получить compile-time проверку типов и автодополнение в IDE
-- Для полей, которые могут отсутствовать в ответе сервера, используйте `Optional<T>` или примитивы с дефолтными значениями, 
+- Для полей, которые могут отсутствовать в ответе сервера, используйте `Optional<T>` или примитивы с дефолтными значениями,
   чтобы избежать `NullPointerException` при десериализации
 - Выносите `@JsonFormat` и кастомные десериализаторы в отдельные DTO-пакеты, не смешивайте их с тестовой логикой
 - При работе с большими файлами (>50MB) передавайте `InputStream` или используйте `@Multipart` с чанками, чтобы не переполнять heap
   `@FilePart(value = "file", filename = "backup.zip") InputStream fileStream`
-- Включайте `FAIL_ON_UNKNOWN_PROPERTIES = false` только на время миграции или для черновиков API; в стабильных контрактах 
+- Включайте `FAIL_ON_UNKNOWN_PROPERTIES = false` только на время миграции или для черновиков API; в стабильных контрактах
   это скрывает ошибки версионирования
 - Логируйте сырые пейлоады только в `DEBUG`-режиме; в CI-средах отключайте `INDENT_OUTPUT`, чтобы сократить размер отчётов Allure
+
+# 6. Заголовки и авторизация
+
+> Управление заголовками и механизмами авторизации в JDI Dark выстроено на двух уровнях: глобальном (для всего сьюта)
+> и локальном (для конкретных эндпоинтов).
+>
+> Фреймворк предоставляет гибкие хуки и интерцепторы для динамической генерации токенов, ротации секретов и безопасной
+> передачи credentials.
+
+## Глобальные vs локальные заголовки
+
+- **Глобальные** — применяются ко всем запросам, инициированным через настроенный `JDIHttpClient`.
+  Удобны для общих заголовков (`Accept`, `User-Agent`, глобальные API-ключи).
+- **Локальные** — задаются на уровне аннотации `@Header` или передаются как параметры метода.
+  Переопределяют глобальные значения для конкретного вызова.
+
+Глобальная конфигурация (один раз при старте):
+
+```java
+public class ApiConfig {
+    public static final JDIHttpClient CLIENT = new JDIHttpClient("https://api.example.com");
+
+    static {
+        // Заголовки, которые нужны для ВСЕХ запросов
+        JDISettings.settings().addDefaultHeader("Accept", "application/json");
+        JDISettings.settings().addDefaultHeader("User-Agent", "MyApp/2.0");
+        JDISettings.settings().addDefaultHeader("X-API-Key", "global-key-12345");
+    }
+}
+
+@Service
+@Endpoint("/api/v1")
+public interface ProductApi {
+
+    // УРОВЕНЬ 1: Заголовок на весь эндпоинт
+    @Endpoint("/products")
+    @Header(name = "X-Module", value = "catalog")  // ← применится ко ВСЕМ методам
+    class Products {
+
+        // Запрос 1: Только глобальные + X-Module: catalog
+        @GET
+        Response<List<Product>> getAll();
+
+        // Запрос 2: Переопределяем Accept только для этого метода
+        @GET
+        @Path("/{id}")
+        @Header(name = "Accept", value = "application/xml")  // ← вместо "application/json"
+        Response<Product> getAsXml(@Path("id") String id);
+
+        // Запрос 3: Динамический заголовок из параметра метода
+        @POST
+        @Header(name = "X-Request-Id")  // ← имя фиксировано
+        Response<Product> create(
+                @Body Product newProduct,
+                @Header("X-Request-Id") String requestId  // ← значение из теста
+        );
+
+        // Динамическая передача кастомных заголовков через Map 
+        @POST
+        Response<Product> create(
+                @Body Product newProduct,
+                @Header Map<String, String> headers  // ← все кастомные заголовки
+        );
+    }
+}
+```
+
+## Basic, Bearer, OAuth2 и динамические токены
+
+- **Basic Auth** — кодирует `username:password` в Base64 и передаёт в заголовке `Authorization`.
+- **Bearer Token** — стандарт для JWT/OAuth2, требует передачи токена в формате `Bearer <token>`.
+- **OAuth2 / Динамические токены** — в тестах токены часто имеют короткий TTL.
+  JDI Dark позволяет инжектировать их на лету через интерцепторы или хелперы.
+
+```java
+import com.epam.jdi.http.annotations.*;
+import com.epam.jdi.http.Response;
+import java.util.Base64;
+
+@Service
+@Endpoint("/api")
+public interface AuthApi {
+
+    // Пример Basic Auth через динамический заголовок
+    // В реальном проекте лучше вынести кодирование в утилитный метод
+    @GET
+    @Path("/users/me")
+    @Header("Authorization")
+    Response<UserProfile> getMyProfile(@Header("Authorization") String basicAuthHeader);
+
+    // Пример Bearer Token с динамической передачей
+    // Тест генерирует или подтягивает токен из Vault/CI-переменных
+    @POST
+    @Path("/orders")
+    @Header("Authorization")
+    Response<OrderDto> createOrder(@Body OrderPayload order, @Header("Authorization") String bearerToken);
+}
+
+// Хелпер для генерации заголовков авторизации
+public class AuthHeaders {
+
+    // Генерация Basic Auth заголовка
+    public static String basic(String username, String password) {
+        // Формируем строку "user:pass" и кодируем в Base64 согласно RFC 7617
+        String raw = username + ":" + password;
+        return "Basic " + Base64.getEncoder().encodeToString(raw.getBytes());
+    }
+
+    // Генерация Bearer заголовка
+    public static String bearer(String token) {
+        return "Bearer " + token;
+    }
+}
+```
+
+## Интерцепторы для модификации запросов/ответов
+
+- Интерцепторы позволяют прозрачно изменять запрос перед отправкой или анализировать ответ до передачи в тест.
+- Идеальны для: автоматического обновления токенов (401 → refresh → retry), маскирования чувствительных данных в логах, 
+  добавления трейсинг-ID.
+
+```java
+// Интерцептор запросов: выполняется ДО отправки HTTP-запроса
+public class AuthRefreshInterceptor implements RequestInterceptor {
+    
+    @Override
+    public Request intercept(Request request) {
+        // Проверяем, есть ли уже токен в заголовках текущего запроса
+        if (request.getHeader("Authorization") == null) {
+            // Если токена нет, запрашиваем его у OAuth-провайдера (псевдокод вызова)
+            String freshToken = TokenProvider.getFreshToken();
+            // Добавляем заголовок Bearer к текущему запросу
+            request.addHeader("Authorization", "Bearer " + freshToken);
+        }
+        // Возвращаем модифицированный запрос для дальнейшей отправки в сеть
+        return request;
+    }
+}
+
+// Интерцептор ответов: выполняется ПОСЛЕ получения ответа от сервера
+public class LoggingResponseInterceptor implements ResponseInterceptor {
+    
+    @Override
+    public Response intercept(Response response) {
+        // Пример: логирование только метаданных, скрывая тело ответа для приватных данных
+        if (response.getCode() >= 400) {
+            System.out.println("Error Response Headers: " + response.getHeaders());
+            // Можно выбросить кастомное исключение или модифицировать ответ перед возвратом
+        }
+        return response;
+    }
+}
+
+// Регистрация интерцепторов в клиенте
+public class ApiConfig {
+    
+    private static final String BASE_URL = "https://api.example.com";
+    public static final JDIHttpClient CLIENT;
+
+    static {
+        CLIENT = new JDIHttpClient(BASE_URL);
+
+        // Глобальные настройки через JDISettings
+        JDISettings.settings().setConnectionTimeout(5000);
+        JDISettings.settings().setReadTimeout(10000);
+        JDISettings.settings().addDefaultHeader("Accept", "application/json");
+        // ...
+
+        // Добавляем интерцепторы в цепочку обработки (порядок важен!)
+        CLIENT.addInterceptor(new AuthRefreshInterceptor());
+        CLIENT.addResponseInterceptor(new LoggingResponseInterceptor());
+    }
+
+    public static JDIHttpClient getClient() {
+            return CLIENT;
+    }
+}
+```
+
+## Best Practices
+
+- Никогда не харкодьте токены или пароли в аннотациях `@Header` — используйте переменные окружения или secure vaults, 
+  чтобы секреты не попали в VCS
+- Для Basic/Bearer авторизации создавайте выделенные методы-хелперы, чтобы избежать дублирования строки `"Bearer " + token` 
+  по всему проекту
+- Интерцепторы должны быть stateless (без сохранения изменяемого состояния - не использовать поля в классах интерцепторов), 
+  иначе параллельный запуск тестов приведёт к гонкам данных и непредсказуемым ошибкам авторизации
+- При работе с OAuth2 реализуйте кэширование токенов на уровне `TokenProvider` с проверкой `exp`, 
+  чтобы не дергать auth-сервер на каждый запрос и не попасть в rate-limit
+- Используйте `X-Request-Id` или `X-Correlation-ID` для трассировки запросов в распределённых системах — это упрощает дебаг 
+  в Allure и логах бэкенда
+- Отключайте логирование заголовков авторизации в `setLogAll(true)` на этапе CI, чтобы не оставлять секреты в артефактах пайплайна; 
+  используйте маскировку вроде `Authorization: Bearer ***`
