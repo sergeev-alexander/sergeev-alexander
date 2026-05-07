@@ -194,30 +194,30 @@ src/
 
 ## Декларативные аннотации
 
-Аннотации в JDI Dark делятся на две категории: **классового уровня** (применяются ко всему сервису) 
+Аннотации в JDI Dark делятся на две категории: **интерфейсного уровня** (применяются ко всему сервису)
 и **методного уровня** (переопределяют или дополняют настройки для конкретного эндпоинта).
 
-## Аннотации классового уровня
+## Аннотации интерфейсного уровня
 
-Применяются к интерфейсу или классу, помеченному `@Service`. Задают глобальную конфигурацию для всех запросов сервиса.
+Применяются к интерфейсу, помеченному `@Service`. Задают глобальную конфигурацию для всех запросов сервиса.
 
-- `@Service` — базовая аннотация, регистрирующая тип как источник декларативных эндпоинтов. Фреймворк сканирует только помеченные классы при инициализации.
+- `@Service` — базовая аннотация, регистрирующая интерфейс как источник декларативных эндпоинтов. Фреймворк сканирует только помеченные интерфейсы при инициализации.
   - `value` / `name` — логическое имя сервиса для логирования и отладки
   - `url` — переопределение базового URL (если не используется `@ServiceDomain`)
   - `headers` — массив `@Header`, применяемых ко всем запросам сервиса
   - `connectionTimeout` / `readTimeout` — таймауты для этого сервиса
 
-- `@ServiceDomain` — задаёт базовый URI сервиса. 
+- `@ServiceDomain` — задаёт базовый URI сервиса.
 
-    Поддерживает подстановку значений из `test.properties` через синтаксис `${key}`. 
-    
-    Позволяет легко переключаться между окружениями (dev/stage/prod) без изменения кода.
+  Поддерживает подстановку значений из `test.properties` через синтаксис `${key}`.
+
+  Позволяет легко переключаться между окружениями (dev/stage/prod) без изменения кода.
     ```java
     @ServiceDomain("${api.base}") // из test.properties: api.base=https://api.example.com
     ```
-- `@QueryParameter` — декларативно добавляет query-параметр ко всем запросам сервиса. 
+- `@QueryParameter` — декларативно добавляет query-параметр ко всем запросам сервиса.
 
-    Можно указывать несколько раз или использовать контейнер `@QueryParameters`.
+  Можно указывать несколько раз или использовать контейнер `@QueryParameters`.
     ```java
     @QueryParameter(name = "api_version", value = "v2") // добавит ?api_version=v2 ко всем запросам
     @QueryParameters({
@@ -226,9 +226,9 @@ src/
     })
     ```
 
-- `@Header` (на классе) — глобальный заголовок для всех методов сервиса. 
+- `@Header` (на интерфейсе) — глобальный заголовок для всех методов сервиса.
 
-    Удобно для `Accept`, `X-Client-ID`, `User-Agent`.
+  Удобно для `Accept`, `X-Client-ID`, `User-Agent`.
     ```java
     @Header(name = "Accept", value = "application/json")
     @Header(name = "X-Client", value = "mobile-app-v2")
@@ -243,26 +243,26 @@ src/
 
 ## Аннотации методного уровня
 
-Применяются к методам внутри `@Endpoint`-класса. Переопределяют или дополняют настройки классового уровня.
+Применяются к методам внутри `@Service`-интерфейса. Переопределяют или дополняют настройки интерфейсного уровня.
 
-- `@Endpoint` — определяет базовый путь ресурса относительно `@ServiceDomain`. Все методы внутри класса наследуют этот путь.
+- `@Endpoint` — определяет путь ресурса относительно `@ServiceDomain`. Применяется непосредственно к методу интерфейса.
     ```java
     @Endpoint("/users") // базовый путь: /users
     ```
 - `@Path` — задаёт динамическую часть URL с поддержкой плейсхолдеров `{param}`. Значение подставляется из аргумента метода с аннотацией `@Path("param")`.
     ```java
-    @Path("/{userId}/orders") // при userId=42 → /users/42/orders
+    @Endpoint("/{userId}/orders") // при userId=42 → /users/42/orders
     ```
 - `@Query` — добавляет параметр в строку запроса. Поддерживает плейсхолдеры и резолвинг из конфига.
     ```java
     @Query("details") // ?details={значение_аргумента}
     @Query("api_key=${API_KEY}") // ?api_key=значение_из_переменной_окружения
     ```
-- `@QueryParameter` (на методе) — локальное дополнение или переопределение классовых query-параметров.
+- `@QueryParameter` (на методе) — локальное дополнение или переопределение интерфейсных query-параметров.
     ```java
     @QueryParameter(name = "filter", value = "active") // добавит ?filter=active только к этому методу
     ```
-- `@Header` (на методе) — локальный заголовок, имеет приоритет над классовым. Позволяет передавать кастомные токены или флаги трассировки.
+- `@Header` (на методе) — локальный заголовок, имеет приоритет над интерфейсным. Позволяет передавать кастомные токены или флаги трассировки.
     ```java
     @Header(name = "Authorization", value = "Bearer ${auth_token}")
     ```
@@ -317,8 +317,6 @@ src/
 ## Пример конфигурации интерфейса
 
 ```java
-// Файл: src/test/java/com/project/api/endpoints/UserApi.java
-
 // @Service регистрирует интерфейс как источник эндпоинтов
 // @ServiceDomain подставляет базовый URL из test.properties (${api.users})
 // @QueryParameter добавляет глобальный параметр api_version=v2 ко всем запросам
@@ -329,50 +327,48 @@ src/
 @Header(name = "Accept", value = "application/json")
 public interface UserApi {
 
-    // Все методы внутри Users наследуют базовый путь /users из @Endpoint
+    // GET /users/{id}?api_version=v2&details=full
+    // @Endpoint задаёт путь с плейсхолдером {userId}
+    // @Query добавляет параметр details из аргумента метода
+    @GET
+    @Endpoint("/users/{userId}")
+    @Query("details")
+    Response<UserProfile> getUserById(
+            @Path("userId") String id,        // подставляется в {userId}
+            @Query("details") String expand   // добавляется как ?details=full
+    );
+
+    // POST /users?api_version=v2&source=mobile
+    // @Body сериализует POJO в JSON
+    // @Header переопределяет Authorization только для этого запроса
+    @POST
     @Endpoint("/users")
-    public class Users {
+    @QueryParameter(name = "source", value = "mobile")
+    @Header(name = "Authorization", value = "Bearer ${auth_token}")
+    Response<UserProfile> createUser(
+            @Body UserCreateRequest payload   // автосериализация в JSON
+    );
 
-        // GET /users/{id}?api_version=v2&details=full
-        // @Path подставляет userId в URL
-        // @Query добавляет параметр details из аргумента метода
-        @GET
-        @Path("/{userId}")
-        @Query("details")
-        Response<UserProfile> getUserById(
-                @Path("userId") String id,        // подставляется в {userId}
-                @Query("details") String expand   // добавляется как ?details=full
-        );
+    // PUT /users/{id}/avatar — загрузка файла через multipart
+    // @Multipart выставляет Content-Type: multipart/form-data
+    // @FilePart описывает бинарную часть, @Part — текстовые метаданные
+    @PUT
+    @Endpoint("/users/{userId}/avatar")
+    @Multipart
+    Response<UploadResult> uploadAvatar(
+            @Path("userId") String id,
+            @FilePart(controlName = "file", fileName = "avatar.jpg") File image,
+            @Part(name = "description") String description
+    );
 
-        // POST /users?api_version=v2&source=mobile
-        // @Body сериализует POJO в JSON
-        // @Header переопределяет Authorization только для этого запроса
-        @POST
-        @QueryParameter(name = "source", value = "mobile")
-        @Header(name = "Authorization", value = "Bearer ${auth_token}")
-        Response<UserProfile> createUser(
-                @Body UserCreateRequest payload   // автосериализация в JSON
-        );
-
-        // PUT /users/{id}/avatar — загрузка файла через multipart
-        // @Multipart выставляет Content-Type: multipart/form-data
-        // @FilePart описывает бинарную часть, @Part — текстовые метаданные
-        @PUT
-        @Path("/{userId}/avatar")
-        @Multipart
-        Response<UploadResult> uploadAvatar(
-                @Path("userId") String id,
-                @FilePart(controlName = "file", fileName = "avatar.jpg") File image,
-                @Part(name = "description") String description
-        );
-
-        // DELETE /users/{id} с кастомным таймаутом и повторами при 502/503
-        @DELETE
-        @Path("/{userId}")
-        @Timeout(connection = 3000, read = 15000)
-        @RetryOnFailure(maxAttempts = 2, statusCodes = {502, 503})
-        Response<Void> deleteUser(@Path("userId") String id);
-    }
+    // DELETE /users/{id} с кастомным таймаутом и повторами при 502/503
+    @DELETE
+    @Endpoint("/users/{userId}")
+    @Timeout(connection = 3000, read = 15000)
+    @RetryOnFailure(maxAttempts = 2, statusCodes = {502, 503})
+    Response<Void> deleteUser(
+            @Path("userId") String id
+    );
 }
 ```
 
@@ -380,8 +376,8 @@ public interface UserApi {
 
 ## Приоритеты и разрешение конфликтов
 
-> JDI Dark разрешает конфликты конфигурации по принципу **наиболее специфичный переопределяет общий**. 
-> 
+> JDI Dark разрешает конфликты конфигурации по принципу **наиболее специфичный переопределяет общий**.
+>
 > Непересекающиеся параметры объединяются.
 
 ```
@@ -399,18 +395,18 @@ public interface UserApi {
 │     ├─► @Service(headers = {@Header("X-Service", "2")})                 │
 │     └─► Применяется ко всем методам внутри UserApi                      │
 │                                                                         │
-│  3. @ServiceDomain / @QueryParameter (классовый уровень)                │
+│  3. @ServiceDomain / @QueryParameter (интерфейсный уровень)             │
 │     │                                                                   │
 │     ├─► @ServiceDomain("${api.base}")                                   │
 │     ├─► @QueryParameter(name="v", value="2")                            │
-│     └─► Применяется ко всем @Endpoint внутри интерфейса                 │
+│     └─► Применяется ко всем @Endpoint-методам интерфейса                │
 │                                                                         │
-│  4. @Endpoint (уровень ресурса)                                         │
+│  4. @Endpoint (уровень метода)                                          │
 │     │                                                                   │
 │     ├─► @Endpoint("/users") + @Header("X-Resource", "3")                │
-│     └─► Применяется ко всем методам внутри класса Users                 │
+│     └─► Применяется к конкретному методу интерфейса                     │
 │                                                                         │
-│  5. @Header / @QueryParameter / @Path (уровень метода) ← НАИВЫСШИЙ      │
+│  5. @Header / @QueryParameter / @Path (уровень аргумента метода)        │
 │     │                                                                   │
 │     ├─► @Header("Authorization", "Bearer ${token}")                     │
 │     ├─► @QueryParameter(name="debug", value="true")                     │
@@ -431,8 +427,8 @@ public interface UserApi {
 
 **Ключевые правила:**
 
-- **Заголовки**: метод > ресурс > сервис > глобальные. При совпадении имён — переопределение, при разных — объединение.
-- **Query-параметры**: метод > класс. Дубликаты имён **не объединяются** — локальный параметр заменяет глобальный.
+- **Заголовки**: аргумент метода > метод > интерфейс > глобальные. При совпадении имён — переопределение, при разных — объединение.
+- **Query-параметры**: метод > интерфейс. Дубликаты имён **не объединяются** — локальный параметр заменяет глобальный.
 - **Плейсхолдеры** `${key}` резолвятся в порядке: `System.getProperty()` → `test.properties` → переменные окружения.
 - **Таймауты**: `@Timeout` на методе переопределяет настройки из `@Service` и глобальные `JDISettings`.
 
@@ -440,7 +436,7 @@ public interface UserApi {
 
 ## Request и Response объекты
 
-- `Request` — иммутабельная обёртка над `HttpRequest.Builder`, содержащая тело, заголовки, параметры и метаданные перед отправкой. 
+- `Request` — иммутабельная обёртка над `HttpRequest.Builder`, содержащая тело, заголовки, параметры и метаданные перед отправкой.
 
   Создаётся автоматически при декларативном вызове или вручную через `Request.builder()`.
 
@@ -453,7 +449,7 @@ public interface UserApi {
 // Response<T> автоматически парсит тело ответа в указанный тип при вызове .getBody()
 // Если T = String — возвращается сырой JSON/текст без десериализации
 // Если T = POJO — вызывается десериализатор из подключённой библиотеки
-Response<UserProfile> profileResponse = userApi.Users.getUserById("123", "full");
+Response<UserProfile> profileResponse = userApi.getUserById("123", "full");
 
 // Получение метаданных ответа
 int statusCode = profileResponse.getCode();                     // 200
@@ -528,23 +524,21 @@ if (res.isSuccess()) {
 
 ## Best Practices
 
-- **Выносите `@Endpoint`-интерфейсы в отдельный пакет** `com.project.api.endpoints` и не смешивайте их с логикой тестов — это упрощает навигацию и рефакторинг.
+- **Выносите `@Service`-интерфейсы в отдельный пакет** `com.project.api.endpoints` и не смешивайте их с логикой тестов — это упрощает навигацию и рефакторинг.
 - **Используйте `Response<T>` вместо `void` или `String`** — это сохраняет типобезопасность, даёт доступ к заголовкам и метрикам выполнения.
 - **Используйте `@Path` с плейсхолдерами** вместо ручной сборки строк `"/users/" + id` — фреймворк проверяет корректность путей на этапе инициализации и защищает от опечаток.
 - **Избегайте хардкода чувствительных значений** в `@Header` или `@QueryParameter` — передавайте токены и ключи через параметры методов или переменные окружения `${API_KEY}`.
 - **Для сложной модификации запроса** (динамические заголовки, условная логика) используйте `JDIHttpClient.call()` напрямую или кастомные интерцепторы, а не перегружайте аннотации.
-- **Группируйте связанные эндпоинты** во вложенные классы внутри `@Service` (как `Users`, `Orders`) — это улучшает структуру кода и автодополнение в IDE.
+- **Группируйте связанные эндпоинты** в отдельные `@Service`-интерфейсы (например, `UserApi`, `OrderApi`) — это улучшает структуру кода и автодополнение в IDE.
 - **Документируйте плейсхолдеры** в `@Body`-шаблонах через JavaDoc параметров метода — это помогает новым членам команды понимать, какие аргументы куда подставляются.
 
 ### Антипаттерны
 
 - **Хардкод доменов** в `@ServiceDomain("http://...")` вместо `${api.base}` — усложняет переключение между окружениями и требует изменения кода при деплое.
-- **Дублирование `@QueryParameter`** на классе и методе с одинаковым именем — создаёт путаницу в приоритетах; используйте явное переопределение с комментарием.
+- **Дублирование `@QueryParameter`** на интерфейсе и методе с одинаковым именем — создаёт путаницу в приоритетах; используйте явное переопределение с комментарием.
 - **Использование `@Body String` для простых объектов** вместо POJO — отключает автосериализацию, увеличивает риск ошибок в ручном формате JSON.
 - **Игнорирование `@Timeout`** для долгих эндпоинтов — приводит к преждевременным `SocketTimeoutException` в CI-средах с ограниченной пропускной способностью.
 - **Смешивание `@Form` и `@Body`** в одном методе — вызывает конфликт `Content-Type`; выберите один способ передачи данных.
-
----
 
 # 4. HTTP-методы и параметры
 
@@ -978,7 +972,7 @@ public class ApiConfig {
 
 ---
 
-## 7. Валидация и Asserts
+# 7. Валидация и Asserts
 
 > Валидация ответов — критический этап API-тестирования. 
 > 
@@ -987,7 +981,7 @@ public class ApiConfig {
 > 
 > Подход ориентирован на читаемость, быстрый фидбэк и лёгкую отладку.
 
-### Проверка статус-кодов и заголовков
+## Проверка статус-кодов и заголовков
 
 JDI Dark оборачивает HTTP-ответ в объект `Response`, который содержит готовые методы для быстрой проверки статуса и 
 HTTP-заголовков без необходимости ручного парсинга.
@@ -1031,7 +1025,7 @@ response.assertHeader("Server", containsString("nginx"))
 
 ---
 
-### Валидация тела ответа и JSONPath
+## Валидация тела ответа и JSONPath
 
 > JDI Dark предоставляет встроенный парсер JSON, работающий поверх стандартной библиотеки JSONPath. 
 >
@@ -1080,7 +1074,7 @@ String token = response.body().get("$.auth.token");
 
 ---
 
-### Hamcrest-матчеры и кастомные ассерты
+## Hamcrest-матчеры и кастомные ассерты
 
 > JDI Dark полностью совместим с `org.hamcrest.Matchers`. 
 > 
@@ -1136,7 +1130,7 @@ response.assertBody("$.reportDate", IsValidDateMatcher.isValidDate());
 
 ---
 
-### Логирование запросов и ответов
+## Логирование запросов и ответов
 
 > JDI Dark интегрирован с подсистемой логирования JDI Light. 
 > 
@@ -1220,7 +1214,7 @@ jdi.dark.log.body.limit=2048
 
 ---
 
-### Best Practices
+## Best Practices
 
 - Всегда используйте `assertStatusCode()` перед валидацией тела — это экономит ресурсы парсера и даёт чёткий фидбэк о сетевой ошибке
 - Группируйте проверки одного эндпоинта в один блок `assert`-вызовов для читаемости отчёта
@@ -1232,5 +1226,469 @@ jdi.dark.log.body.limit=2048
 - Логирование `DEBUG` в продакшн-CI — замедляет пайплайн в 3–5 раз и переполняет артефакты
 - Игнорирование таймаутов при валидации — приводит к `SocketTimeoutException` вместо чёткой валидации статуса
 - Смешивание Hard и Soft Assert без явного разделения — делает отчёт непредсказуемым
+
+---
+
+# 8. Интеграция с экосистемой
+
+> JDI Dark спроектирован как агент-надстройка, а не самостоятельный тестовый раннер.
+>
+> Он полностью полагается на экосистему JVM-тестирования, предоставляя прозрачные интеграции с JUnit 5 и TestNG, механизмы 
+> параметризации, нативную поддержку параллельного выполнения и глубокую связку с Allure для детализированной отчётности.
+
+## Интеграция с JUnit 5 и TestNG
+
+> JDI Dark не переопределяет жизненный цикл тестов.
+>
+> Вместо этого он использует стандартные аннотации раннеров для инициализации сервисов, настройки окружения и выполнения проверок.
+> 
+> Фреймворк автоматически применяет конфигурацию из `test.properties` при первом вызове `ServiceInit.init()`.
+
+| Задача                         | JUnit 5                                               | TestNG                                                  |
+|:-------------------------------|-------------------------------------------------------|---------------------------------------------------------|
+| Инициализация сервиса          | `@BeforeEach` + `ServiceInit.init(UserService.class)` | `@BeforeMethod` + `ServiceInit.init(UserService.class)` |
+| Глобальная настройка окружения | `@BeforeAll` + загрузка `test.properties`             | `@BeforeSuite` + загрузка `test.properties`             |
+| Объявление теста               | `@Test`                                               | `@Test`                                                 |
+| Проверка исключений            | `assertThrows(Exception.class, () -> ...)`            | `@Test(expectedExceptions = ...)`                       |
+| Группа тестов                  | `@Tag("api")`                                         | `@Test(groups = {"api"})`                               |
+| Параметризация                 | `@ParameterizedTest` + `@CsvSource`                   | `@Test(dataProvider = "name")`                          |
+
+#### Пример базовой структуры теста (JUnit 5)
+
+```java
+// Файл: src/test/java/com/project/tests/UserIntegrationTest.java
+
+// Стандартные импорты JUnit 5
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.equalTo;
+
+// Импорты JDI Dark
+import com.epam.jdi.dark.api.response.Response;
+import static com.epam.http.requests.ServiceInit.init;  // ← Ключевой статический импорт
+
+// Импорты вашего проекта (сервисы и DTO)
+import com.project.api.UserService;                     // ← интерфейс с аннотациями @GET, @Path и т.д.
+import com.project.dto.UserProfile;                     // ← POJO для десериализации ответа
+
+// @Tag позволяет фильтровать тесты при запуске: mvn test -Dgroups=users-api
+@Tag("users-api")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)   // Гарантирует порядок выполнения
+class UserIntegrationTest {
+
+    // Поле для экземпляра сервиса — НЕ static, чтобы обеспечить изоляцию между тестами
+    private UserService userService;
+
+    // @BeforeEach гарантирует, что каждый тест получает "чистый" экземпляр сервиса
+    @BeforeEach
+    void initService() {
+        // init() создаёт динамическую реализацию интерфейса UserService
+        // Все аннотации @ServiceDomain, @Header, @QueryParameter применяются автоматически
+        // Конфигурация загружается из test.properties в classpath
+        // Пример: если domain=api=https://staging.example.com → все запросы пойдут туда
+        userService = init(UserService.class);
+    }
+
+    // Тест #1: Проверка успешного получения пользователя
+    @Order(1)
+    @Test
+    @DisplayName("GET /users/{id} возвращает 200 и валидный профиль")
+    void shouldGetUserProfileSuccessfully() {
+        // Вызов метода интерфейса — аргументы подставляются в @Path/@Query автоматически
+        // 42L → подставляется в {id}, "full" → добавляется как ?details=full
+        Response<UserProfile> response = userService.getUserById(42L, "full");
+
+        // Валидация статус-кода: встроенный метод-хелпер (читаемее, чем сравнение кодов)
+        response.isOk(); // Бросает AssertionError, если статус != 200
+
+        // Детальная проверка тела ответа через JSONPath + Hamcrest-матчеры
+        // Синтаксис совместим с RestAssured для удобства миграции
+        response.assertThat()
+                .body("id", equalTo(42))                          // Проверка конкретного поля
+                .body("status", equalTo("ACTIVE"))                // Проверка статуса пользователя
+                .body("createdAt", not(emptyOrNullString()));     // Поле не должно быть пустым
+    }
+
+    // Тест #2: Обработка несуществующего ресурса (негативный сценарий)
+    @Order(2)
+    @Test
+    @DisplayName("GET /users/{id} для несуществующего ID возвращает 404")
+    void shouldReturnNotFoundForInvalidUserId() {
+        // Запрос к заведомо несуществующему ресурсу
+        Response<UserProfile> response = userService.getUserById(999_999L, "full");
+
+        // Проверка кода ответа через классический JUnit-assertion
+        assertEquals(404, response.getStatusCode(), 
+                "Ожидаем 404 для несуществующего пользователя");
+
+        // Опциональная проверка тела ошибки (если API возвращает структурированную ошибку)
+        response.assertThat()
+                .body("error.code", equalTo("USER_NOT_FOUND"))
+                .body("error.message", containsString("not found"));
+    }
+
+    // В большинстве случаев JDI Dark очищает ресурсы автоматически
+    @AfterAll
+    static void tearDown() {
+        // Опционально: если используется кастомный HttpClient с пулом соединений
+        // JDIHttpClient.shutdown(); <- явное освобождение ресурсов
+      
+        // остальная логика @AfterAll (если есть)...
+    }
+}
+```
+
+#### Пример базовой структуры теста (TestNG)
+
+```java
+// Файл: src/test/java/com/project/tests/UserIntegrationTestNG.java
+
+import org.testng.annotations.*;
+import static org.testng.Assert.*;
+import static org.hamcrest.Matchers.equalTo;
+
+import com.epam.jdi.dark.api.response.Response;
+import static com.epam.http.requests.ServiceInit.init;
+import com.project.api.UserService;
+import com.project.dto.UserProfile;
+
+// groups позволяет запускать подмножество тестов: mvn test -Dgroups=smoke
+public class UserIntegrationTestNG {
+
+    private UserService userService;
+
+    // @BeforeMethod выполняется перед каждым @Test-методом
+    @BeforeMethod
+    public void setUp() {
+        // Инициализация сервиса с применением конфигурации из test.properties
+        userService = init(UserService.class);
+    }
+
+    @Test(groups = {"smoke", "users"})
+    public void shouldGetUserProfileSuccessfully() {
+        Response<UserProfile> response = userService.getUserById(42L, "full");
+        
+        // Проверка статуса через TestNG assertion
+        assertEquals(response.getStatusCode(), 200);
+        
+        // Валидация тела через JSONPath
+        response.assertThat()
+                .body("id", equalTo(42))
+                .body("status", equalTo("ACTIVE"));
+    }
+
+    @Test(groups = {"regression"}, expectedExceptions = AssertionError.class)
+    public void shouldFailOnInvalidSchema() {
+        // Тест, который должен упасть, если схема ответа изменилась
+        Response<UserProfile> response = userService.getUserById(42L, "full");
+        // Ожидаем поле, которого нет в ответе — тест упадёт с AssertionError
+        response.assertThat().body("nonExistentField", equalTo("value"));
+    }
+
+    @AfterClass
+    public void tearDown() {
+        // Очистка ресурсов при необходимости
+    }
+}
+```
+
+> **Важно**: В JDI Dark **не требуется** вызывать явный `reset()` или `shutdown()` между тестами — фреймворк 
+> использует `ThreadLocal` для изоляции контекста и автоматически управляет жизненным циклом HTTP-соединений. 
+> 
+> Явные хуки очистки нужны только при работе с кастомными пулами соединений или при интеграции с внешними mock-серверами.
+
+---
+
+## Параметризация запросов
+
+> Параметризация критична для проверки граничных условий, разных ролей пользователей и вариаций входных данных.
+>
+> JDI Dark полностью совместим со встроенными механизмами `@ParameterizedTest` (JUnit 5) и `@DataProvider` (TestNG).
+
+#### Пример параметризации через JUnit 5
+
+```java
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+class ProductParametrizedTest {
+
+    private ProductService productService;
+
+    @BeforeEach
+    void init() {
+        // Инициализация сервиса перед каждым тестом
+        // init() возвращает прокси-реализацию интерфейса ProductService
+        productService = init(ProductService.class);
+    }
+
+    // CsvSource: каждая строка → отдельный запуск теста с указанными параметрами
+    @ParameterizedTest(name = "ID={0}, ожидаемый статус={1}")
+    @CsvSource({
+        "1, 200",      // Валидный продукт → 200
+        "999, 404",    // Несуществующий продукт → 404
+        "-1, 400",     // Некорректный формат ID → 400
+        "abc, 400"     // Не-числовой ID → 400
+    })
+    void shouldReturnCorrectStatusForProductId(String productId, int expectedStatus) {
+        // Обработка невалидных входных данных до отправки запроса
+        if (productId.matches("-?\\d+")) {
+            Long id = Long.valueOf(productId);
+            
+            Response<Product> response = productService.getProduct(id);
+            
+            assertEquals(expectedStatus, response.getStatusCode());
+        } else {
+            // Для не-числовых ID ожидаем 400 — валидация аргументов может происходить на уровне фреймворка
+            // Если сервис не валидирует входные данные, тест упадёт на этапе формирования запроса
+            assertThrows(IllegalArgumentException.class, 
+                () -> productService.getProduct(null));
+        }
+    }
+
+    // ValueSource: проверка одного параметра с разными значениями
+    @ParameterizedTest
+    @ValueSource(strings = {"USD", "EUR", "RUB"})
+    void shouldFilterProductsByCurrency(String currency) {
+        Response<SearchResult> response = productService.searchByCurrency(currency);
+        
+        response.isSuccess();
+        
+        // Проверка, что все возвращённые продукты имеют указанную валюту
+        response.assertThat()
+                .body("$[0].price.currency", equalTo(currency));
+    }
+}
+```
+
+#### Пример параметризации через TestNG DataProvider
+
+```java
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+import static org.testng.Assert.assertEquals;
+
+class OrderDataProviderTest {
+
+    // DataProvider возвращает Object[][]: каждая строка — набор аргументов для одного запуска
+    @DataProvider(name = "orderPayloads")
+    public Object[][] provideOrderData() {
+        return new Object[][] {
+            { "user_1", "ITEM_A", 1, 200, "PENDING" },   // Успешный заказ
+            { "user_2", "ITEM_B", 5, 200, "CONFIRMED" }, // Успешный заказ с другим статусом
+            { null,     null,     0, 400, null }         // Некорректные данные → 400
+        };
+    }
+
+    @Test(dataProvider = "orderPayloads")
+    public void shouldCreateOrderWithPayload(String userId, 
+                                             String itemId, 
+                                             int quantity, 
+                                             int expectedStatus, 
+                                             String expectedOrderStatus) {
+        // Формирование DTO через билдер или конструктор
+        OrderRequest payload = new OrderRequest(userId, itemId, quantity);
+        
+        // Отправка POST-запроса с телом (автосериализация в JSON через @Body)
+        Response<OrderConfirmation> response = OrderService.createOrder(payload);
+        
+        // Валидация статус-кода
+        assertEquals(response.getStatusCode(), expectedStatus);
+        
+        // Если заказ создан — проверяем структуру ответа
+        if (expectedStatus == 201) {
+            response.assertThat()
+                    .body("userId", equalTo(userId))
+                    .body("status", equalTo(expectedOrderStatus))
+                    .body("id", notNullValue()); // ID должен быть сгенерирован сервером
+        }
+    }
+}
+```
+
+---
+
+## Параллельный запуск
+
+> JDI Dark использует `ThreadLocal` для хранения контекста запросов, ответов и конфигурации HTTP-клиента.
+>
+> Это гарантирует потокобезопасность при параллельном выполнении тестов без необходимости ручной синхронизации.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  СХЕМА ПАРАЛЛЕЛЬНОГО ВЫПОЛНЕНИЯ                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Тестовый раннер (JUnit 5 / TestNG)                                     │
+│  │                                                                      │
+│  ├─► Поток #1 (Thread-Local Context #1)                                 │
+│  │   ├─► init(UserService) → новый прокси-экземпляр                     │
+│  │   ├─► getUserById(100) → Response #1                                 │
+│  │   └─► Валидация и логирование                                        │
+│  │                                                                      │
+│  ├─► Поток #2 (Thread-Local Context #2)                                 │
+│  │   ├─► init(ProductService) → новый прокси-экземпляр                  │
+│  │   ├─► searchByCurrency("USD") → Response #2                          │
+│  │   └─► Валидация и логирование                                        │
+│  │                                                                      │
+│  └─► Поток #N                                                           │
+│      └─► ...                                                            │
+│                                                                         │
+│  Важно: Каждый поток получает изолированный экземпляр сервиса и         │
+│  конфигурацию. Конфликты данных исключены на уровне фреймворка.         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Конфигурация параллелизма
+
+**JUnit 5** (`src/test/resources/junit-platform.properties`)
+
+```properties
+# Включение параллельного выполнения
+junit.jupiter.execution.parallel.enabled=true
+
+# Стратегия: concurrent для параллельного запуска
+junit.jupiter.execution.parallel.mode.default=concurrent
+
+# Фиксированное количество потоков (оптимально: ядра CPU - 2)
+junit.jupiter.execution.parallel.config.strategy=fixed
+junit.jupiter.execution.parallel.config.fixed.parallelism=4
+
+# Изоляция на уровне класса (каждый тест-класс в отдельном потоке)
+junit.jupiter.execution.parallel.mode.classes.default=concurrent
+```
+
+**TestNG** (`testng.xml`)
+
+```xml
+<!-- parallel="methods" запускает каждый @Test в отдельном потоке -->
+<!-- thread-count ограничивает максимальное число одновременных потоков -->
+<suite name="ParallelAPISuite" parallel="methods" thread-count="6">
+    <test name="UserAndOrderTests">
+        <packages>
+            <package name="com.project.api.tests"/>
+        </packages>
+    </test>
+</suite>
+```
+
+> **Рекомендация**: Для стабильности в CI-средах начинайте с `thread-count=2` и увеличивайте постепенно, 
+> контролируя нагрузку на тестируемое приложение и сеть.
+
+---
+
+## Allure-отчёты и аттачи
+
+> Интеграция с Allure реализуется через стандартные аннотации `io.qameta.allure`.
+>
+> JDI Dark автоматически прикрепляет логи запросов / ответов к шагам, если подключён `jdi-allure-adapter`.
+
+#### Пример кастомизации шагов и аттачей
+
+```java
+import io.qameta.allure.Allure;
+import io.qameta.allure.Step;
+import io.qameta.allure.Description;
+import com.epam.jdi.dark.api.response.Response;
+import static org.hamcrest.Matchers.equalTo;
+
+class PaymentApiSteps {
+
+    // @Step создаёт именованный блок в отчёте Allure
+    // Метод с @Step можно переиспользовать в разных тест-сценариях
+    @Step("Оплата заказа {orderId} на сумму {amount} {currency}")
+    @Description("Выполняет POST /payments и валидирует ответ платёжного шлюза")
+    public Response<PaymentResult> processPayment(String orderId, double amount, String currency) {
+        
+        // Формирование запроса
+        PaymentRequest body = new PaymentRequest(orderId, amount, currency);
+        
+        // Явный шаг с аттачем тела запроса (полезно для отладки)
+        Allure.step("Подготовка платежного запроса", () -> {
+            Allure.addAttachment("Request Payload", "application/json", 
+                    body.toJson(), "json");
+        });
+
+        // Выполнение запроса через сервис (интерфейсный вызов)
+        Response<PaymentResult> response = PaymentService.pay(body);
+
+        // Валидация ответа в рамках шага
+        Allure.step("Валидация ответа от платёжного шлюза", () -> {
+            // Автоматический аттач тела ответа (если включено в jdi.properties)
+            // Или ручное добавление для детализации
+            Allure.addAttachment("Response Body", "application/json", 
+                    response.getBodyAsString(), "json");
+            
+            // Проверки через Hamcrest-матчеры
+            response.assertThat()
+                    .statusCode(200)
+                    .body("transaction.status", equalTo("COMPLETED"))
+                    .body("transaction.amount", equalTo(amount));
+        });
+
+        return response;
+    }
+
+    // Метод для прикрепления лога транзакции (актуально для гибридных тестов UI+API)
+    @Step("Прикрепление лога транзакции")
+    public void attachTransactionLog(String logContent) {
+        Allure.addAttachment("Backend Transaction Log", "text/plain", 
+                logContent, "txt");
+    }
+}
+```
+
+**Настройка автоматического логирования в Allure** (`src/test/resources/jdi.properties`)
+
+```properties
+# Включение автоматического прикрепления запросов/ответов к шагам Allure
+jdi.dark.allure.log.request=true
+jdi.dark.allure.log.response=true
+jdi.dark.allure.attach.body=true
+
+# Формат аттачей: JSON (pretty) или RAW
+jdi.dark.allure.format=PRETTY
+
+# Лимит размера тела для аттача (защита от раздувания отчёта)
+jdi.dark.allure.body.limit=4096
+```
+
+> **Важно**: Автоматическое логирование в Allure работает только если в проекте есть зависимость `io.qameta.allure:allure-java` 
+> и настроен `AllureLifecycle`. Проверяйте наличие `allure.properties` в `src/test/resources`.
+
+---
+
+## Best Practices
+
+- **Используйте `@BeforeEach` / `@BeforeMethod` для инициализации сервиса** — это гарантирует изоляцию контекста между тестами и предотвращает `DirtyContext`.
+- **Выносите DTO и интерфейсы сервисов в отдельные пакеты** (`api`, `dto`) — это упрощает навигацию и рефакторинг.
+- **Используйте `@Tag` / `groups` для фильтрации тестов** — позволяет запускать только smoke, regression или e2e тесты в CI.
+- **Настраивайте `thread-count` под ресурсы CI-агента** — начинайте с 2–4 потоков, увеличивайте постепенно.
+- **Прикрепляйте только релевантные аттачи в Allure** — большие тела ответов (>4KB) лучше логировать в текстовом виде, а не дублировать в JSON.
+
+## Антипаттерны
+
+- **Статическое поле сервиса + `@BeforeAll`** — приводит к совместному использованию экземпляра между тестами и `DirtyContext`:
+  ```java
+  // ❌ НЕПРАВИЛЬНО: общий экземпляр для всех тестов
+  private static UserService userService = init(UserService.class);
+  ```
+  
+- **Игнорирование `@BeforeEach`** — если тесты изменяют состояние сервиса (добавляют заголовки динамически), контекст "загрязняется".
+- **Дублирование `init()` внутри теста** — избыточно и замедляет выполнение:
+  ```java
+  @Test
+  void badExample() {
+      UserService service = init(UserService.class); // лишняя инициализация
+      // ...
+  }
+  ```
+  
+- **Использование `@Test(dependsOnMethods = "...")` в TestNG без учёта параллелизма** — создаёт скрытые блокировки и deadlocks 
+  при `parallel="methods"`.
+- **Размещение `Allure.addAttachment()` внутри циклов без фильтрации** — генерирует тысячи артефактов и ломает генерацию отчёта.
 
 ---
