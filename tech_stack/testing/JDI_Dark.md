@@ -1509,6 +1509,33 @@ class OrderDataProviderTest {
 }
 ```
 
+Параметризация через Data Faker (генерация данных на лету):
+
+// Зависимость в pom.xml: net.datafaker:datafaker:2.0.0+
+
+```java
+import net.datafaker.Faker;
+import java.util.Locale;
+
+@Test
+void shouldCreateUserWithRandomData() {
+Faker faker = new Faker(new Locale("ru", "RU"), 123L); // локализация для кириллицы + seed для возможности воспроизведения
+
+    UserCreateRequest payload = new UserCreateRequest()
+            .setName(faker.name().fullName())
+            .setEmail(faker.internet().emailAddress())
+            .setPhone(faker.phoneNumber().phoneNumber())
+            .setAddress(faker.address().fullAddress());
+    
+    Response<UserProfile> response = userService.createUser(payload);
+    response.assertThat().statusCode(201);
+    
+    // Сохранение сгенерированных данных для отладки (опционально)
+    Allure.addAttachment("Generated User Data", "application/json", 
+            payload.toJson(), "json");
+}
+```
+
 ---
 
 ## Параллельный запуск
@@ -1673,7 +1700,7 @@ jdi.dark.allure.body.limit=4096
 
 - **Статическое поле сервиса + `@BeforeAll`** — приводит к совместному использованию экземпляра между тестами и `DirtyContext`:
   ```java
-  // ❌ НЕПРАВИЛЬНО: общий экземпляр для всех тестов
+  // НЕПРАВИЛЬНО: общий экземпляр для всех тестов
   private static UserService userService = init(UserService.class);
   ```
   
@@ -1690,5 +1717,335 @@ jdi.dark.allure.body.limit=4096
 - **Использование `@Test(dependsOnMethods = "...")` в TestNG без учёта параллелизма** — создаёт скрытые блокировки и deadlocks 
   при `parallel="methods"`.
 - **Размещение `Allure.addAttachment()` внутри циклов без фильтрации** — генерирует тысячи артефактов и ломает генерацию отчёта.
+- **Генерация данных без фиксации сида** (`new Faker()` без seed) — делает тесты невоспроизводимыми при отладке падающих сценариев.
+
+---
+
+# 9. Продвинутые возможности
+
+> JDI Dark предоставляет инструменты для работы со сложными сценариями: повторные попытки при сбоях, асинхронные вызовы, 
+> mock-интеграции и управление окружениями.
+>
+> Эти возможности критичны для стабильности тестов в CI/CD, отладки распределённых систем и изоляции тестовой среды.
+
+---
+
+## Ретраи и обработка ошибок
+
+> Сетевая нестабильность, временные сбои сервера (502/503) и конкуренция за ресурсы — нормальная часть production-среды.
+>
+> JDI Dark позволяет декларативно настраивать политики повторных попыток, чтобы тесты были устойчивы к временным сбоям, 
+> но не маскировали реальные дефекты.
+
+### Декларативная настройка ретраев
+
+Аннотация `@RetryOnFailure` применяется на уровне метода интерфейса и задаёт условия для автоматического повторного 
+выполнения запроса.
+
+```java
+@Service
+@ServiceDomain("${api.base}")
+public interface OrderService {
+
+    // GET /orders/{id} — повтор при 502/503/504 или сетевых ошибках
+    @GET
+    @Path("/orders/{id}")
+    @RetryOnFailure(
+        maxAttempts = 3,                    // максимум 3 попытки (1 исходная + 2 ретрая)
+        statusCodes = {502, 503, 504},     // повторять только при этих статусах
+        delay = 1000,                       // пауза между попытками в мс
+        delayMultiplier = 2.0,              // экспоненциальный бэк-офф: 1s → 2s → 4s
+        retryOnException = true             // повторять при SocketTimeoutException, ConnectException
+    )
+    Response<Order> getOrder(@Path("id") Long id);
+
+    // POST /orders — НЕ повторять при 400/401/409 (клиентские ошибки)
+    @POST
+    @Path("/orders")
+    @RetryOnFailure(
+        maxAttempts = 2,
+        statusCodes = {500},                // повторять ТОЛЬКО при 500
+        retryOnException = false            // не повторять при сетевых ошибках (идемпотентность не гарантирована)
+    )
+    Response<Order> createOrder(@Body OrderRequest payload);
+}
+```
+
+### Программная настройка ретраев (для динамических сценариев)
+
+```java
+import com.epam.jdi.dark.api.retry.RetryPolicy;
+import com.epam.jdi.dark.api.retry.ExponentialBackoff;
+
+// Создание кастомной политики повторных попыток
+RetryPolicy customRetry = RetryPolicy.builder()
+        .maxAttempts(5)                                                         // до 5 попыток
+        .retryOnStatusCode(502, 503, 504, 429)                                  // + 429 Too Many Requests
+        .retryOnException(SocketTimeoutException.class, ConnectException.class)
+        .backoff(ExponentialBackoff.initial(500).multiplier(1.5).max(5000))     // 500ms → 750ms → ... → 5s cap
+        .onRetry((attempt, response) -> {                                       // коллбэк для логирования
+            System.out.println("Retry #" + attempt + 
+                (response != null ? ", status: " + response.getStatusCode() : ", no response"));
+        })
+        .build();
+
+// Применение политики к конкретному вызову (если не используется аннотация)
+Response<Order> response = orderService.getOrder(123L)
+        .withRetry(customRetry)     // переопределяет @RetryOnFailure, если есть
+        .execute();                 // явный вызов для программной конфигурации
+```
+
+### Логика работы ретраев
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ПОТОК ВЫПОЛНЕНИЯ С РЕТРАЯМИ                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. ПЕРВАЯ ПОПЫТКА                                                      │
+│     │                                                                   │
+│     ├─► Отправка запроса → сервер                                       │
+│     ├─► Ответ: 503 Service Unavailable                                  │
+│     ├─► Проверка: 503 ∈ {502,503,504}? → ДА                             │
+│     └─► Переход к ретраю #1                                             │
+│                                                                         │
+│  2. РЕТРАЙ #1 (delay = 1000ms)                                          │
+│     │                                                                   │
+│     ├─► Thread.sleep(1000) ← пауза перед повтором                       │
+│     ├─► Повторная отправка того же запроса                              │
+│     ├─► Ответ: 502 Bad Gateway                                          │
+│     ├─► Проверка: 502 ∈ {502,503,504}? → ДА                             │
+│     └─► Переход к ретраю #2                                             │
+│                                                                         │
+│  3. РЕТРАЙ #2 (delay = 2000ms, multiplier=2.0)                          │
+│     │                                                                   │
+│     ├─► Thread.sleep(2000) ← экспоненциальный бэк-офф                   │
+│     ├─► Повторная отправка                                              │
+│     ├─► Ответ: 200 OK                                                   │
+│     ├─► Проверка: 200 != {502,503,504} → СТОП                           │
+│     └─► Возврат успешного ответа в тест                                 │
+│                                                                         │
+│  ИТОГ: Тест прошёл, несмотря на 2 временных сбоя сервера                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+> **Важно**: Ретраи применяются **только к идемпотентным операциям** (GET, HEAD, OPTIONS). 
+> 
+> Для POST/PUT/DELETE используйте с осторожностью и только при явной гарантии идемпотентности на стороне сервера.
+
+---
+
+## Таймауты и асинхронные вызовы
+
+> Таймауты предотвращают «зависание» тестов при проблемах с сетью или медленном сервере.
+>
+> Асинхронные вызовы позволяют параллелизовать независимые запросы и тестировать eventual consistency.
+
+### Настройка таймаутов
+
+Таймауты задаются декларативно через `@Timeout` или программно при инициализации клиента.
+
+```java
+@Service
+@ServiceDomain("${api.base}")
+public interface ReportService {
+
+    // GET /reports/generate — долгая операция, увеличенные таймауты
+    @GET
+    @Path("/reports/generate")
+    @Timeout(
+        connection = 10_000,   // таймаут установления соединения: 10 секунд
+        read = 120_000         // таймаут чтения ответа: 2 минуты (для генерации отчёта)
+    )
+    Response<Report> generateReport(@Query("type") String reportType);
+
+    // GET /reports/{id}/status — быстрая проверка статуса, стандартные таймауты
+    @GET
+    @Path("/reports/{id}/status")
+    Response<ReportStatus> getReportStatus(@Path("id") Long id);
+}
+```
+
+### Асинхронные вызовы через CompletableFuture
+
+JDI Dark поддерживает асинхронное выполнение запросов через `CompletableFuture<Response<T>>`.
+
+```java
+@Test
+void shouldGenerateReportsInParallel() {
+    // Запуск нескольких независимых запросов параллельно
+    CompletableFuture<Response<Report>> salesReport = 
+            CompletableFuture.supplyAsync(() -> reportService.generateReport("SALES"));
+    
+    CompletableFuture<Response<Report>> inventoryReport = 
+            CompletableFuture.supplyAsync(() -> reportService.generateReport("INVENTORY"));
+    
+    CompletableFuture<Response<Report>> usersReport = 
+            CompletableFuture.supplyAsync(() -> reportService.generateReport("USERS"));
+
+    // Ожидание завершения всех запросов с общим таймаутом
+    CompletableFuture.allOf(salesReport, inventoryReport, usersReport)
+            .get(180, SECONDS); // максимум 3 минуты на все три отчёта
+
+    // Сбор и валидация результатов
+    List<Report> reports = Stream.of(salesReport, inventoryReport, usersReport)
+            .map(CompletableFuture::join)  // получение результата (блокирующее, но уже завершённое)
+            .map(Response::getBody)
+            .collect(Collectors.toList());
+
+    // Проверка, что все отчёты сгенерированы
+    assertThat(reports, everyItem(hasProperty("status", equalTo("COMPLETED"))));
+}
+```
+
+### Обработка ошибок в асинхронных вызовах
+
+```java
+@Test
+void shouldHandleAsyncFailures() {
+    CompletableFuture<Response<Report>> future = 
+            CompletableFuture.supplyAsync(() -> reportService.generateReport("INVALID_TYPE"))
+            .exceptionally(throwable -> {
+                // Обработка исключения без падения теста
+                if (throwable instanceof CompletionException) {
+                    System.err.println("Async error: " + throwable.getCause().getMessage());
+                    return null; // или возврат дефолтного значения
+                }
+                throw new RuntimeException(throwable);
+            });
+
+    // Проверка результата (может быть null при ошибке)
+    Response<Report> response = future.join();
+    if (response != null) {
+        response.assertThat().statusCode(200);
+    }
+  
+    /*
+    Цель теста проверить, что асинхронный вызов не «роняет» весь тест при ошибке, а корректно обрабатывает исключение 
+    и позволяет продолжить выполнение.
+    Это важно для сценариев, где:
+    - Ошибка в одном параллельном запросе не должна останавливать другие
+    - Нужно собрать статистику: «сколько запросов упало, сколько прошло»
+    - Тестируется устойчивость клиента к сбоям (resilience)        
+    */
+}
+```
+
+---
+
+## Mock-интеграция
+
+> Для изоляции тестов от внешних зависимостей (платёжные шлюзы, сторонние API) JDI Dark интегрируется с популярными 
+> mock-фреймворками: WireMock, MockServer, Hoverfly.
+
+### Интеграция с WireMock (рекомендуемый подход)
+
+```java
+@WireMockTest(httpPort = 8080) // запуск WireMock на порту 8080
+class PaymentServiceMockTest {
+
+    private PaymentService paymentService;
+
+    @BeforeEach
+    void initService(WireMockRuntimeInfo wmRuntimeInfo) {
+        // Переопределение домена на локальный mock-сервер
+        System.setProperty("api.payment", wmRuntimeInfo.getHttpBaseUrl());
+        paymentService = init(PaymentService.class);
+    }
+
+    @Test
+    void shouldReturnMockedPaymentSuccess() {
+        // Настройка ожидания (stub) в WireMock
+        stubFor(post(urlEqualTo("/payments"))
+                .withHeader("Content-Type", equalTo("application/json"))
+                .withRequestBody(matchingJsonPath("$.amount", equalTo("99.99")))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBodyFile("payment-success.json"))); // тело из src/test/resources/__files/
+
+        // Выполнение запроса к mock-серверу
+        PaymentRequest payload = new PaymentRequest("order_123", 99.99, "USD");
+        Response<PaymentResult> response = paymentService.processPayment(payload);
+
+        // Валидация ответа
+        response.assertThat()
+                .statusCode(200)
+                .body("transactionId", not(emptyOrNullString()))
+                .body("status", equalTo("COMPLETED"));
+
+        // Проверка, что запрос действительно был отправлен (верификация)
+        verify(postRequestedFor(urlEqualTo("/payments"))
+                .withHeader("Authorization", matching("Bearer .+")));
+    }
+}
+```
+
+### Динамическая генерация mock-ответов
+
+```java
+@Test
+void shouldMockDynamicResponse() {
+    // Stub с динамическим ответом на основе входных данных
+    stubFor(post(urlEqualTo("/payments"))
+            .willReturn(aResponse()
+                    .withStatus(200)
+                    .withTransformers("response-template") // Включает шаблонизатор ответов; требуется расширение wiremock:wiremock-standalone
+                    // Если в запросе "orderId": "order_456" → в ответе "transactionId": "order_456-mock"
+                    .withBody("{ \"transactionId\": \"{{jsonPath request.body '$.orderId'}}-mock\", \"status\": \"MOCKED\" }")));
+
+    PaymentRequest payload = new PaymentRequest("order_456", 50.00, "EUR");
+    Response<PaymentResult> response = paymentService.processPayment(payload);
+
+    // Проверка, что transactionId содержит исходный orderId
+    response.assertThat().body("transactionId", containsString("order_456"));
+}
+```
+
+### Использование MockServer для сложных сценариев
+
+```java
+// Для сценариев с последовательностью запросов (stateful mocks)
+ClientAndServer mockServer = ClientAndServer.startClientAndServer(1080);
+
+// Сценарий: первый запрос → 202 Accepted, второй → 200 OK (polling-паттерн)
+mockServer.when(
+        request().withMethod("GET").withPath("/jobs/123")
+    )
+    .respond(
+        response().withStatusCode(202).withBody("{\"status\":\"PROCESSING\"}"),
+        Times.once()  // только первый раз
+    )
+    .respond(
+        response().withStatusCode(200).withBody("{\"status\":\"COMPLETED\",\"result\":\"data\"}"),
+        Times.once()  // второй раз
+    );
+
+// Тест проверяет, что клиент корректно опрашивает статус до завершения
+JobStatus status = jobService.pollJob("123"); // внутренняя логика с retry/polling
+assertThat(status.getResult(), equalTo("data"));
+```
+
+---
+
+## Best Practices
+
+- **Используйте `@RetryOnFailure` только для идемпотентных операций** (GET, HEAD) — повтор POST/PUT без гарантии 
+  идемпотентности может создать дубликаты данных
+- **Настраивайте экспоненциальный бэк-офф** (`delayMultiplier > 1.0`) для ретраев — это снижает нагрузку на восстанавливающийся сервер
+- **Изолируйте mock-серверы в отдельном профиле** (`-Dprofile=mock`) — чтобы случайно не запустить mock-тесты против staging
+- **Храните тестовые данные в `src/test/resources/data/`** с чёткой структурой — это упрощает поиск и переиспользование
+- **Используйте переменные окружения для чувствительных данных** (`${API_KEY}`) — никогда не коммитьте реальные ключи в репозиторий
+- **Добавляйте флаг `readonly` для prod-профиля** и проверяйте его в тестах, выполняющих мутации — это предотвратит случайное изменение продакшн-данных
+- **Логируйте попытки ретраев** через `onRetry`-коллбэк — это помогает диагностировать нестабильность инфраструктуры
+
+## Антипаттерны
+
+- **Бесконечные ретраи** (`maxAttempts = Integer.MAX_VALUE`) — тест может «зависнуть» на часы при постоянных сбоях сервера
+- **Ретраи на клиентские ошибки** (400/401/403/404) — эти ошибки не решаются повтором, только маскируют дефекты
+- **Хардкод доменов в коде** вместо `${api.base}` — требует изменения кода при переключении окружений
+- **Использование `Thread.sleep()` вместо таймаутов** — делает тесты хрупкими и медленными, не адаптируется к реальной нагрузке
+- **Mock-сервер в production-пайплайне** — если `-Dprofile=mock` случайно попадёт в prod-запуск, тесты будут проходить на фейковых данных
 
 ---
