@@ -811,3 +811,326 @@ playwright codegen --color-scheme dark https://example.com
   но никогда не коммитьте её в основную ветку
 
 ---
+
+# 3. Ядро API: Браузер, Контекст, Страница
+
+> Ядро Playwright построено на строгой иерархии объектов, где каждый уровень отвечает за определённую грань управления браузером: 
+> от запуска процесса до взаимодействия с отдельным элементом DOM. 
+
+## Иерархия объектов и управление ресурсами
+
+`Playwright` → `BrowserType` → `Browser` → `BrowserContext` → `Page` → `Frame`/`Locator` — цепочка владения, 
+где каждый объект создаётся родительским и должен закрываться в обратном порядке для предотвращения утечек памяти.
+
+- `AutoCloseable` — все ключевые классы (`Playwright`, `Browser`, `BrowserContext`, `Page`) реализуют этот интерфейс, 
+  что позволяет использовать `try-with-resources` для гарантированной очистки
+- `try-with-resources` — предпочтительный паттерн инициализации, обеспечивающий вызов `close()` даже при исключениях
+- `ThreadLocal<T>` — рекомендуется для хранения `Page`/`BrowserContext` при параллельном выполнении, 
+  чтобы избежать пересечения состояний между потоками
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                       Playwright                        │
+│            (точка входа, фабрика BrowserType)           │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                      BrowserType                        │
+│              (chromium / firefox / webkit)              │
+│  → launch() / connect() → Browser                       │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                        Browser                          │
+│              (запущенный процесс браузера)              │
+│  → newContext() → BrowserContext                        │
+│  → newPage() → Page (быстрый путь)                      │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                     BrowserContext                      │
+│  (изолированная сессия: cookies, localStorage, cache)   │
+│  → newPage() → Page                                     │
+│  → route() → перехват запросов                          │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                          Page                           │
+│      (одна вкладка/окно: навигация, DOM, события)       │
+│  → locator() / getBy*() → Locator                       │
+│  → frameLocator() → FrameLocator                        │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                 Locator / FrameLocator                  │
+│      (ленивый селектор элемента / доступ к iframe)      │
+│  → click() / fill() / isVisible() → действия            │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Browser и BrowserType: запуск и подключение
+
+### `BrowserType` — фабрика для получения экземпляров `Browser`, абстрагирующая различия между движками (Chromium, Firefox, WebKit)
+
+- `launch(LaunchOptions)` — запуск локального браузера с полным контролем над параметрами
+- `connect(String wsEndpoint)` — подключение к удалённому браузеру по WebSocket (Browserless, Selenium Grid, CDP)
+- `executablePath()` — возвращает абсолютный путь к бинарному файлу браузера, который Playwright будет использовать по умолчанию 
+  при запуске через launch(). (для отладки или кастомных сборок)
+- `name()` — строковое имя типа (`chromium`, `firefox`, `webkit`)
+
+### `LaunchOptions` — конфигурация запуска, влияющая на поведение браузера:
+
+- `setHeadless(boolean)` — режим без графического интерфейса (по умолчанию `true`, обязательно для CI)
+- `setSlowMo(int)` — искусственная задержка в миллисекундах между действиями (для визуальной отладки)
+- `setArgs(List<String>)` — флаги командной строки браузера (`--disable-gpu`, `--start-maximized`, `--no-sandbox`)
+- `setDownloadsPath(Path)` — директория для сохранения загружаемых файлов
+- `setProxy(Proxy)` — настройка прокси-сервера для всех запросов браузера
+- `setChannel(String)` — выбор конкретного канала (`chrome`, `msedge`, `firefox-beta`, `chromium`)
+- `setTimeout(int)` — глобальный таймаут операций для этого браузера (в миллисекундах)
+
+Пример запуска с расширенной конфигурацией:
+
+```java
+// Настройка параметров запуска Chromium
+BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
+    .setHeadless(true)                                     // CI-режим
+    .setSlowMo(0)                                          // Без задержек в продакшене
+    .setArgs(List.of(
+        "--disable-dev-shm-usage",                         // Обход проблем с /dev/shm в Docker
+        "--disable-gpu",                                   // Отключение GPU-рендеринга для стабильности
+        "--no-sandbox",                                    // Требуется в некоторых CI-окружениях
+        "--disable-setuid-sandbox"                         // Дополнительный флаг для контейнеров
+    ))
+    .setDownloadsPath(Path.of("target/downloads"))         // Явный путь для артефактов
+    .setProxy(new Proxy()
+        .setServer("http://proxy.internal:8080")           // Прокси-сервер
+        .setBypass("localhost,*.internal"));               // Исключения для локальных адресов
+
+// Запуск браузера с применением конфигурации
+try (Browser browser = playwright.chromium().launch(options)) {
+    // Браузер готов к созданию контекстов
+}
+```
+
+### Подключение к удалённому браузеру (Browserless / CDP):
+
+| Сценарий                                         | Метод              | Где выполняются тесты | Где работает браузер                              | Работа с файлами                                                                         | Пример работы с файлами                                                                              | Пример кода                                                                                                            |
+|--------------------------------------------------|--------------------|-----------------------|---------------------------------------------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| **Локальная отладка**                            | `launch()`         | Локально (JVM)        | Локально (процесс ОС)                             | Прямой доступ: `Paths.get("screenshots")`, загрузка файлов через `<input>`               | `page.locator("input").setFiles(Paths.get("test.pdf"));`                                             | `browser = playwright.chromium().launch(new LaunchOptions().setHeadless(false));`                                      |
+| **Локальные тесты + браузер в Docker**           | `connect()`        | Локально (JVM)        | В Docker-контейнере (через WebSocket)             | Файлы должны быть доступны в контейнере: либо монтирование `-v`, либо передача через API | `page.locator("input").setFiles(Paths.get("/container/uploads/test.pdf"));` (путь внутри контейнера) | `browser = playwright.chromium().connect("ws://localhost:3000/");`                                                     |
+| **Тесты + браузер в Docker (CI/CD)**             | `launch()`         | В Docker-контейнере   | В том же контейнере (локально для процесса)       | Прямой доступ внутри контейнера; артефакты выносятся через volume/bind-mount             | `page.locator("input").setFiles(Paths.get("/app/test-data/file.png"));` + `-v /host:/app`            | `browser = playwright.chromium().launch(new LaunchOptions().setHeadless(true));`                                       |
+| **Удалённый браузер (BrowserStack, LambdaTest)** | `connect()`        | Локально или в CI     | Удалённый сервер (SaaS)                           | Файлы нужно передавать через API (base64, URL) или предварительно загружать в облако     | `page.locator("input").setInputFiles("test.pdf");` через `FormData` или base64-кодирование           | `browser = playwright.chromium().connect("wss://cloud-provider/ws-endpoint", new ConnectOptions().setTimeout(30000));` |
+| **Отладка через CDP (Chromium)**                 | `connectOverCDP()` | Локально              | Существующий Chromium с `--remote-debugging-port` | Как при локальном запуске, но с ограничениями протокола                                  | `page.locator("input").setFiles(Paths.get("local/file.png"));`                                       | `browser = playwright.chromium().connectOverCDP("http://localhost:9222");`                                             |
+
+```java
+// Подключение к Browserless.io через WebSocket
+String wsEndpoint = "wss://chrome.browserless.io?token=YOUR_TOKEN";
+
+try (Browser browser = playwright.chromium().connect(wsEndpoint)) {
+    // Все действия выполняются на удалённой машине
+    // Важно: локальные файлы (downloadsPath) должны быть доступны удалённо
+    Page page = browser.newPage();
+    page.navigate("https://app.example.com");
+}
+```
+
+---
+
+## BrowserContext: изоляция сессий и эмуляция
+
+> `BrowserContext` — изолированная сессия браузера с независимыми `cookies`, `localStorage`, `IndexedDB`, `permissions`и `cache`. 
+> 
+> Каждый тест должен использовать отдельный контекст для гарантии чистоты состояния.
+
+### `Browser.NewContextOptions` — параметры конфигурации контекста:
+
+- `setViewportSize(int width, int height)` — эмуляция разрешения экрана (например, `375, 812` для iPhone)
+- `setUserAgent(String)` — переопределение строки пользовательского агента (для тестов мобильных версий)
+- `setExtraHTTPHeaders(Map<String, String>)` — заголовки, добавляемые ко всем запросам контекста
+- `setStorageState(Path/StorageState)` — загрузка сохранённого состояния авторизации (cookies + localStorage)
+- `setHttpCredentials(String username, String password)` — базовая HTTP-аутентификация
+- `setPermissions(List<String>)` — предоставление разрешений (`geolocation`, `notifications`, `camera`)
+- `setGeolocation(double latitude, double longitude)` — эмуляция местоположения
+- `setLocale(String)` / `setTimezoneId(String)` — локаль и часовой пояс для форматирования дат/чисел
+- `setRecordVideoDir(Path)` / `setRecordVideoSize(ViewportSize)` — настройка записи видео сессии
+- `setTracing(TracingOptions)` — конфигурация трассировки для последующего анализа
+
+#### Пример создания контекста с эмуляцией мобильного устройства:
+
+```java
+// Конфигурация для эмуляции iPhone 12 Pro
+Browser.NewContextOptions mobileOptions = new Browser.NewContextOptions()
+    .setViewportSize(390, 844)                                  // Разрешение экрана
+    .setUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)...") // Мобильный UA
+    .setLocale("ru-RU")                                         // Язык и регион
+    .setTimezoneId("Europe/Moscow")                             // Часовой пояс
+    .setGeolocation(55.7558, 37.6173)                           // Координаты Москвы
+    .setPermissions(List.of("geolocation"))                     // Разрешение на доступ к геолокации
+    .setExtraHTTPHeaders(Map.of(                                // Кастомные заголовки
+        "X-Test-Session", UUID.randomUUID().toString(),
+        "X-Device-Type", "mobile"
+    ));
+
+// Создание контекста и страницы
+try (BrowserContext context = browser.newContext(mobileOptions); 
+     Page page = context.newPage()) {
+         page.navigate("https://m.example.com");
+         // Тест будет выполняться в эмулированной мобильной среде
+}
+
+```
+
+#### Загрузка состояния авторизации для ускорения тестов:
+
+```java
+// 1. Сохранение состояния после логина (выполняется один раз)
+// context.storageState(new BrowserContext.StorageStateOptions()
+//     .setPath(Path.of("auth-state.json")));
+
+// 2. Загрузка состояния в каждом тесте (пропуск экрана логина)
+Browser.NewContextOptions preAuthOptions = new Browser.NewContextOptions()
+    .setStorageState(Path.of("auth-state.json"))               // Cookies + localStorage
+    .setExtraHTTPHeaders(Map.of("X-Test-Mode", "true"));       // Доп. заголовок для бэкенда
+
+try (BrowserContext context = browser.newContext(preAuthOptions);
+     Page page = context.newPage()) {
+        page.navigate("https://app.example.com/dashboard");    // Прямой переход в приложение
+        // Пользователь уже авторизован
+}
+
+```
+
+---
+
+## Page: навигация, ожидания и обработка событий
+
+> `Page` — представление одной вкладки или окна браузера. 
+> 
+> Основной интерфейс для навигации, взаимодействия с DOM, получения артефактов и подписки на события.
+
+#### Методы навигации:
+
+- `navigate(String url)` / `navigate(String url, NavigateOptions)` — переход по URL с настройками ожидания
+- `reload()` / `goBack()` / `goForward()` — управление историей браузера
+- `url()` / `title()` / `content()` — получение метаданных текущей страницы
+
+#### Ожидания загрузки и состояния:
+
+- `waitForLoadState(LoadState)` — ожидание состояния загрузки
+  - `LoadState.DOMCONTENTLOADED`
+    Состояние, когда HTML-документ полностью загружен и разобран, построено DOM-дерево. 
+    При этом внешние ресурсы (стили, изображения, iframe) могут всё ещё загружаться. 
+    Соответствует событию браузера `DOMContentLoaded`.
+  - `LoadState.LOAD`
+    Состояние полной загрузки страницы, включая все зависимые ресурсы: изображения, стили, скрипты, iframe и т.д. 
+    Это значение используется по умолчанию. Соответствует событию браузера `window.onload`.
+  - `LoadState.NETWORKIDLE`
+    Состояние, когда в течение как минимум 500 мс нет исходящих сетевых соединений. 
+    Полезно для одностраничных приложений (SPA) с асинхронными запросами. 
+    **Важно:** официальная документация Playwright не рекомендует использовать это состояние для тестирования, 
+    советуя вместо него применять проверки на наличие конкретных элементов.
+- `waitForURL(String pattern)` — ожидание перехода на целевой URL (поддерживает глобы (glob) - упрощенные шаблоны для сопоставления строк с использованием wildcard-символов)
+- `waitForTimeout(int milliseconds)` — явная задержка (использовать только при отсутствии альтернатив)
+- `waitForFunction(String script)` — ожидание выполнения произвольного JavaScript-условия
+
+#### Обработка событий:
+
+- `onDialog(Dialog.Handler)` — перехват нативных диалогов (`alert`, `confirm`, `prompt`)
+- `onRequest(Request.Handler)` / `onResponse(Response.Handler)` — мониторинг сетевых запросов
+- `onConsoleMessage(ConsoleMessage.Handler)` — логирование сообщений консоли браузера
+- `onPageError(Consumer<PageError>)` — обработка неотловленных ошибок JavaScript
+
+#### Пример навигации с ожиданием полной загрузки сети:
+
+```java
+// Переход на страницу с ожиданием отсутствия активных сетевых запросов
+page.navigate("https://app.example.com/checkout", new Page.NavigateOptions()
+    .setWaitUntil(WaitUntilState.NETWORKIDLE)    // Ждём, пока не завершатся все запросы
+    .setTimeout(60000));                         // Глобальный таймаут 60 секунд
+
+// Альтернатива: ожидание конкретного URL после редиректа
+page.waitForURL("**/checkout/confirmation", new Page.WaitForURLOptions()
+    .setTimeout(30000));                         // Локальный таймаут для этого ожидания
+```
+
+#### Обработка диалогов и консоли:
+
+```java
+// Обработка нативных диалогов: автоматическое подтверждение с вводом текста в prompt
+page.onDialog(dialog -> {
+    // dialog.type() — возвращает: ALERT, CONFIRM или PROMPT
+    // dialog.message() — текст сообщения из диалога
+    
+    System.out.println("Dialog type: " + dialog.type() + ", message: " + dialog.message());
+    
+    if (dialog.type() == DialogType.PROMPT) {
+        dialog.accept("Значение по умолчанию"); // Ввод текста в prompt
+    } else {
+        dialog.accept();                        // Просто подтвердить alert/confirm
+    }
+});
+```
+
+- Без обработки диалоги блокируют выполнение теста
+- Обработчик должен быть зарегистрирован ДО того, как диалог появится
+- Метод `accept()` подтверждает, `dismiss()` — отклоняет (как нажатие Cancel)
+
+```java
+// Фиксация ошибок консоли как потенциальных дефектов
+List<String> consoleErrors = new ArrayList<>();
+page.onConsoleMessage(msg -> {
+    if (msg.type() == ConsoleMessage.Type.ERROR) {
+        consoleErrors.add(String.format("[%s] %s", 
+            msg.location().url(), 
+            msg.text()));
+    }
+});
+
+// ... выполнение действий ...
+page.getByRole(AriaRole.BUTTON).click();
+
+// Валидация отсутствия ошибок в консоли после сценария
+assertTrue(consoleErrors.isEmpty(), 
+    "Console errors detected: " + String.join("; ", consoleErrors));
+```
+
+#### Кастомные таймауты на уровне страницы:
+
+```java
+// Установка глобального таймаута для всех операций на этой странице (в миллисекундах)
+page.setDefaultTimeout(45000); // 45 секунд вместо дефолтных 30
+
+// Переопределение таймаута для конкретного действия
+page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Сохранить"))
+    .click(new Locator.ClickOptions().setTimeout(10000)); // 10 секунд только для этого клика
+```
+
+---
+
+## Best Practices
+
+- **Используйте `BrowserContext` для изоляции тестов** — каждый тест должен запускаться в новом контексте, 
+  чтобы избежать загрязнения `cookies`/`localStorage` между сценариями
+- **Предпочитайте `newContext()` вместо `newPage()` на уровне `Browser`** — явное создание контекста 
+  даёт больше контроля над конфигурацией (эмуляция, мокинг, трассировка)
+- **Закрывайте ресурсы в обратном порядке** — `Page` → `Context` → `Browser` → `Playwright`, 
+  используйте `try-with-resources` для гарантии
+- **Настраивайте `viewport` и `userAgent` для кросс-девайсных тестов** — эмуляция мобильных устройств через `NewContextOptions` надёжнее, 
+  чем изменение размера окна постфактум
+- **Экспортируйте `storageState` после логина** — однократная авторизация с сохранением состояния 
+  ускоряет последующие тесты на 30–50%
+- **Не переиспользуйте `BrowserContext` между тестами** — даже если браузер один, 
+  контекст должен быть уникальным для каждого теста (`@BeforeEach` → `newContext()`)
+- **Не используйте `waitForTimeout()` как основное ожидание** — предпочитайте семантические ожидания: 
+  `waitForURL()`, `locator().isVisible()`, `expect().toBeVisible()`
+- **Не игнорируйте возвратные значения событий** — при подписке на `onRequest`/`onResponse` всегда обрабатывайте исключения 
+  внутри хендлера, чтобы не «уронить» весь тест
+
+---
