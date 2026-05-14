@@ -115,6 +115,279 @@ Playwright использует клиент-серверную архитект
 
 ---
 
+## Основные абстракции Playwright
+
+Ключевые классы и интерфейсы библиотеки, образующие иерархию управления браузером и взаимодействия с веб-страницами. 
+Все основные типы реализуют `AutoCloseable` для безопасного управления ресурсами через `try-with-resources`.
+
+- `Playwright` — точка входа в библиотеку, фабрика для создания экземпляров `BrowserType`. 
+  Управляет жизненным циклом драйвера (запуск/остановка процесса Node.js).
+  - `create()` — статический метод инициализации, запускающий драйвер и возвращающий экземпляр `Playwright`.
+  - `chromium()` / `firefox()` / `webkit()` — получение `BrowserType` для конкретного движка.
+  - `selectores()` — доступ к кастомным селекторам (регистрация собственных стратегий поиска).
+  - `close()` — корректное завершение работы драйвера (вызывается автоматически в `try-with-resources`).
+    ```java
+    try (Playwright playwright = Playwright.create()) {  // Драйвер запущен
+        var browser = playwright.chromium().launch();    // Используем тип браузера
+        // ... тестовая логика
+    } // Драйвер автоматически остановлен, ресурсы освобождены
+    ```
+
+- `BrowserType` — абстракция типа браузера, предоставляющая методы запуска (`launch`) и подключения (`connect`).
+  - `launch(LaunchOptions lounchOptions)` — запуск локального экземпляра браузера с настройками (headless, slowMo, args).
+  - `connect(String wsEndpoint)` — подключение к удалённому браузеру по WebSocket (Browserless, Selenium Grid).
+  - `executablePath()` — возврат пути к установленному бинарному файлу браузера.
+  - `name()` — строковое имя типа (`chromium`, `firefox`, `webkit`).
+    ```java
+    // Запуск Firefox в головном режиме с искусственной задержкой команд
+    Browser firefox = playwright.firefox().launch(
+        new LaunchOptions().setHeadless(false).setSlowMo(100)
+    );
+    ```
+
+- `LaunchOptions` — конфигурация запуска браузера через `BrowserType.launch(LaunchOptions lounchOptions)`.
+  - `setHeadless(boolean)` — режим без графического интерфейса (по умолчанию `true`).
+  - `setSlowMo(int)` — задержка в миллисекундах между действиями (для отладки).
+  - `setArgs(List<String>)` — передаваемые браузеру флаги командной строки (`--disable-gpu`, `--start-maximized`).
+  - `setDownloadsPath(Path)` — директория для сохранения загружаемых файлов.
+  - `setProxy(Proxy)` — настройка прокси-сервера для всего браузера.
+  - `setChannel(String)` — выбор конкретного канала браузера (`chrome`, `msedge`, `firefox-beta`).
+    ```java
+    LaunchOptions options = new LaunchOptions()
+        .setHeadless(true)
+        .setArgs(List.of("--disable-dev-shm-usage")) // Обход проблем с /dev/shm в Docker
+        .setProxy(new Proxy().setServer("http://proxy.local:8080"));
+    ```
+
+- `Browser` — запущенный экземпляр браузера, фабрика для создания изолированных контекстов (`BrowserContext`).
+  - `newContext(Browser.NewContextOptions)` — создание нового контекста с настройками (viewport, locale, permissions).
+  - `newPage()` — быстрое создание контекста и страницы в одном вызове (удобно для простых сценариев).
+  - `contexts()` — возврат списка активных `BrowserContext`.
+  - `version()` / `browserType()` — метаданные о запущенном браузере.
+  - `close()` — закрытие браузера и всех связанных контекстов.
+    ```java
+    // Создание контекста с эмуляцией мобильного устройства
+    BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+        .setViewportSize(375, 812)           // iPhone X resolution
+        .setUserAgent("Mobile Safari...")    // Кастомный User-Agent
+        .setLocale("ru-RU")                  // Язык и регион
+        .setTimezoneId("Europe/Moscow"));    // Часовой пояс
+    ```
+
+- `Browser.NewContextOptions` — параметры для изолированной сессии браузера.
+  - `setViewportSize(int width, int height)` — размер области просмотра (эмуляция разрешения).
+  - `setUserAgent(String)` — переопределение строки пользовательского агента.
+  - `setExtraHTTPHeaders(Map<String, String>)` — заголовки, добавляемые ко всем запросам контекста.
+  - `setStorageState(Path/StorageState)` — загрузка сохранённых cookies и localStorage (для обхода логина).
+  - `setHttpCredentials(String, String)` — базовая HTTP-аутентификация.
+  - `setPermissions(List<String>)` — предоставление разрешений (геолокация, уведомления, камера).
+  - `setRecordVideoDir(Path)` / `setRecordVideoSize()` — настройка записи видео сессии.
+  - `setTracing(TracingOptions)` — конфигурация трассировки для последующего анализа.
+    ```java
+    // Предзагрузка состояния авторизации из файла (ускоряет тесты)
+    BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+        .setStorageState(Path.of("auth-state.json")) // Cookies + localStorage
+        .setExtraHTTPHeaders(Map.of("X-Test-Id", "checkout-flow")));
+    ```
+
+- `BrowserContext` — изолированная сессия браузера: независимые cookies, localStorage, кэш, разрешения. 
+  Основной объект для управления тестовой средой.
+  - `newPage()` — создание новой страницы (`Page`) в текущем контексте.
+  - `pages()` — возврат списка всех открытых страниц в контексте.
+  - `cookies()` / `addCookies(List<Cookie>)` — работа с cookies на уровне контекста.
+  - `storageState()` — экспорт состояния (cookies, localStorage) в JSON для переиспользования.
+  - `route(String pattern, Route.Handler)` — перехват и модификация сетевых запросов (мокинг, блокировка).
+    ```java
+    // Мокинг внешнего API: возврат фиктивного ответа на запросы к /api/data
+    context.route("**/api/data", route -> route.fulfill(
+        new Route.FulfillOptions()
+            .setStatus(200)
+            .setContentType("application/json")
+            .setBody("{\"items\":[\"mocked\"]}")));
+    ```
+  - `waitForConsoleMessage()` — ожидание сообщения в консоли; ловит сообщения со всех страниц контекста, не только с одной Page.  
+    ```java
+    // Ожидаем конкретное сообщение в консоли (например, лог от приложения)
+    ConsoleMessage msg = context.waitForConsoleMessage(() -> {
+        page.evaluate("() => console.log('App initialized')"); // Триггер действия (JS)
+    });
+    
+    // Фильтрация по типу или тексту
+    ConsoleMessage errorMsg = context.waitForConsoleMessage(m ->
+        m.type() == ConsoleMessage.Type.ERROR && m.text().contains("API failed")
+    );
+    ```
+  - `waitForPage()` — ожидание событий уровня контекста (новой страницы/вкладки/попапа); возвращает уже созданную страницу, 
+    но она может быть ещё не загружена — добавьте `waitForLoadState()` при необходимости.
+    ```java
+    // Ожидаем открытие новой вкладки (например, по клику на target="_blank")
+    Page newPage = context.waitForPage(() -> {
+        page.getByText("Открыть в новой вкладке").click(); // Действие, открывающее вкладку
+    }); 
+    ```
+  - `close()` — закрытие контекста и всех связанных страниц (освобождение памяти).
+
+- `Page` — представление одной вкладки/окна браузера. Основной интерфейс для навигации, взаимодействия с DOM и получения данных.
+  - `navigate(String url)` / `reload()` / `goBack()` / `goForward()` — управление историей навигации.
+  - `waitForLoadState(LoadState)` / `waitForURL(String)` / `waitForSelector(String)` / `waitForTimeout(double)` — ожидания загрузки и состояния.
+  - `locator(String selector)` — получение `Locator` для поиска элементов (ленивая резолюция).
+  - `getByRole()`, `getByText()`, `getByTestId()` — стратегии поиска по доступности и тестовым атрибутам.
+  - `frameLocator(String selector)` — доступ к `FrameLocator` для работы с iframes.
+  - `screenshot()` / `pdf()` / `title()` / `content()` — получение артефактов и метаданных страницы.
+  - `onDialog()`, `onRequest()`, `onResponse()`, `onConsole()` — подписка на события браузера.
+  - `close()` — закрытие страницы (не закрывает контекст).
+    ```java
+    // Навигация с ожиданием полной загрузки сети
+    page.navigate("https://app.example.com", new Page.NavigateOptions()
+        .setWaitUntil(WaitUntilState.NETWORKIDLE)); // Ждём, пока не останется активных запросов
+    
+    // Обработка нативных диалогов (alert/confirm/prompt)
+    page.onDialog(dialog -> {
+        System.out.println("Dialog: " + dialog.message());
+        dialog.accept(); // или dialog.dismiss()
+    });
+    ```
+
+- `Locator` — ленивый, авто-ожидающий селектор элемента. Не хранит ссылку на DOM-узел, а пересчитывает его при каждом действии.
+  - `click()` / `fill(String)` / `press(String)` / `selectOption()` — действия с автоматической проверкой `actionability`.
+  - `isVisible()` / `isEnabled()` / `isEditable()` — проверки состояния без выполнения действия.
+  - `first()` / `last()` / `nth(int)` / `filter()` — фильтрация и выбор конкретного элемента из набора.
+  - `count()` — возврат количества совпадений (синхронный вызов, требует осторожности).
+  - `all()` — материализация всех совпадений в список `Locator` (редко используется из-за потери авто-ожидания).
+  - `frameLocator()` — переход во вложенный iframe для дальнейшего поиска.
+    ```java
+    // Цепочка локаторов: поиск кнопки "Отправить" внутри формы с data-testid="checkout-form"
+    var submitBtn = page.locator("[data-testid='checkout-form']")
+        .locator("button")                    // Все кнопки внутри формы
+        .filter(new Locator.FilterOptions().setHasText("Отправить")) // С текстом "Отправить"
+        .first();                             // Берём первое совпадение (strict mode)
+    
+    submitBtn.click(); // Автоматически дожмётся видимости и кликабельности
+    ```
+
+- `FrameLocator` — специализированный локатор для работы с iframes. Позволяет «проникать» во вложенные фреймы без ручного переключения контекста.
+  - `locator(String selector)` — получение `Locator` внутри фрейма.
+  - `frameLocator(String selector)` — доступ к вложенному iframe (рекурсивно).
+    ```java
+    // Работа с элементом внутри двухуровневого iframe
+    Locator nestedInput = page.frameLocator("#payment-frame")      // Первый уровень
+        .frameLocator("#card-details")                             // Второй уровень
+        .locator("input[name='cardNumber']");                      // Целевой элемент
+    
+    nestedInput.fill("4111 1111 1111 1111");
+    ```
+
+- `ElementHandle` — низкоуровневая ссылка на конкретный DOM-узел в момент снимка. 
+  **Не рекомендуется** для обычной автоматизации (хрупкий, требует ручных ожиданий).
+  - Используется только для сложных сценариев: выполнение кастомного JS относительно элемента, работа с Canvas/WebGL.
+  - `$()` / `$$()` — поиск потомков относительно этого элемента (устаревший стиль, заменён на `Locator`).
+    ```java
+    // Пример легитимного использования: выполнение скрипта в контексте элемента
+    var handle = page.querySelector("#canvas"); // Получаем handle (не Locator!)
+    handle.evaluate(""" 
+        (el) => {
+            const ctx = el.getContext('2d');
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(0, 0, 100, 100);
+        }
+    """);
+    ```
+
+- `APIRequestContext` — независимый HTTP-клиент для API-тестов или гибридных сценариев (UI + API). 
+  Может переиспользовать cookies из `BrowserContext`.
+  - `get()` / `post()` / `put()` / `patch()` / `delete()` — отправка запросов с типизированными параметрами.
+  - `fetch(String url, RequestOptions)` — универсальный метод с гибкой настройкой (метод, headers, data, timeout).
+  - `storageState()` — экспорт состояния авторизации для синхронизации с UI-контекстом.
+    ```java
+    // Создание API-контекста с теми же cookies, что и у UI-сессии
+    	
+    APIRequestContext api = context.newAPIRequestContext(new APIRequest.NewContextOptions()
+        .setBaseURL("https://api.example.com")
+        .setExtraHTTPHeaders(Map.of("X-Request-ID", UUID.randomUUID().toString())));
+    
+    // POST-запрос с JSON-телом и валидацией ответа
+    APIResponse response = api.post("/orders", new RequestOptions()
+        .setData(Map.of("productId", 123, "qty", 2))
+        .setTimeout(30000));
+    
+    assertTrue(response.ok());
+    JsonObject order = response.json().getAsJsonObject(); // (Gson)
+    assertEquals(2, order.get("qty").getAsInt());
+    ```
+
+- `APIResponse` — результат выполнения запроса через `APIRequestContext`.
+  - `status()` / `statusText()` / `ok()` — информация о статус-коде.
+  - `headers()` / `headerValue(String)` — доступ к заголовкам ответа.
+  - `text()` / `json()` / `body()` — получение тела ответа в разных форматах.
+  - `dispose()` — освобождение ресурсов (закрытие потоков), если ответ не был прочитан полностью.
+    ```java
+    // Безопасная работа с большим ответом: чтение потока с автоматической очисткой
+    try (APIResponse response = api.get("/large-export")) {
+        if (response.ok()) {
+            try (var stream = response.body()) {
+                // Обработка InputStream без загрузки всего файла в память
+                processExportStream(stream);
+            }
+        }
+    } // response.dispose() вызван автоматически
+    ```
+
+- `PlaywrightAssertions` / `APIResponseAssertions` — типизированные утверждения с авто-ожиданием и понятными сообщениями об ошибках.
+  - `expect(locator).isVisible()` / `.toHaveText()` / `.toBeChecked()` / `.toBeEnabled()` — UI-проверки.
+  - `expect(apiResponse).isOk()` / `.hasStatus(int)` / `.hasHeader()` — API-проверки.
+  - `setOptions().setTimeout(int)` — переопределение таймаута для конкретного утверждения.
+    ```java
+    // Ожидание появления текста с кастомным таймаутом (5 секунд вместо дефолтных 30)
+    expect(page.getByRole(AriaRole.HEADING))
+        .toHaveText("Добро пожаловать", 
+            new ExpectOptions().setTimeout(5000)); // Локальное переопределение
+    ```
+
+- `Tracing` — инструмент для записи детальной трассировки выполнения теста (скриншоты, DOM-снэпшоты, исходный код шагов, сетевые логи).
+  - `start(Tracing.StartOptions)` — начало записи с настройками (screenshots, snapshots, sources).
+  - `stop(Tracing.StopOptions)` / `stopChunk(Tracing.StopChunkOptions)` — сохранение трейса в файл (`.zip`) через опции.
+  - Интегрируется с `context.tracing()` для управления на уровне контекста.
+    ```java
+    // Включение трассировки только при падении теста (экономия ресурсов)
+    @AfterEach
+    void afterEach(TestInfo testInfo, BrowserContext context) {
+        if (testInfo.getDisplayName().contains("FAILED")) {
+            context.tracing().stop(new Tracing.StopOptions()
+                .setPath(Path.of("traces/" + testInfo.getDisplayName() + ".zip")));
+        }
+    }
+    ```
+- `Request` / `Response` — объекты, представляющие сетевой запрос и ответ (используются в `onRequest`, `onResponse`, `route`).
+  - `Request`: `url()` / `method()` / `headers()` / `postData()` / `resourceType()` / `frame()`.
+  - `Response`: `request()` / `status()` / `headers()` / `body()` / `finished()` (ожидание завершения загрузки; возвращает: null — если запрос успешно завершён, 
+    String с ошибкой — если соединение разорвано/сбой).
+    ```java
+    // Логирование всех запросов к API с фильтрацией по домену
+    page.onResponse(response -> {
+        if (response.url().contains("api.example.com")) {
+            System.out.printf("[%d] %s %s%n", 
+                response.status(), 
+                response.request().method(), 
+                response.url());
+        }
+    });
+    ```
+
+- `ConsoleMessage` — представление сообщения из консоли браузера (log, warning, error, debug).
+  - `type()` / `text()` / `args()` — тип сообщения, текст и аргументы (как `JSHandle`).
+  - Используется с `page.onConsoleMessage()` для отладки или валидации отсутствия ошибок в консоли.
+    ```java
+    // Фиксация ошибок консоли как падения теста
+    List<String> errors = new ArrayList<>();
+    page.onConsoleMessage(msg -> {
+        if (msg.type() == ConsoleMessage.Type.ERROR) {
+            errors.add(msg.text());
+        }
+    });
+    // ... после действий:
+    assertTrue(errors.isEmpty(), "Console errors: " + errors);
+    ```
+
 ### Место в стеке AQA
 
 #### Playwright интегрируется в существующую Java-экосистему без необходимости изменения инфраструктуры сборки или CI/CD.
@@ -139,19 +412,31 @@ Playwright использует клиент-серверную архитект
 // Запуск:
 // playwright codegen https://example.com
 
-// Включение трассировки для детального анализа падения теста
-BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-    .setRecordVideoDir(Path.of("videos"))                    // Запись видео сессии
-    .setTracing(new TracingOptions()                         // Настройка трассировки
-        .setScreenshots(true)                                // Скриншоты на каждом шаге
-        .setSnapshots(true)                                  // DOM-снэпшоты для инспекции
-        .setSources(true)));                                 // Исходный код шагов
+try (Playwright playwright = Playwright.create()) {
+    Browser browser = playwright.chromium().launch();
 
-// ... выполнение теста ...
+    // Контекст с записью видео
+    BrowserContext context = browser.newContext(
+        new Browser.NewContextOptions()
+                .setRecordVideoDir(Paths.get("videos"))
+    );
 
-// Останавливаем и сохраняем в файл
-context.tracing().stop(new Tracing.StopOptions()
-    .setPath(Paths.get("trace.zip"))); // задаем имя файла
+    // 🔹 Запуск трассировки
+    context.tracing().start(new Tracing.StartOptions()
+            .setScreenshots(true)   // скриншоты для превью
+            .setSnapshots(true)     // DOM-снэпшоты
+            .setSources(true));     // исходный код
+
+    Page page = context.newPage();
+    page.navigate("https://example.com");
+    // ... ваши действия ...
+
+    // 🔹 Остановка и экспорт
+    context.tracing().stop(new Tracing.StopOptions()
+            .setPath(Paths.get("trace.zip")));
+
+    browser.close();
+}
 
 // Просмотр трейса после выполнения:
 // playwright show-trace trace.zip
@@ -319,7 +604,7 @@ npx playwright test --headed --browser chromium
 │           ▼                                                 │
 │  ┌─────────────────┐                                        │
 │  │  Driver Process │ ← Запускается автоматически при первом │
-│  │  (Node.js)      │    вызове API. Проверяет кэш браузеров │
+│  │    (Node.js)    │    вызове API. Проверяет кэш браузеров │
 │  └────────┬────────┘                                        │
 │           │                                                 │
 │           ▼                                                 │
@@ -471,7 +756,7 @@ playwright codegen --color-scheme dark https://example.com
 
 ---
 
-### Практические сценарии использования для QA/AQA
+### Практические сценарии использования кодогенератора для QA/AQA
 
 - **Быстрое прототипирование теста**
 
