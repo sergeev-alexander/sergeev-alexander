@@ -335,7 +335,7 @@ public class ThreadSafeTest {
 
 ---
 
-- **Инициализация ленивая:** Значения создаются только при первом вызове `get()` для конкретного потока, 
+- **Ленивая инициализация:** Значения создаются только при первом вызове `get()` для конкретного потока, 
   что экономит ресурсы при холодном старте.
 - **Запись перезаписывает:** Вызов `set()` заменяет старое значение в `ThreadLocalMap`. 
   Ссылка на старый объект освобождается для GC, если на неё больше нет внешних ссылок.
@@ -343,5 +343,153 @@ public class ThreadSafeTest {
   приводит к утечкам памяти и перекрёстному загрязнению контекста.
 - **API минимален, но строг:** Правильная последовательность `get/set -> бизнес-логика -> remove` является 
   единственным способом безопасной эксплуатации `ThreadLocal` в production.
+
+---
+
+# 3. Типичные ошибки и подводные камни
+
+> Несмотря на простоту API, `ThreadLocal` часто становится источником труднодиагностируемых багов в production. 
+> 
+> Основные риски связаны с жизненным циклом потоков в пулах, неявным наследованием контекста 
+> и архитектурными ограничениями асинхронных сред.
+
+---
+
+## Утечки памяти в пулах потоков
+
+> Внутренняя структура `ThreadLocalMap` использует `WeakReference` для **ключей**, но `StrongReference` для **значений**. 
+> 
+> Это создаёт асимметрию: если экземпляр `ThreadLocal` становится недостижимым и собирается GC, ключ в `Entry` превращается в `null`, 
+> но значение остаётся в памяти до тех пор, пока поток не вызовет `set()`, `get()` или `remove()` для этой карты. 
+> 
+> В долгоживущих пулах потоков (`ExecutorService`, `Tomcat`) это приводит к накоплению "осиротевших" `Entry` и утечкам в Old Gen.
+
+```java
+public class MemoryLeakDemo implements Runnable {
+
+    // Потенциально тяжёлый объект
+    private static final ThreadLocal<byte[]> CACHE = ThreadLocal.withInitial(() -> new byte[1024 * 1024]);
+
+    @Override
+    public void run() {
+        // 1. Записываем данные в контекст
+        CACHE.set(new byte[1024 * 1024]); // 1MB на поток
+        
+        // ... бизнес-логика ...
+        
+        // ОШИБКА: remove() забыт.
+        // Поток возвращается в пул, но 1MB остаётся привязанным к нему навсегда.
+        // При повторном использовании потока старый массив всё ещё висит в памяти.
+    }
+}
+
+// ИСПРАВЛЕНИЕ: гарантированная очистка в блоке finally
+public class SafeLeakDemo implements Runnable {
+    
+    private static final ThreadLocal<byte[]> CACHE = ThreadLocal.withInitial(() -> new byte[0]);
+
+    @Override
+    public void run() {
+        try {
+            CACHE.set(new byte[1024 * 1024]);
+            process();
+        } finally {
+            // Всегда вызываем remove(), даже если вылетело исключение
+            CACHE.remove(); 
+        }
+    }
+}
+```
+
+- **Почему происходит:** Пул потоков переиспользует `Thread` объекты. Карта не очищается автоматически между задачами.
+- **Как избежать:** Строгий `try-finally` с `remove()`, либо использование фреймворковых обёрток 
+  (Spring `TransactionSynchronizationManager`, Servlet `Filter`).
+
+---
+
+## `InheritableThreadLocal`: нюансы наследования
+
+> `InheritableThreadLocal` позволяет дочернему потоку получить копию значения родительского потока на момент создания. 
+> 
+> Полезно для трейсинга или MDC-логирования. Однако в пулах потоков это создаёт иллюзию изоляции: 
+> дочерний поток наследует контекст **потока-создателя пула**, а не **потока, отправившего задачу**.
+
+```java
+public class InheritablePitfallDemo {
+
+    // Наследуемая переменная
+    private static final InheritableThreadLocal<String> TRACE_ID = new InheritableThreadLocal<>();
+
+    public static void main(String[] args) {
+        // 1. Устанавливаем контекст в главном потоке (который создаёт пул)
+        TRACE_ID.set("main-trace");
+        
+        ExecutorService pool = Executors.newFixedThreadPool(1);
+        
+        for (int i = 0; i < 3; i++) {
+            // 2. Меняем контекст в потоке, который отправляет задачу
+            TRACE_ID.set("request-" + i);
+            
+            pool.submit(() -> {
+                // ❌ Здесь ВСЕГДА выводится "main-trace", а не "request-N"
+                // Потому что worker-thread унаследовал значение при первом старте пула
+                System.out.println("Worker sees: " + TRACE_ID.get());
+            });
+        }
+        pool.shutdown();
+    }
+}
+```
+
+- **Когда уместно:** Создание новых потоков "на лету" (не в пуле) для фоновых задач, требующих передачи контекста.
+- **Когда опасно:** Любая работа с `ThreadPoolExecutor`, `ForkJoinPool` или веб-контейнерами. 
+
+  Для пулов используйте явную передачу контекста в аргументах `Runnable`/`Callable` (через кастомную имплементацию).
+
+---
+
+## Проблемы в асинхронных/реактивных моделях
+
+> `ThreadLocal` жёстко привязан к **физическому потоку** (`Thread.currentThread()`). 
+> 
+> В асинхронном программировании (`CompletableFuture`, `Project Reactor`, `Kotlin Coroutines`) логическая задача 
+> может стартовать в Thread-1, продолжить работу в Thread-2 после `await`/`flatMap`, и завершиться в Thread-3. 
+> 
+> Контекст остаётся в Thread-1 и теряется для последующих этапов цепочки.
+
+```java
+public class AsyncContextLossDemo {
+    private static final ThreadLocal<String> USER_CTX = ThreadLocal.withInitial(() -> "anonymous");
+
+    public CompletableFuture<String> handleRequest(String userId) {
+        // Устанавливаем контекст в потоке веб-сервера
+        USER_CTX.set(userId);
+
+        return CompletableFuture.supplyAsync(() -> {
+            // ⚠️ Этот код выполняется в потоке из ForkJoinPool.commonPool()
+            // USER_CTX.get() вернёт значение по умолчанию ("anonymous"), 
+            // а не "userId", потому что это другой физический поток.
+            String ctx = USER_CTX.get(); 
+            return fetchData(ctx);
+        });
+    }
+}
+```
+
+- **Архитектурное ограничение:** `ThreadLocal` не поддерживает логическую привязку к задаче, только к потоку ОС/JVM.
+- **Решение:** Явная передача контекста через цепочку `CompletableFuture.thenApply()`, 
+  использование `Context` в Reactor/WebFlux, 
+  или фреймворковые средства (`MDC.put()` + `MDCContext` для Logback в асинхронных средах).
+
+---
+
+### Ключевые выводы
+
+- **Память не чистится сама:** В пулах потоков `WeakReference` по ключу не спасает от утечки значений. 
+  `remove()` в `finally` — обязательный паттерн.
+- **Наследование ломается в пулах:** `InheritableThreadLocal` копирует состояние только при `new Thread()`. 
+  Для `ExecutorService` это антипаттерн, требующий явной передачи контекста.
+- **Асинхронность убивает контекст:** Логическая задача, мигрирующая между потоками, теряет привязку к `ThreadLocal`. В реактивных и `async/await` средах используйте явную передачу состояния или специализированные механизмы.
+- **Отладка утечек:** При подозрении на утечку `ThreadLocal` используйте `-XX:+HeapDumpOnOutOfMemoryError` и анализаторы (Eclipse MAT, VisualVM), ища цепочки `Thread → threadLocals → Entry → value`.
 
 ---
