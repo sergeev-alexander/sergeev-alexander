@@ -1355,3 +1355,394 @@ page.locator("[data-testid='checkout-modal']")
 - **Не смешивайте `page.$()` и `Locator`** — `ElementHandle` устарел. Перейдите полностью на `Locator` API для согласованности и поддержки.
 
 ---
+
+# 5. Взаимодействие с элементами и Auto-waiting
+
+> Playwright исключает необходимость ручного управления ожиданиями благодаря встроенному механизму `Auto-waiting`. 
+> 
+> Перед каждым действием библиотека автоматически проверяет готовность элемента к взаимодействию, гарантируя, 
+> что тесты выполняются только когда DOM стабилен, элемент видим и не перекрыт другими компонентами.
+
+## Механика Auto-waiting
+
+> `Auto-waiting` - ядро стабильности Playwright, заменяющее явные `Thread.sleep()` и сложные `WebDriverWait` из Selenium. 
+>
+> Перед выполнением любого действия (`click()`, `fill()`, `selectOption()`) фреймворк последовательно проверяет условия `actionability`.
+
+- `visible` - элемент имеет `display != none`, `visibility != hidden` и `opacity > 0` (полностью прозрачны и не видны пользователю) 
+  в вычисленных стилях
+- `enabled` - элемент не имеет атрибута `disabled` и не заблокирован через `pointer-events: none`
+- `stable` - позиция и размеры элемента не изменяются в течение 50 мс (защита от анимаций и лоадеров)
+- `editable` - поле ввода активно для клавиатурного взаимодействия и принимает фокус
+- `receivesEvents` - элемент не перекрыт другими узлами DOM (overlay, sticky headers, модальные окна)
+
+ASCII-схема процесса проверки:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│              ВЫЗОВ ДЕЙСТВИЯ: locator.click()                │
+└───────────────────────────────┬─────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│  1. ПОИСК (DOM Query)                                       │
+│     └─► Если 0 совпадений → повтор до таймаута              │
+│     └─► Если >1 совпадений → Strict Mode Violation          │
+└───────────────────────────────┬─────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│  2. ACTIONABILITY CHECK (цикл до успеха или таймаута)       │
+│     ├─► visible?   → Да / Ждём перерисовки                  │
+│     ├─► enabled?   → Да / Ждём снятия disabled              │
+│     ├─► stable?    → Да / Ждём остановки анимации           │
+│     └─► unobscured?→ Да / Скроллим или ждём закрытия overlay│
+└───────────────────────────────┬─────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. ВЫПОЛНЕНИЕ ДЕЙСТВИЯ (Dispatch Event)                    │
+│     └─► pointerdown → pointerup → click                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Сравнение подходов к ожиданиям:
+
+| Критерий              | Playwright Auto-waiting                | Selenium Explicit Wait                    | Cypress Auto-wait                         |
+|:----------------------|----------------------------------------|-------------------------------------------|-------------------------------------------|
+| Механизм проверки     | Встроен в каждое действие              | Отдельный `WebDriverWait.until()`         | Встроен в команды API                     |
+| Проверка стабильности | `stable` (отсутствие сдвигов)          | Отсутствует (только presence/visibility)  | Частичная                                 |
+| Обработка перекрытий  | Автоматический скролл/ожидание         | Требует ручного `Actions.moveToElement()` | Автоматический                            |
+| Накладные расходы     | Минимальные (оптимизированный polling) | Высокие (сериализация JSON-RPC + polling) | Средние (выполнение в контексте браузера) |
+
+
+
+
+Вот исправленная таблица, где вместо Cypress Auto-wait добавлен **Selenide** (популярная обёртка над Selenium WebDriver, которая также внедряет встроенные ожидания):
+
+## Сравнение подходов к ожиданиям:
+
+| Критерий                  | Playwright Auto-waiting                                       | Selenium Explicit Wait                              | Selenide Auto-wait                                                      |
+|:--------------------------|---------------------------------------------------------------|-----------------------------------------------------|-------------------------------------------------------------------------|
+| **Механизм проверки**     | Встроен в каждое действие                                     | Отдельный `WebDriverWait.until()`                   | Встроен в команды API (`.click()`, `.shouldBe()`)                       |
+| **Проверка стабильности** | `stable` (отсутствие сдвигов позиции/размера в течение 50 мс) | Отсутствует (только `presence`/`visibility`)        | Отсутствует (только видимость и enabled)                                |
+| **Обработка перекрытий**  | Автоматический скролл + ожидание ухода оверлея                | Требует ручного `Actions.moveToElement()`           | Автоматический скролл, но без проверки перекрытия другими элементами    |
+| **Накладные расходы**     | Минимальные (оптимизированный polling через WebSocket)        | Высокие (сериализация JSON-RPC + удалённый polling) | Низкие/средние (работа поверх WebDriver, но с умными retry-механизмами) |
+| **Таймауты по умолчанию** | 5 000 мс (глобальный), 30 000 мс (навигация)                  | 0 мс (требуется явная настройка)                    | 4 000 мс (можно переопределить)                                         |
+| **Условия ожидания**      | `visible`, `enabled`, `stable`, `editable`, `receivesEvents`  | `presence`, `visibility`, `clickable` (редко)       | `visible`, `enabled`, `exist`                                           |
+
+
+> Selenide — это большой шаг вперёд по сравнению с чистым Selenium, но Playwright уходит дальше за счёт 
+> проверки стабильности и обработки перекрытий, что особенно важно для современных SPA с динамическими интерфейсами.
+
+---
+
+## Действия с элементами
+
+> Playwright предоставляет типизированные методы для симуляции пользовательского ввода. 
+> 
+> Все действия возвращают `void` и поддерживают кастомизацию через `*Options` объекты.
+
+- `void click()` / `void click(Locator.ClickOptions options)` - симуляция нажатия левой кнопки мыши
+  - `button` - выбор кнопки мыши `MouseButton` (`LEFT`, `RIGHT`, `MIDDLE`)
+    ```java
+    // 1. ЛЕВАЯ кнопка (используется по умолчанию)
+    page.locator("#submit").click();    // эквивалентно явному LEFT
+    page.locator("#submit").click(new Locator.ClickOptions()
+                        .setButton(MouseButton.LEFT));
+                        
+    // 2. ПРАВАЯ кнопка (открытие контекстного меню)
+    page.locator("#file").click(new Locator.ClickOptions()
+                        .setButton(MouseButton.RIGHT));
+    ```
+  - `clickCount` - количество кликов (для `dblclick` используйте `2`)
+  - `delay` - задержка между `pointerdown` и `pointerup` в миллисекундах
+  - `force` - принудительный клик без проверки `actionability`
+  ```java
+  // Клик с настройками: правая кнопка, двойное нажатие, задержка 100мс
+  page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Options"))
+            .click(new Locator.ClickOptions()
+            .setButton(MouseButton.RIGHT)   // Симуляция правого клика
+            .setClickCount(2)               // Двойное нажатие
+            .setDelay(100));                // Задержка между down/up для эмуляции человека
+  ```
+- `void fill(String value)` - полная очистка поля и ввод текста (оптимизировано для `input`/`textarea`)
+  ```java
+  // Полная очистка и ввод текста в поле (заменяет clear() + sendKeys())
+  page.getByLabel("Email").fill("tester@example.com"); // fill() автоматически очищает поле перед вводом
+  ```
+- `void type(String text)` / `void type(String text, Locator.TypeOptions options)` - посимвольный ввод с эмуляцией задержек клавиатуры
+  - `delay` - задержка между нажатиями клавиш
+    ```java
+    // Посимвольный ввод с задержкой (полезно для тестирования автокомплита)
+    page.getByLabel("Search").type("macbook", new Locator.TypeOptions().setDelay(50)); // 50мс между символами
+    ```
+- `void press(String key)` / `void press(String key, Locator.PressOptions options)` - нажатие комбинаций клавиш
+  - `setDelay(double delay)` - Задержка в мс между нажатием и отпусканием клавиши (симуляция удержания)
+    ```java
+    page.locator("#search").fill("очень длинный текст для удаления");
+    page.locator("#search").press("Backspace", new Locator.PressOptions()
+              .setDelay(150));  // имитация удержания клавиши
+    ```
+  - `setNoWaitAfter(boolean noWaitAfter)` - Не ждать завершения навигации/загрузки после нажатия
+    ```java
+    // Нажатие Escape в модальном окне — закрывает его, без навигации
+    page.locator(".modal").press("Escape", new Locator.PressOptions()
+              .setNoWaitAfter(true));
+
+    // Ждём, пока модалка исчезнет
+    assert page.locator(".modal").isHidden();
+    ```
+  - `setTimeout(double timeout)` - Переопределяет глобальный таймаут ожидания только для этого конкретного действия `press()`
+    ```java
+    // Глобальный таймаут установлен на 5 секунд
+    page.setDefaultTimeout(5000);
+
+    // Кнопка "Экспорт" после нажатия Enter генерирует отчёт 15 секунд
+    // Увеличиваем таймаут только для этого действия
+    page.locator("#export").press("Enter", new Locator.PressOptions()
+              .setTimeout(20000.0));  // ждём 20 секунд вместо 5
+
+    // Другие действия продолжают использовать глобальный таймаут (5 сек)
+    page.locator("#save").click();  // упадёт через 5 секунд, если элемент не появится
+    ```
+  - `key` - формат `Key` или `Modifier+Key` (`Enter`, `Control+Shift+A`, `Backspace`)
+    ```java
+    // Нажатие комбинации клавиш: Ctrl+A, затем Delete, затем ввод
+    page.getByLabel("Description")
+              .press("Control+a");        // Выделение всего текста
+    page.getByLabel("Description")
+              .press("Backspace");        // Удаление
+    page.getByLabel("Description")
+              .fill("Новое описание");    // Ввод нового значения
+    ```
+- `List<String> selectOption(String value)` / `List<String> selectOption(SelectOption option)` - выбор элемента в `<select>`
+  ```java
+  // 1. Базовый способ: строка (авто-поиск по value → label)
+  // <option value="RU">Россия</option>
+  page.getByLabel("Country").selectOption("RU");      // по value
+  // <option value="msk">Москва</option>
+  page.getByLabel("City").selectOption("Москва");     // по label (если value не найден)
+
+  // 2. Явный выбор через SelectOption
+  page.getByLabel("Country").selectOption(new SelectOption().setValue("RU"));    // по value
+  page.getByLabel("City").selectOption(new SelectOption().setLabel("Москва"));   // по тексту
+  page.getByLabel("Currency").selectOption(new SelectOption().setIndex(2));      // по индексу (c 0)
+
+  // 3. Multiple select (выбор нескольких опций через массив строк)
+  page.locator("#hobbies").selectOption(new String[] {"reading", "music"});
+
+  // 4. Упрощённый синтаксис (без Locator API)
+  page.selectOption("#country", "RU"); // Поиск по CSS-селектору
+  page.selectOption("#hobbies", new String[] {"reading", "music"});
+
+  // selectOption возвращает список выбранных значений
+  List<String> selected = page.locator("#hobbies").selectOption(new String[] {"reading", "music"}); // [reading, music]
+  
+  // Важно: приоритет в строковом методе: value → label
+  // <option value="RU">Россия</option> → selectOption("RU") найдёт по value
+  // selectOption("Россия") найдёт по label (если value='Россия' не существует)
+  ```
+- `void check()` / `void uncheck()` - управление чекбоксами и radiobutton
+  ```java
+  // Чекбокс и радиокнопка
+  page.getByLabel("Subscribe to newsletter").check();       // Установить
+  page.getByLabel("Male").uncheck();                        // Снять
+  ```
+- `void dragTo(Locator target)` / `void dragTo(Locator target, Locator.DragToOptions options)` - перетаскивание элемента.
+  Выполняет операцию drag-and-drop (перетаскивание) от одного элемента к другому левой кнопкой мыши.
+  Перед началом перетаскивания Playwright автоматически проверяет, что оба элемента видимы, стабильны и готовы к взаимодействию.
+  ```java
+  // Простое перемещение элемента A в элемент B
+  Locator taskCard = page.locator("#task-1");
+  Locator doneColumn = page.locator("#column-done");
+  taskCard.dragTo(doneColumn);
+  
+  // Перетаскивание с дополнительными опциями
+  Locator fileIcon = page.locator(".file-icon");
+  Locator folder = page.locator(".folder");
+  
+  fileIcon.dragTo(folder, new Locator.DragToOptions()
+      .setSourcePosition(5, 5)        // захват за точку (5px, 5px) от левого верхнего угла элемента
+      .setTargetPosition(10, 10)      // отпускание в точке (10px, 10px) от левого верхнего угла целевого элемента
+      .setTimeout(10000.0)            // таймаут 10 секунд на выполнение
+      .setNoWaitAfter(true));         // не ждать завершения навигации (если перетаскивание вызывает переход)
+  ```
+- `void hover()` / `void focus()` / `void blur()` - управление фокусом и наведением
+  - `hover()` - Наведение курсора мыши на элемент (не работает на touch-устройствах - для мобильных тестов используйте `tap()`)
+    ```java
+    // Проверка появления тултипа
+    Locator emailField = page.locator("#email");
+    emailField.hover();
+    
+    assertThat(page.locator(".tooltip:has-text('корпоративную')))
+             .isVisible();
+    ```
+  - `focus()` - Установка фокуса на элемент (клавиатурного) (только если `keyboard()`, не `fill()`)
+    ```java
+    // Фокус перед вводом (обычно не нужно, т.к. fill() сам ставит фокус)
+    Locator passwordField = page.locator("#password");
+    passwordField.focus();
+    page.keyboard().type("secret123");  // ввод с клавиатуры после фокуса
+    ```
+  - `blur()` - Снятие фокуса с элемента (для валидации)
+    ```java
+    Locator phoneField = page.locator("#phone");
+    phoneField.fill("123");     // начинаем вводить 
+    phoneField.blur();          // снимаем фокус
+            
+    // Проверяем появление сообщения об ошибке
+    assertThat(page.locator(".error:has-text('Должно быть 10 цифр')))
+            .isVisible();
+    ```
+
+---
+
+## Обработка ввода и специальных компонентов
+
+> Современные веб-приложения часто используют кастомные виджеты, которые не реагируют на стандартные события. 
+> 
+> Playwright предоставляет обходные пути и API для работы с файлами, буфером обмена и динамическими контролами.
+
+- `void setInputFiles(Path path)` / `void setInputFiles(FilePayload payload)` - загрузка файлов в `<input type="file">`
+  - Поддерживает одиночные файлы, массивы `Path[]` и мульти-выбор
+  - Обходит нативный диалог выбора файла ОС, загружая данные напрямую в DOM
+- `void fill(String value)` с кастомными датапикерами - если виджет блокирует прямой ввод, 
+  используйте `pressSequentially()` или JS-эвалюацию
+- `void fill()` + `press("Enter")` - обход автокомплитов, которые не реагируют на `fill()` без явного подтверждения
+- `Clipboard API` - работа с буфером обмена через `page.evaluate()` или кастомные события `paste`
+
+```java
+// Загрузка одного файла в поле ввода
+page.locator("#upload-document").setInputFiles(Path.of("src/test/resources/report.pdf"));
+
+// Загрузка нескольких файлов одновременно
+Path[] files = {
+    Path.of("src/test/resources/img1.jpg"),
+    Path.of("src/test/resources/img2.png")
+};
+page.locator("#multi-upload").setInputFiles(files);
+
+// Обход кастомного датапикера (если поле только для чтения)
+Locator dateInput = page.getByLabel("Start Date");
+dateInput.click();                        // Открыть календарь
+page.getByText("15").click();             // Выбрать день
+page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Next Month")).click();
+page.getByText("20").click();             // Подтвердить выбор
+
+// Эмуляция вставки из буфера обмена (обход ограничений paste-событий)
+page.getByLabel("Verification Code").evaluate("""
+    (element, code) => {
+        element.value = code;                                           // Прямая установка значения
+        element.dispatchEvent(new Event('input', { bubbles: true }));   // Эмуляция события ввода
+        element.dispatchEvent(new Event('change', { bubbles: true }));  // Эмуляция изменения
+    }
+""", "849201");
+```
+
+---
+
+## Assertions и проверки состояния
+
+> Playwright включает типизированный модуль утверждений `com.microsoft.playwright.assertions.PlaywrightAssertions`,
+> который автоматически применяет `auto-waiting` к проверкам. 
+> 
+> Для удобства рекомендуется статический импорт: `import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;`
+
+### Методы-утверждения (все возвращают `void`):
+
+- `assertThat(Locator).toBeVisible()` - ожидание видимости элемента на экране
+- `assertThat(Locator).toHaveText(String text)` - проверка точного или частичного совпадения текста
+- `assertThat(Locator).toBeChecked()` / `toBeUnchecked()` - валидация состояния чекбоксов
+- `assertThat(Locator).toBeEnabled()` / `toBeDisabled()` - проверка доступности элемента
+- `assertThat(Locator).toHaveCSS(String property, String value)` - валидация вычисленных стилей
+- `assertThat(APIResponse).isOk()` / `hasStatus(int code)` - проверка HTTP-ответов
+- `assertThat(Locator).toHaveAttribute(String name, String value)` - проверка атрибутов
+- `assertThat(Locator).toHaveValue(String value)` - валидация значения поля ввода
+- `assertThat(Locator).toHaveCount(int count)` - проверка количества элементов в коллекции
+- `assertThat(Locator).toBeAttached()` - проверяет, что элемент подключен к DOM (Document или ShadowRoot), 
+  но **не обязательно видим** на странице. Добавлен в v1.33. Отличие от `toBeVisible()`: `toBeVisible()` требует 
+  как подключения к DOM, **так и** видимости на экране, тогда как `toBeAttached()` проверяет только наличие в DOM, 
+  что полезно для скрытых элементов или элементов до их отрисовки.
+
+```java
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+
+// Проверка видимости с кастомным таймаутом (5 секунд)
+assertThat(page.getByRole(AriaRole.HEADING, new Page.GetByRoleOptions().setName("Dashboard")))
+    .toBeVisible(new ExpectOptions().setTimeout(5000));
+
+// Валидация текста с регулярным выражением
+assertThat(page.locator(".status-message"))
+    .toHaveText(Pattern.compile("Успешно сохранено.*"));
+
+// Комбинированная проверка атрибута и CSS
+assertThat(page.locator("#theme-toggle"))
+    .toHaveAttribute("aria-pressed", "true");
+assertThat(page.locator(".error-toast"))
+    .toHaveCSS("background-color", "rgb(220, 53, 69)");
+
+// Чекбоксы и радиокнопки
+assertThat(page.getByLabel("Accept Terms")).toBeChecked();
+assertThat(page.getByLabel("Decline")).not().toBeChecked(); // Негация
+
+// Проверка количества элементов
+assertThat(page.locator(".search-result")).toHaveCount(10);
+```
+
+#### Важные особенности:
+
+- **`assertThat()`** - это статический алиас для `PlaywrightAssertions.expect()`, возвращает объект-ассерт
+- **Все методы `toBe...()` / `toHave...()`** возвращают `void`, выполняя проверку с auto-waiting
+- **`not()`** - возвращает тот же тип ассерта для негативных проверок
+- **`ExpectOptions.setTimeout()`** - переопределяет таймаут только для конкретной проверки
+
+---
+
+## Кастомные ожидания и синхронизация
+
+> Когда встроенных проверок недостаточно, Playwright позволяет создавать собственные условия ожидания, 
+> ожидать сетевые ответы или контролировать загрузку ресурсов на уровне страницы.
+
+- `void waitForCondition(Supplier<Boolean> condition)` - ожидание выполнения произвольного Java-условия
+- `APIResponse waitForResponse(String urlPattern)` / `waitForResponse(Predicate<Response> predicate)` - блокировка потока до получения HTTP-ответа
+- `void waitForLoadState(LoadState state)` - ожидание состояний загрузки страницы (`LOAD`, `DOMCONTENTLOADED`, `NETWORKIDLE`)
+- `void waitForFunction(String expression)` - выполнение JS в контексте страницы до возврата `true`
+
+```java
+// Ожидание конкретного сетевого ответа (например, сохранения формы)
+try (Response response = page.waitForResponse("**/api/checkout/submit")) {
+    page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Place Order")).click(); // Действие, вызывающее запрос
+    // Блок блокируется до получения ответа с совпадающим URL
+    assertEquals(200, response.status()); // Валидация статуса после разблокировки
+    assertTrue(response.json().getAsJsonObject().has("orderId")); // Проверка полезной нагрузки
+}
+
+// Ожидание загрузки ресурсов с таймаутом
+page.navigate("https://app.example.com/gallery", new Page.NavigateOptions()
+    .setWaitUntil(WaitUntilState.NETWORKIDLE)    // Ждём завершения всех запросов
+    .setTimeout(60000));                         // Максимальное время ожидания
+
+// Кастомное условие: ожидание появления 3 карточек товара
+page.waitForCondition(() -> {
+    int count = page.locator(".product-card").count();  // Мгновенный подсчёт без auto-waiting
+    return count >= 3;                                  // Возврат true прервёт ожидание
+});
+
+// JS-ожидание: проверка, что React/Vue состояние обновилось
+page.waitForFunction("() => window.appState.isLoading === false"); // Блокировка до изменения флага в JS
+```
+
+---
+
+## Best Practices
+
+- Полагайтесь на `Auto-waiting` как основной механизм синхронизации, он покрывает 95% сценариев без ручного кода
+- Используйте `assertThat(locator).toHaveText()` вместо `locator.textContent().equals()`, чтобы автоматически дождаться появления текста
+- Конфигурируйте глобальный таймаут через `Page.setDefaultTimeout()` один раз в `@BeforeAll` или базовом классе
+- Применяйте `waitForResponse()` для синхронизации UI с бэкендом, это надёжнее, чем ожидание изменения DOM
+- Загружайте файлы через `setInputFiles()` напрямую, минуя нативные диалоги ОС, для стабильности в CI
+- Не используйте `Thread.sleep()` для синхронизации, это блокирует поток раннера и ломает параллельные запуски
+- Не применяйте `force = true` в `ClickOptions` без крайней необходимости, обход проверки стабильности приводит к ложным успехам тестов
+- Не вызывайте `count()` внутри циклов с `Thread.sleep()`, это создаёт гонки состояний и не гарантирует корректность ожидания
+- Не валидируйте элементы через `page.querySelector()` и ручные `null`-проверки, используйте `expect(locator).toBeAttached()`
+- Не игнорируйте возвращаемые значения `waitForResponse()`, всегда валидируйте `status()` и `body()` для полного покрытия
+
+---
