@@ -50,7 +50,7 @@ This work is private property and is not licensed for copying, distribution, mod
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│  ВИЗУАЛИЗАЦИЯ СВЯЗИ Thread → ThreadLocalMap → Entry                 │
+│        ВИЗУАЛИЗАЦИЯ СВЯЗИ Thread → ThreadLocalMap → Entry           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────┐      ┌─────────────────────────────────────┐   │
@@ -76,25 +76,30 @@ This work is private property and is not licensed for copying, distribution, mod
 #### Пример декларативной настройки и базовой изоляции:
 
 ```java
-// 1. Создаём экземпляр ThreadLocal. Обычно это static final field класса.
-// Сам объект ThreadLocal потокобезопасен и может шериться между потоками.
-private static final ThreadLocal<UserContext> USER_CTX = ThreadLocal.withInitial(() -> new UserContext());
+class Example {
+    
+    // 1. Создаём экземпляр ThreadLocal. Обычно это static final field класса.
+    // Сам объект ThreadLocal потокобезопасен и может шериться между потоками.
+    private static final ThreadLocal<UserContext> USER_CTX = ThreadLocal.withInitial(() -> new UserContext());
 
-public void processRequest(String userId) {
-    // 2. set() привязывает объект к текущему executing thread.
-    // JVM кладёт значение в Thread.currentThread().threadLocals
-    USER_CTX.set(new UserContext(userId));
-    
-    // 3. get() извлекает значение ТОЛЬКО для текущего потока.
-    // Другие потоки вызовут с тем же USER_CTX получат свои, изолированные экземпляры.
-    UserContext ctx = USER_CTX.get();
-    
-    // 4. Выполняем бизнес-логику без передачи ctx в аргументах методов.
-    deepNestedService.execute();
-    
-    // 5. remove() ОБЯЗАТЕЛЕН при работе с пулами потоков!
-    // Без этого следующий таск, получивший этот поток, увидит старый контекст.
-    USER_CTX.remove();
+    public void processRequest(String userId) {
+        // 2. set() привязывает объект к текущему executing thread.
+        // JVM кладёт значение в Thread.currentThread().threadLocals
+        USER_CTX.set(new UserContext(userId));
+
+        // 3. get() извлекает значение ТОЛЬКО для текущего потока.
+        // Другие потоки вызовут с тем же USER_CTX получат свои, изолированные экземпляры.
+        UserContext ctx = USER_CTX.get();
+
+        // 4. Выполняем бизнес-логику без передачи ctx в аргументах методов.
+        // Главное преимущество ThreadLocal — скрытую передачу контекста (implicit context) через всю цепочку вызовов, 
+        // без необходимости явно пробрасывать объект через все методы.
+        deepNestedService.execute();
+
+        // 5. remove() ОБЯЗАТЕЛЕН при работе с пулами потоков!
+        // Без этого следующий таск, получивший этот поток, увидит старый контекст.
+        USER_CTX.remove();
+    }
 }
 ```
 
@@ -130,7 +135,7 @@ public void processRequest(String userId) {
 
 # 2. Базовый API и паттерны использования
 
-> `ThreadLocal` предоставляет минималистичный API, состоящий всего из нескольких методов. 
+> `ThreadLocal` предоставляет минималистичный API, состоящий всего из нескольких методов.
 > 
 > Несмотря на синтаксическую простоту, корректное комбинирование этих операций требует понимания их влияния 
 > на внутреннюю структуру `ThreadLocalMap` и жизненный цикл потока.
@@ -145,7 +150,8 @@ public void processRequest(String userId) {
 
 - `void set(T value)` - привязывает переданный объект к текущему потоку, создавая новую или перезаписывая существующую запись в `ThreadLocalMap`.
 - `void remove()` - удаляет привязку текущего потока из карты. Освобождает значение и предотвращает накопление памяти в долгоживущих пулах потоков.
-- `protected T initialValue()` - метод для ленивой инициализации значения по умолчанию при первом вызове `get()`. В современных версиях заменён фабричным методом.
+- `protected T initialValue()` - метод для ленивой инициализации значения по умолчанию при первом вызове `get()`. 
+  В современных версиях заменён фабричным методом.
 - `static <S> ThreadLocal<S> withInitial(Supplier<? extends S> supplier)` - фабричный метод (Java 8+). 
 
   Создаёт экземпляр `ThreadLocal`, инициализирующий значение через переданную лямбду при первом обращении.
@@ -402,7 +408,7 @@ public class SafeLeakDemo implements Runnable {
 ```
 
 - **Почему происходит:** Пул потоков переиспользует `Thread` объекты. Карта не очищается автоматически между задачами.
-- **Как избежать:** Строгий `try-finally` с `remove()`, либо использование фреймворковых обёрток 
+- **Как избежать:** Строгий `try-finally` с `remove()`, либо использование фреймворковых обёрток
   (Spring `TransactionSynchronizationManager`, Servlet `Filter`).
 
 ---
@@ -442,7 +448,7 @@ public class InheritablePitfallDemo {
 ```
 
 - **Когда уместно:** Создание новых потоков "на лету" (не в пуле) для фоновых задач, требующих передачи контекста.
-- **Когда опасно:** Любая работа с `ThreadPoolExecutor`, `ForkJoinPool` или веб-контейнерами. 
+- **Когда опасно:** Любая работа с `ThreadPoolExecutor`, `ForkJoinPool` или веб-контейнерами.
 
   Для пулов используйте явную передачу контекста в аргументах `Runnable`/`Callable` (через кастомную имплементацию).
 
@@ -459,6 +465,7 @@ public class InheritablePitfallDemo {
 
 ```java
 public class AsyncContextLossDemo {
+    
     private static final ThreadLocal<String> USER_CTX = ThreadLocal.withInitial(() -> "anonymous");
 
     public CompletableFuture<String> handleRequest(String userId) {
@@ -466,7 +473,7 @@ public class AsyncContextLossDemo {
         USER_CTX.set(userId);
 
         return CompletableFuture.supplyAsync(() -> {
-            // ⚠️ Этот код выполняется в потоке из ForkJoinPool.commonPool()
+            // Этот код выполняется в потоке из ForkJoinPool.commonPool()
             // USER_CTX.get() вернёт значение по умолчанию ("anonymous"), 
             // а не "userId", потому что это другой физический поток.
             String ctx = USER_CTX.get(); 
@@ -489,7 +496,371 @@ public class AsyncContextLossDemo {
   `remove()` в `finally` — обязательный паттерн.
 - **Наследование ломается в пулах:** `InheritableThreadLocal` копирует состояние только при `new Thread()`. 
   Для `ExecutorService` это антипаттерн, требующий явной передачи контекста.
-- **Асинхронность убивает контекст:** Логическая задача, мигрирующая между потоками, теряет привязку к `ThreadLocal`. В реактивных и `async/await` средах используйте явную передачу состояния или специализированные механизмы.
-- **Отладка утечек:** При подозрении на утечку `ThreadLocal` используйте `-XX:+HeapDumpOnOutOfMemoryError` и анализаторы (Eclipse MAT, VisualVM), ища цепочки `Thread → threadLocals → Entry → value`.
+- **Асинхронность убивает контекст:** Логическая задача, мигрирующая между потоками, теряет привязку к `ThreadLocal`. 
+  В реактивных и `async/await` средах используйте явную передачу состояния или специализированные механизмы.
+- **Отладка утечек:** При подозрении на утечку `ThreadLocal` используйте `-XX:+HeapDumpOnOutOfMemoryError` 
+  и анализаторы (Eclipse MAT, VisualVM), ища цепочки `Thread → threadLocals → Entry → value`.
+
+---
+
+Контекст: Создаём справочную памятку по `ThreadLocal` в Java (ориентир Java 8+, с учётом Java 21+). Целевая аудитория — Junior+ (образовательный уклон, но универсальный справочный формат). Структура согласована: 1. Введение, 2. API и паттерны, 3. Ошибки, 4. Виртуальные потоки, 5. Best Practices. Форматирование строго по `formatting_rules.md`. Возвращаю один раздел за раз.
+
+# 4. ThreadLocal и виртуальные потоки (Java 21+)
+
+> Виртуальные потоки (Virtual Threads, Project Loom) фундаментально меняют модель многопоточности в JVM. 
+> 
+> Они легковесны, масштабируются до миллионов одновременно, но требуют переосмысления работы с привязанным к потоку состоянием, 
+> включая `ThreadLocal`.
+
+---
+
+## Как изменилась модель привязки данных к `VirtualThread`
+
+> В классической модели (Platform Threads) каждый объект `Thread` мапится 1-к-1 на поток ОС. 
+> 
+> `ThreadLocal` хранит данные прямо в поле `Thread.threadLocals`. 
+> 
+> Виртуальные потоки используют другую архитектуру: они являются задачами (`ForkJoinTask`), 
+> которые планируются поверх небольшого пула потоков-носителей (Carrier Threads). 
+> 
+> При парковке (ожидании I/O или `Lock`) виртуальный поток отцепляется от одного носителя и может продолжить выполнение на другом.
+> 
+> Это означает, что `ThreadLocal` **продолжает работать** в Java 21+, но его семантика смещается: 
+> привязка сохраняется за логическим виртуальным потоком, а не за физическим ядром CPU. 
+> 
+> Однако стоимость хранения миллионов `ThreadLocalMap` в памяти растёт нелинейно, 
+> а GC сталкивается с повышенным давлением при очистке слабых ссылок.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│          СРАВНЕНИЕ МОДЕЛЕЙ: Platform Threads vs Virtual Threads             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  PLATFORM THREAD (Java 20-):                                                │
+│  ┌──────────────┐  1:1  ┌──────────────┐                                    │
+│  │  Thread Java │ ─────►│  Thread OS   │                                    │
+│  │  threadLocals│       │  Stack: 1MB  │                                    │
+│  └──────────────┘       └──────────────┘                                    │
+│  Статичная привязка. Высокий overhead при >10k потоков.                     │
+│                                                                             │
+│  VIRTUAL THREAD (Java 21+):                                                 │
+│  ┌──────────────┐  M:1  ┌──────────────┐                                    │
+│  │  VirtualThd  │       │ Carrier Pool │                                    │
+│  │  threadLocals│ ◄────►│ (Platform)   │                                    │
+│  └──────────────┘  ┌────┤ ForkJoinPool │                                    │
+│                    │    └──────────────┘                                    │
+│                    ▼                                                        │
+│  При блокировке (sleep/io/lock) виртуальный поток отцепляется (unmount).    │
+│  При разблокировке подхватывается любым свободным носителем (remount).      │
+│  ThreadLocalMap мигрирует вместе с задачей, но создаёт overhead для GC.     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+```java
+public class VirtualThreadLocalDemo {
+    
+    // В Java 21+ этот экземпляр будет создавать карту для каждого виртуального потока
+    private static final ThreadLocal<String> CONTEXT = ThreadLocal.withInitial(() -> "default");
+
+    public static void main(String[] args) {
+        // Создаём 500_000 виртуальных потоков
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < 500_000; i++) {
+                final int taskId = i;
+                executor.submit(() -> {
+                    // Каждый поток получает изолированную копию
+                    CONTEXT.set("task-" + taskId);
+                    
+                    // Имитация блокирующего вызова
+                    // Виртуальный поток отцепится от носителя, контекст сохранится
+                    sleep(Duration.ofMillis(10)); 
+                    
+                    // После remount контекст всё ещё доступен
+                    System.out.println(Thread.currentThread() + " sees: " + CONTEXT.get());
+                    
+                    // Очистка обязательна даже в виртуальных потоках, 
+                    // иначе карта будет жить до завершения пула/приложения
+                    CONTEXT.remove();
+                });
+            }
+        }
+    }
+
+    private static void sleep(Duration d) {
+        try {
+            Thread.sleep(d); 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); 
+        }
+    }
+}
+```
+
+- **Полная совместимость:** Существующий код с `ThreadLocal` запускается на Java 21+ без изменений компиляции.
+- **Скрытая цена:** Миллионы `ThreadLocalMap` потребляют значительную кучу. 
+  Каждый `Entry` содержит `WeakReference` + `Object` header + padding. 
+  GC вынужден обходить миллионы слабых ссылок, что увеличивает паузы.
+- **Не для реактивности:** Виртуальные потоки решают ту же задачу, что и реактивные модели, но через синхронный код. 
+  Использовать `ThreadLocal` внутри них допустимо, но требует дисциплины очистки.
+
+---
+
+## Проблема pinning и совместимость с blocking I/O
+
+> Pinning (закрепление) возникает, когда виртуальный поток держит `synchronized` блок или нативный вызов (JNI) в момент блокировки. 
+> 
+> JVM не может отцепить (`unmount`) такой поток от носителя, потому что стек и мониторы привязаны к физической памяти ОС. 
+> 
+> Носитель блокируется целиком, что сводит на нет преимущества виртуальных потоков.
+> 
+> `ThreadLocal` сам по себе не вызывает pinning, но часто используется в легаси-коде, 
+> который оборачивает блокирующие операции в `synchronized` или держит `ReentrantLock` без try-with-resources. 
+> 
+> При миграции на виртуальные потоки такие паттерны становятся критичными.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│           PINNING: Почему виртуальный поток блокирует носитель              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  VirtualThread ──► входит в synchronized { ... }                            │
+│       │                                                                     │
+│       ▼                                                                     │
+│  Внутри блока вызывается Thread.sleep() / socket.read()                     │
+│  JVM пытается сделать unmount (отцепить от Carrier Thread)                  │
+│  │                                                                          │
+│  ├─► БЛОКИРОВКА: Нельзя отцепить, пока удерживается объектный монитор       │
+│  │    (synchronized) или выполняется JNI-вызов                              │
+│  │                                                                          │
+│  └─► Carrier Thread (носитель) остаётся PARKED                              │
+│       Если все носители заблокированы → пул исчерпан → новые задачи ждут    │
+│       Пул виртуальных потоков деградирует до уровня platform threads        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+```java
+// Пул носителей: 4 потока (например на 4-ядерном CPU)
+// Пришло 100 запросов, создано 100 виртуальных потоков
+
+// ❌ СЦЕНАРИЙ С PINNING:
+for (int i = 0; i < 100; i++) {
+    Thread.startVirtualThread(() -> {
+        synchronized(lock) {  // Поток ЗАКРЕПЛЁН за носителем (Carrier Thread)
+            Thread.sleep(1000);  // Блокирующая операция
+            // Носитель не может быть освобождён для других задач!
+        }
+    });
+}
+
+// Результат:
+// - Первые 4 потока захватили все 4 носителя
+// - Все 4 носителя спят внутри synchronized
+// - Остальные 96 виртуальных потоков ждут носитель
+// - → ДЕГРАДАЦИЯ до обычных platform threads!
+```
+
+### Проблемный код из легаси-приложений:
+
+```java
+public class DatabaseTransactionManager {
+    private static final ThreadLocal<Connection> CONN = new ThreadLocal<>();
+    
+    // АНТИПАТТЕРН: Блокирующая операция внутри synchronized
+    public void doInTransaction(Runnable action) {
+        synchronized(this) {  // ← ПРИЧИНА PINNING
+            Connection conn = dataSource.getConnection();
+            CONN.set(conn);
+            try {
+                action.run();  // Может содержать блокирующие вызовы!
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+            } finally {
+                CONN.remove();
+                conn.close();
+            }
+        }
+    }
+}
+
+// А такой код часто встречается в старых приложениях:
+public class LegacyService {
+    
+    private final Object lock = new Object();
+    private final ThreadLocal<String> context = new ThreadLocal<>();
+    
+    public void process() {
+        synchronized(lock) {  // synchronized блок
+            context.set("user-123");
+            
+            // Блокирующий I/O внутри synchronized = PINNING!
+            try (Socket socket = new Socket("db.com", 3306)) {
+                socket.getInputStream().read();  // Блокируется!
+            }
+            
+            context.remove();
+        }
+    }
+}
+```
+
+## Как решать проблему?
+
+### Решение 1: Заменить `synchronized` на `ReentrantLock`
+
+> ReentrantLock работает на уровне Java-кода и не требует привязки к конкретному OS-потоку, в отличие от synchronized, 
+> который использует встроенные механизмы JVM, привязанные к объектному монитору в заголовке объекта.
+
+```java
+public class ModernService {
+    
+    private final ReentrantLock lock = new ReentrantLock();
+    private static final ThreadLocal<String> context = new ThreadLocal<>();
+    
+    public void process() {
+        lock.lock();  // Не вызывает pinning!
+        try {
+            context.set("user-123");
+            blockingIO();  // Теперь безопасно
+        } finally {
+            context.remove();
+            lock.unlock();
+        }
+    }
+}
+```
+
+### Решение 2: Уменьшить область синхронизации
+
+```java
+public class RefactoredService {
+    
+    private final Object lock = new Object();
+    private static final ThreadLocal<String> context = new ThreadLocal<>();
+    
+    public void process() {
+        // Подготовка данных вне синхронизации
+        String data = prepareData();
+        context.set(data);
+        
+        try {
+            // ВАЖНО: блокирующие вызовы вне synchronized
+            blockingIO();  // ← безопасно, нет pinning
+            
+            // Синхронизируем только критическую секцию
+            synchronized(lock) {
+                updateSharedState();
+            }
+        } finally {
+            context.remove();
+        }
+    }
+}
+```
+
+### Решение 3: Использовать структурную декомпозицию
+
+```java
+public class StructuredService {
+    
+    // Полностью избегаем ThreadLocal в блокирующих секциях
+    public void process() {
+        String ctx = prepareContext();
+        
+        // Выносим блокирующие операции наверх
+        Result result = blockingIO(ctx);  // Без ThreadLocal внутри
+        
+        synchronized(lock) {
+            // Минимальная синхронизация без блокирующих вызовов
+            updateWithResult(result);
+        }
+    }
+}
+```
+
+## Как обнаружить pinning?
+
+```bash
+# Запустите с диагностическими опциями:
+java -Djdk.tracePinnedThreads=short -jar app.jar
+
+# Вы увидите в логах:
+# WARNING: Virtual thread <id> pinned to carrier thread <id> due to synchronized block at ...
+```
+
+- **При миграции на виртуальные потоки** замените `synchronized` на `ReentrantLock`
+- **Выносите блокирующие I/O** из синхронизированных блоков
+- **`ThreadLocal` безопасен сам по себе**, но требует осторожности в паре с `synchronized`
+- **Используйте `try-finally`** для гарантированного вызова `remove()`
+- **Тестируйте под нагрузкой** - pinning проявляется только при блокировках
+
+---
+
+## Альтернативы: `ScopedValue` и когда мигрировать
+
+> Java 21 вводит `ScopedValue`. 
+> 
+> Это современная замена `ThreadLocal`, спроектированная специально для виртуальных потоков и функционального стиля. 
+> 
+> Вместо изменяемой привязки `set()/get()`, `ScopedValue` использует иммутабельное связывание 
+> на время выполнения блока (`where(...).run(...)`).
+
+| Критерий           | `ThreadLocal<T>`                        | `ScopedValue<T>`                                      |
+|:-------------------|-----------------------------------------|-------------------------------------------------------|
+| Мутабельность      | `set(T)` изменяет значение в потоке     | Только read-only внутри блока `run()`                 |
+| Область видимости  | Пока поток жив или не вызван `remove()` | Только во время выполнения лямбды `run()`             |
+| Наследование       | `InheritableThreadLocal` (копирование)  | Автоматическая передача в дочерние виртуальные потоки |
+| Производительность | Высокий overhead для миллионов потоков  | Оптимизирован под `VirtualThread`, нулевой GC-даун    |
+| Безопасность       | Требует ручного `finally { remove() }`  | Гарантируется JVM, автоматическая очистка             |
+
+```java
+public class ScopedValueMigrationDemo {
+    
+    // Декларируем иммутабельное значение
+    private static final ScopedValue<String> USER_CTX = ScopedValue.newInstance();
+
+    public void handleRequest(String userId) {
+        // Значение привязывается ТОЛЬКО на время выполнения лямбды
+        ScopedValue.where(USER_CTX, userId).run(() -> {
+            // Все вложенные вызовы и виртуальные потоки видят актуальный контекст
+            processOrder();
+            generateReport();
+        });
+        // После выхода из run() привязка автоматически уничтожается.
+        // Никакого remove(), никаких утечек, никаких stale entries.
+    }
+
+    private void processOrder() {
+        // Чтение контекста
+        String currentId = USER_CTX.get();
+        System.out.println("Processing order for: " + currentId);
+        
+        // Запускаем дочерний виртуальный поток
+        Thread.ofVirtual().start(() -> {
+            // ScopedValue автоматически прокидывается в дочерний поток!
+            System.out.println("Async worker sees: " + USER_CTX.get());
+        });
+    }
+}
+```
+
+- **Когда мигрировать на `ScopedValue`:** Новые проекты на Java 21+, высоконагруженные сервисы с миллионами виртуальных потоков, 
+  требования к строгой иммутабельности и гарантированной очистке.
+- **Когда оставить `ThreadLocal`:** Поддержка легаси на Java 8-17, 
+  фреймворки, глубоко завязанные на `ThreadLocal` (Spring Security, старые версии Hibernate), 
+  или когда требуется именно изменяемое состояние в рамках задачи.
+- **Путь миграции:** Начните с рефакторинга новых модулей.
+  Для легаси используйте адаптеры или оставьте `ThreadLocal` до полного перехода на Java 21+.
+
+---
+
+## Ключевые выводы раздела
+- `ThreadLocal` работает на виртуальных потоках без изменений, но создаёт значительный overhead для GC при масштабах >100k потоков.
+- `synchronized` блоки внутри виртуальных потоков вызывают pinning носителя, что ломает модель масштабируемости. 
+  Используйте `ReentrantLock` или выносите блокировки.
+- `ScopedValue` — архитектурно безопасная замена: иммутабельная, автоматически очищаемая, 
+  оптимизированная под `VirtualThread` и дочерние задачи.
+- В production на Java 21+ предпочтительно переходить на `ScopedValue` для новых контекстов, 
+  сохраняя `ThreadLocal` только для интеграции со сторонними библиотеками, не поддерживающими новую модель.
 
 ---
