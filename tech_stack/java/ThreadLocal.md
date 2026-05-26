@@ -12,6 +12,7 @@ This work is private property and is not licensed for copying, distribution, mod
 [Базовый API и паттерны использования](#2-базовый-api-и-паттерны-использования)
 [Типичные ошибки и подводные камни](#3-типичные-ошибки-и-подводные-камни)
 [ThreadLocal и виртуальные потоки (Java 21+)](#4-threadlocal-и-виртуальные-потоки-java-21)
+[Best Practices и итоговый чек-лист](#5-best-practices-и-итоговый-чек-лист)
 
 ---
 
@@ -867,5 +868,145 @@ public class ScopedValueMigrationDemo {
   оптимизированная под `VirtualThread` и дочерние задачи.
 - В production на Java 21+ предпочтительно переходить на `ScopedValue` для новых контекстов, 
   сохраняя `ThreadLocal` только для интеграции со сторонними библиотеками, не поддерживающими новую модель.
+
+---
+
+# 5. Best Practices и итоговый чек-лист
+
+> Безопасное использование `ThreadLocal` в production требует строгой дисциплины управления жизненным циклом данных. 
+> 
+> Игнорирование правил очистки и архитектурных ограничений ведёт к утечкам памяти, загрязнению контекста 
+> и труднодиагностируемым багам.
+
+---
+
+## Правила безопасного использования в production
+
+- `static final` - Объявляйте экземпляр `ThreadLocal` как статическое финальное поле класса. 
+  Сам объект является ключом и должен существовать в единственном экземпляре на всё приложение.
+- `withInitial()` - Используйте фабричный метод `ThreadLocal.withInitial()` вместо переопределения `initialValue()`. 
+  Это обеспечивает ленивую инициализацию и упрощает чтение кода.
+- `try-finally` - Оборачивайте использование `set()` в блок `try-finally` с обязательным вызовом `remove()` в секции `finally`. 
+  Это единственная гарантия очистки при возникновении исключений.
+- `remove()` - Вызывайте метод явной очистки сразу после завершения логического блока работы (обработка HTTP-запроса, 
+  выполнение задачи из пула, завершение транзакции).
+- `immutable objects` - По возможности передавайте в `ThreadLocal` иммутабельные объекты или копии данных. 
+  Это снижает риск случайных мутаций из вложенных вызовов и упрощает отладку.
+
+```java
+public class SafeThreadLocalPattern {
+
+    // 1. Статическое финальное поле: ключ общий для всех потоков
+    private static final ThreadLocal<TransactionContext> TX_CTX = 
+            ThreadLocal.withInitial(() -> new TransactionContext());
+
+    public void processBusinessOperation(String orderId) {
+        // 2. Инициализация контекста в начале задачи
+        TransactionContext ctx = new TransactionContext(orderId);
+        TX_CTX.set(ctx);
+        
+        try {
+            // 3. Бизнес-логика может вызывать глубокие методы, 
+            // которые безопасно читают контекст через TX_CTX.get()
+            validateOrder(orderId);
+            applyDiscount();
+            persistToDatabase();
+            
+        } catch (Exception e) {
+            // Логирование ошибки с использованием контекста
+            log.error("Failed for order: " + ctx.getOrderId(), e);
+            throw e; // Пробрасываем дальше
+            
+        } finally {
+            // 4. ОБЯЗАТЕЛЬНАЯ ОЧИСТКА в любом случае выхода из метода
+            // Без этого пул потоков вернёт "грязный" контекст следующей задаче
+            TX_CTX.remove();
+        }
+    }
+
+    private void validateOrder(String id) { /* ... */ }
+    private void applyDiscount() { /* ... */ }
+    private void persistToDatabase() { /* ... */ }
+}
+```
+
+---
+
+## Чек-лист для code-review
+
+- Область видимости объявлена как `static final` и не передаётся через аргументы методов
+- Инициализация выполняется через `withInitial()` или корректно переопределённый `initialValue()`
+- Каждый `set()` сопровождается `remove()` в блоке `finally` или через фреймворковый фильтр/интерцептор
+- Код не использует `ThreadLocal` внутри `CompletableFuture`, Reactor/WebFlux цепочек или корутин без явной передачи контекста
+- Для долгоживущих пулов (`ExecutorService`, Tomcat, Jetty) внедрены механизмы автоматической очистки 
+  (например: `ServletFilter`, `TransactionSynchronizationManager`, `MDC.put/clear`)
+- В коде отсутствуют скрытые зависимости: методы, читающие `ThreadLocal`, явно задокументированы или имеют fallback-логику
+- При использовании `InheritableThreadLocal` подтверждено, что потоки создаются явно через `new Thread()`, а не берутся из пула
+
+---
+
+## Рекомендации по тестированию
+
+> Тестирование кода с `ThreadLocal` требует проверки трёх аспектов: 
+> 
+> - Изоляции данных между потоками
+> - Корректной ленивой инициализации
+> - Гарантированной очистки 
+> 
+> Используйте `ExecutorService` для эмуляции конкурентного доступа и `CountDownLatch` для синхронизации проверок.
+
+### Тест изоляции и очистки
+
+```java
+class ThreadLocalTest {
+
+    private static final ThreadLocal<String> CONTEXT = ThreadLocal.withInitial(() -> "default");
+
+    @Test
+    void shouldIsolateDataBetweenThreads() throws InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        CountDownLatch latch = new CountDownLatch(3);
+        ConcurrentLinkedQueue<String> results = new ConcurrentLinkedQueue<>();
+
+        // 1. Запускаем 3 параллельные задачи с разными значениями
+        for (int i = 0; i < 3; i++) {
+            final String threadId = "thread-" + i;
+            executor.submit(() -> {
+                try {
+                    // Устанавливаем уникальное значение для каждого потока
+                    CONTEXT.set(threadId);
+                    // Имитируем работу с задержкой, чтобы потоки пересекались во времени
+                    Thread.sleep(50);
+                    // Фиксируем, что каждый поток видит ТОЛЬКО своё значение
+                    results.add(CONTEXT.get());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    // Гарантируем очистку после завершения задачи
+                    CONTEXT.remove();
+                    latch.countDown();
+                }
+            });
+        }
+
+        // 2. Ждём завершения всех задач
+        latch.await(5, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // 3. Проверяем изоляцию: в коллекции должны быть все 3 уникальных ID
+        assertEquals(3, results.size());
+        assertTrue(results.contains("thread-0"));
+        assertTrue(results.contains("thread-1"));
+        assertTrue(results.contains("thread-2"));
+
+        // 4. Проверяем, что после remove() в главном потоке возвращается default
+        assertEquals("default", CONTEXT.get());
+    }
+}
+```
+
+- Запускайте тесты с флагом `-ea` для включения assertions в production-подобном режиме
+- Используйте `assertAll()` для группировки проверок изоляции и очистки
+- Эмулируйте пулы потоков в тестах, а не полагайтесь на `main` thread, чтобы поймать баги с наследованием и очисткой
 
 ---
