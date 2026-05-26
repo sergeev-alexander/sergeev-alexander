@@ -11,8 +11,7 @@ This work is private property and is not licensed for copying, distribution, mod
 [Введение в ThreadLocal](#1-введение-в-threadlocal)
 [Базовый API и паттерны использования](#2-базовый-api-и-паттерны-использования)
 [Типичные ошибки и подводные камни](#3-типичные-ошибки-и-подводные-камни)
-[ThreadLocal и виртуальные потоки (Java 21+)](#4-threadLocal-и-виртуальные-потоки-java-21+)
-[Best Practices и итоговый чек-лист](#5-best-practices-и-итоговый-чек-лист)
+[ThreadLocal и виртуальные потоки (Java 21+)](#4-threadlocal-и-виртуальные-потоки-java-21)
 
 ---
 
@@ -813,6 +812,11 @@ java -Djdk.tracePinnedThreads=short -jar app.jar
 | Производительность | Высокий overhead для миллионов потоков  | Оптимизирован под `VirtualThread`, нулевой GC-даун    |
 | Безопасность       | Требует ручного `finally { remove() }`  | Гарантируется JVM, автоматическая очистка             |
 
+> `ScopedValue` спроектирован как контейнер для контекста, который неизменяем в пределах логической операции.
+> 
+> Иммутабельность превращает `ScopedValue` из ещё одного `ThreadLocal` с `set()` / `get()` 
+> в декларативный способ передачи окружения без побочных эффектов.
+
 ```java
 public class ScopedValueMigrationDemo {
     
@@ -855,6 +859,7 @@ public class ScopedValueMigrationDemo {
 ---
 
 ## Ключевые выводы раздела
+
 - `ThreadLocal` работает на виртуальных потоках без изменений, но создаёт значительный overhead для GC при масштабах >100k потоков.
 - `synchronized` блоки внутри виртуальных потоков вызывают pinning носителя, что ломает модель масштабируемости. 
   Используйте `ReentrantLock` или выносите блокировки.

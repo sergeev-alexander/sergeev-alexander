@@ -1762,18 +1762,30 @@ page.waitForFunction("() => window.appState.isLoading === false"); // Блоки
 > JUnit 5 использует модульную архитектуру `JUnit Platform` + `JUnit Jupiter`, где конфигурация параллелизма 
 > и жизненные циклы управляются через свойства `surefire`/`junit-platform.properties` и аннотации.
 
+Вот исправленный блок **«Жизненный цикл и хуки»** без буллитов с сигнатурами методов, но с сохранением сути:
+
 ### Жизненный цикл и хуки
 
-- `@TestInstance(TestInstance.Lifecycle.PER_CLASS)` - изменение стратегии создания экземпляра тестового класса 
-  на один экземпляр на весь запуск, позволяет переиспользовать тяжелый `Browser` между методами
-- `@BeforeAll static void launchBrowser()` - статический хук для однократного запуска `Playwright` и `Browser` 
-  перед выполнением всех тестов класса
-- `@AfterAll static void closeBrowser()` - статический хук для закрытия `Browser` и `Playwright` после завершения всех тестов
-- `@BeforeEach BrowserContext createIsolatedContext()` - метод, вызываемый перед каждым `@Test`, 
-  создаёт новый изолированный `BrowserContext` для гарантии чистоты состояния
-- `@AfterEach void disposeContext()` - метод, вызываемый после каждого `@Test`, закрывает `BrowserContext` и удаляет временные артефакты
-- `@ExtendWith(CustomPlaywrightExtension.class)` - подключение кастомного расширения 
-  для автоматического внедрения `Page` или `BrowserContext` через механизм `ParameterResolver`
+Управление ресурсами Playwright в JUnit 5 строится на изменении стратегии создания экземпляра тестового класса и использовании стандартных хуков:
+
+- **`@TestInstance(Lifecycle.PER_CLASS)`** — один экземпляр класса на все тесты. 
+
+  Это позволяет переиспользовать тяжёлые объекты (`Browser`, `Playwright`) между методами, избегая их многократного пересоздания.
+
+- **`@BeforeAll`** — хук для однократной инициализации `Playwright` и `Browser` перед выполнением всех тестов класса.
+
+- **`@AfterAll`** — хук для закрытия `Browser` и `Playwright` после завершения всех тестов.
+
+- **`@BeforeEach`** — создание нового изолированного `BrowserContext` перед каждым тестом. 
+
+  Это гарантирует чистоту состояния (отдельные cookies, localStorage, сессии).
+
+- **`@AfterEach`** — закрытие `BrowserContext` после каждого теста с освобождением временных артефактов (скриншоты, трассировки, записи).
+
+- **`@ExtendWith(CustomPlaywrightExtension.class)`** — подключение кастомного расширения JUnit 5. 
+
+  Через механизм `ParameterResolver` оно может автоматически внедрять в тестовые методы готовые объекты `Page` или `BrowserContext`, 
+  сокращая дублирование кода инициализации.
 
 #### Пример базовой инициализации с переиспользованием `Browser`:
 
@@ -1874,9 +1886,12 @@ class LoginFlowTest {
 - `@AfterClass void tearDownClass()` - выполнение кода один раз после завершения всех методов в `<test>` блоке
 - `@BeforeMethod void setUpMethod()` - аналог `@BeforeEach`, выполняется перед каждым `@Test` методом
 - `@DataProvider(name = "loginData")` - метод, возвращающий `Object[][]` для параметризации тестов
-- `@Test(dataProvider = "loginData") void testLogin(String user, String pass)` - привязка параметризованного теста к источнику данных
-- `ITestListener onTestStart(ITestResult result)` / `onTestFailure(ITestResult result)` - перехват событий выполнения для создания скриншотов или логов
-- `ISuiteListener onStart(ISuite suite)` / `onFinish(ISuite suite)` - глобальные хуки уровня сьюта для инициализации драйвера или сбора метрик
+- `@Test(dataProvider = "loginData") void testLogin(String user, String pass)` - привязка параметризованного теста 
+  к источнику данных
+- `ITestListener onTestStart(ITestResult result)` / `onTestFailure(ITestResult result)` - перехват событий выполнения 
+  для создания скриншотов или логов
+- `ISuiteListener onStart(ISuite suite)` / `onFinish(ISuite suite)` - глобальные хуки уровня сьюта для инициализации драйвера 
+  или сбора метрик
 
 #### Пример TestNG с `DataProvider` и `ITestListener`:
 
@@ -1954,29 +1969,31 @@ public class CheckoutTest implements ITestListener {
 
 Сравнение жизненных циклов:
 
-| Этап | JUnit 5 | TestNG |
-| --- | --- | --- |
-| Инициализация браузера | `@BeforeAll` + `@TestInstance(PER_CLASS)` | `@BeforeClass` |
-| Инициализация контекста | `@BeforeEach` | `@BeforeMethod` |
-| Параметризация | `@ParameterizedTest` + `@CsvSource` | `@DataProvider` + `@Test(dataProvider)` |
-| Обработка падений | `@AfterEach` + `TestInfo.getDisplayName()` | `ITestListener.onTestFailure()` |
-| Параллелизм | `junit-platform.properties` | `testng.xml` (`parallel`, `thread-count`) |
+| Этап                    | JUnit 5                                    | TestNG                                    |
+|:------------------------|--------------------------------------------|-------------------------------------------|
+| Инициализация браузера  | `@BeforeAll` + `@TestInstance(PER_CLASS)`  | `@BeforeClass`                            |
+| Инициализация контекста | `@BeforeEach`                              | `@BeforeMethod`                           |
+| Параметризация          | `@ParameterizedTest` + `@CsvSource`        | `@DataProvider` + `@Test(dataProvider)`   |
+| Обработка падений       | `@AfterEach` + `TestInfo.getDisplayName()` | `ITestListener.onTestFailure()`           |
+| Параллелизм             | `junit-platform.properties`                | `testng.xml` (`parallel`, `thread-count`) |
 
 ---
 
 ## Управление ресурсами
 
-Playwright объекты (`Playwright`, `Browser`, `BrowserContext`, `Page`) реализуют интерфейс `AutoCloseable`, что требует строгого контроля времени жизни для предотвращения утечек памяти и зависших процессов браузера.
+> Playwright объекты (`Playwright`, `Browser`, `BrowserContext`, `Page`) реализуют интерфейс `AutoCloseable`, 
+> что требует строгого контроля времени жизни для предотвращения утечек памяти и зависших процессов браузера.
 
 - `void close()` - метод освобождения ресурсов, закрывающий сетевые соединения, процессы драйвера и временные файлы
 - `try-with-resources` - конструкция Java, гарантирующая вызов `close()` даже при возникновении исключений в блоке
 - `@AfterEach(alwaysRun = true)` - аннотация TestNG, обеспечивающая выполнение хука даже если тест упал с `OutOfMemoryError` или `AssertionError`
 - `Runtime.getRuntime().addShutdownHook()` - глобальный хук JVM для аварийной очистки при принудительной остановке процесса
 
-Пример безопасного закрытия при падениях:
+#### Пример безопасного закрытия при падениях:
 
 ```java
 public class ResourceGuardExample {
+    
     private BrowserContext context;
 
     @AfterEach
@@ -2002,7 +2019,10 @@ public class ResourceGuardExample {
 
 ## Изоляция и многопоточность
 
-При параллельном запуске тестов каждый поток должен работать с независимым набором объектов Playwright. Переиспользование `Page` или `BrowserContext` между потоками приводит к гонкам состояний, непредсказуемым кликам и ложным падениям.
+> При параллельном запуске тестов каждый поток должен работать с независимым набором объектов Playwright. 
+> 
+> Переиспользование `Page` или `BrowserContext` между потоками приводит к гонкам состояний, 
+> непредсказуемым кликам и ложным падениям.
 
 - `ThreadLocal<BrowserContext>` - потокобезопасный контейнер, хранящий уникальный контекст для каждого воркера раннера
 - `ThreadLocal<Page>` - аналогичный контейнер для активной вкладки, привязанной к потоку
@@ -2010,10 +2030,11 @@ public class ResourceGuardExample {
 - `junit.jupiter.execution.parallel.config.dynamic.factor=0.5` - коэффициент загрузки CPU (0.5 = 50% ядер, 1.0 = 100%)
 - `context.storageState()` - экспорт состояния авторизации в файл для последующей загрузки без повторного логина в каждом потоке
 
-Пример настройки `ThreadLocal` для параллельных запусков:
+#### Пример настройки `ThreadLocal` для параллельных запусков:
 
 ```java
 public class ParallelTestBase {
+    
     // Статические ThreadLocal гарантируют, что каждый поток получит свой экземпляр
     protected static final ThreadLocal<Playwright> PLAYWRIGHT = ThreadLocal.withInitial(Playwright::create);
     protected static final ThreadLocal<Browser> BROWSER = new ThreadLocal<>();
@@ -2046,20 +2067,25 @@ public class ParallelTestBase {
 
 ## Best Practices
 
-- Используйте `ThreadLocal` для `BrowserContext` и `Page` при параллельных запусках, чтобы гарантировать потокобезопасность без явных блокировок
-- Фиксируйте `@TestInstance(PER_CLASS)` в JUnit 5 для переиспользования `Browser`, так как запуск нового процесса браузера занимает 1–3 секунды
-- Настраивайте `thread-count` в `testng.xml` или `dynamic.factor` в JUnit 5 на уровне 50–70% от доступных ядер CPU, чтобы избежать contention за сетевые сокеты драйвера
-- Применяйте `alwaysRun = true` (TestNG) или `@AfterEach` (JUnit 5) для гарантированного закрытия контекстов, даже при `AssertionError` или `StackOverflowError`
-- Экспортируйте `storageState` один раз в `@BeforeSuite` и загружайте его в `NewContextOptions` для всех последующих тестов, ускоряя прогон на 40%
-
-## Антипаттерны
-
-- Не передавайте `Page` или `BrowserContext` через статические поля без `ThreadLocal`, это приводит к перекрёстному воздействию потоков и нестабильным результатам
-- Не запускайте `Playwright.create()` внутри каждого `@Test` метода, это создаёт избыточные процессы Node.js драйвера и быстро исчерпывает память CI-агентов
-- Не игнорируйте `close()` для `BrowserContext` при падениях, зависшие вкладки продолжают потреблять RAM и могут вызвать `OutOfMemoryError` на следующих прогонах
-- Не используйте `parallel="tests"` в TestNG для методов внутри одного класса без явного разделения сьютов, раннер не гарантирует изоляцию переменных класса
-- Не хардкодьте `thread-count="10"` без мониторинга утилизации CPU, избыточная параллелизация снижает пропускную способность из-за конкуренции за WebSocket-соединения драйвера
+- Используйте `ThreadLocal` для `BrowserContext` и `Page` при параллельных запусках, чтобы гарантировать потокобезопасность 
+  без явных блокировок
+- Фиксируйте `@TestInstance(PER_CLASS)` в JUnit 5 для переиспользования `Browser`, так как запуск нового процесса браузера 
+  занимает 1–3 секунды
+- Настраивайте `thread-count` в `testng.xml` или `dynamic.factor` в JUnit 5 на уровне 50–70% от доступных ядер CPU, 
+  чтобы избежать конкуренции за сетевые сокеты драйвера
+- Применяйте `alwaysRun = true` (TestNG) или `@AfterEach` (JUnit 5) для гарантированного закрытия контекстов, 
+  даже при `AssertionError` или `StackOverflowError`
+- Экспортируйте `storageState` один раз в `@BeforeSuite` и загружайте его в `NewContextOptions` для всех последующих тестов, 
+  ускоряя прогон на 40%
+- Не передавайте `Page` или `BrowserContext` через статические поля без `ThreadLocal`, это приводит к перекрёстному воздействию потоков 
+  и нестабильным результатам
+- Не запускайте `Playwright.create()` внутри каждого `@Test` метода, это создаёт избыточные процессы Node.js драйвера 
+  и быстро исчерпывает память CI-агентов
+- Не игнорируйте `close()` для `BrowserContext` при падениях, зависшие вкладки продолжают потреблять RAM 
+  и могут вызвать `OutOfMemoryError` на следующих прогонах
+- Не используйте `parallel="tests"` в TestNG для методов внутри одного класса без явного разделения сьютов, 
+  раннер не гарантирует изоляцию переменных класса
+- Не хардкодьте `thread-count="10"` без мониторинга утилизации CPU, избыточная параллелизация 
+  снижает пропускную способность из-за конкуренции за WebSocket-соединения драйвера
 
 ---
-
-Следующий раздел: **7. API-тестирование через APIRequestContext**
