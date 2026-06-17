@@ -2089,3 +2089,279 @@ public class ParallelTestBase {
   снижает пропускную способность из-за конкуренции за WebSocket-соединения драйвера
 
 ---
+
+# 7. API-тестирование через APIRequestContext
+
+> Playwright предоставляет встроенный HTTP-клиент `APIRequestContext`, позволяющий отправлять запросы и валидировать ответы 
+> без привлечения сторонних библиотек вроде RestAssured или Apache HttpClient. 
+> 
+> Клиент полностью интегрирован с экосистемой Playwright: умеет переиспользовать cookies, состояние авторизации 
+> и сетевые заголовки из UI-контекста, что делает гибридные сценарии (API-подготовка данных -> UI-валидация) 
+> естественными и быстрыми.
+
+## Инициализация API-клиента
+
+- `browser.newAPIRequestContext(APIRequest.NewContextOptions options)` - создание HTTP-клиента, 
+  привязанного к конкретному экземпляру браузера и наследующего его сетевые настройки
+- `playwright.request().newContext(APIRequest.NewContextOptions options)` - автономная инициализация клиента 
+  без запуска браузера (оптимально для чистых API-тестов)
+- `setBaseURL(String baseURL)` - установка базового домена и пути, автоматически подставляемого ко всем относительным URL запросов
+- `setExtraHTTPHeaders(Map<String, String> headers)` - глобальные HTTP-заголовки, применяемые к каждому исходящему запросу
+- `setStorageState(BrowserContext.StorageStateOptions options)` - загрузка cookies и localStorage из JSON-файла 
+  для имитации авторизованной сессии
+- `setHttpCredentials(String username, String password)` - встроенная поддержка HTTP Basic Auth без ручной генерации `Authorization` заголовка
+- `setIgnoreHTTPSErrors(boolean ignore)` - принудительное игнорирование ошибок SSL/TLS сертификатов (полезно для локальных dev-окружений)
+- `setTimeout(int timeout)` - глобальный таймаут ожидания ответа сервера в миллисекундах
+
+```java
+// Конфигурация параметров создания API-клиента
+APIRequest.NewContextOptions apiOptions = new APIRequest.NewContextOptions()
+    .setBaseURL("https://api.staging.example.com/v2")      // Базовый хост и версия API
+    .setExtraHTTPHeaders(Map.of(                           // Глобальные заголовки для всех запросов
+        "X-Client-Version", "2.5.1",
+        "Accept-Language", "ru-RU",
+        "X-Test-Run-Id", UUID.randomUUID().toString()      // Уникальный ID для трассировки на бэкенде
+    ))
+    .setTimeout(15000)                                     // Глобальный таймаут запроса 15 секунд
+    .setIgnoreHTTPSErrors(true);                           // Игнор ошибок сертификатов в dev-окружении
+
+// Создание клиента (экземпляра APIRequestContext)
+APIRequestContext api1 = browser.newAPIRequestContext(apiOptions);
+// Альтернатива для чистых API-тестов:
+APIRequestContext api2 = playwright.request().newContext(apiOptions);
+
+// GET-запрос
+APIResponse getResponse = api.get("/users/123");
+System.out.println("GET Status: " + getResponse.status());
+System.out.println("GET Body: " + getResponse.text());
+```
+
+> Основное различие между `api1` и `api2` заключается в **привязке к браузеру** и **наследовании контекстных настроек**:
+
+### `browser.newAPIRequestContext()`:
+
+- **Привязан к экземпляру браузера** - наследует сетевые настройки браузера
+- **Разделяет состояние с браузером** - если браузер уже прошел авторизацию (cookies, storage), 
+  API-клиент автоматически получит ту же сессию
+- **Использует единый storage state** - может совместно использовать `BrowserContext` cookies для API и UI действий
+- **Идеален для гибридных тестов** - например: сначала UI-авторизация в браузере, потом API-запросы от имени того же пользователя
+
+### `playwright.request().newContext()`:
+
+- **Полностью автономный** - не зависит от браузера, не требует его запуска
+- **Легковесный** - работает быстрее, потребляет меньше ресурсов
+- **Изолированное состояние** - сессии нужно настраивать отдельно (через `setStorageState()`)
+- **Оптимален для чистых API-тестов** - когда не нужен UI, только проверка бэкенда
+
+## Практический пример использования:
+
+```java
+// Сценарий 1: Чистый API-тест (без браузера)
+APIRequestContext apiOnly = playwright.request().newContext(apiOptions);
+// Используется для тестирования /auth/login, /users, /products
+
+// Сценарий 2: Гибридный тест (UI + API)
+Browser browser = playwright.chromium().launch();
+BrowserContext context = browser.newContext();
+Page page = context.newPage();
+
+// UI-авторизация
+page.navigate("https://app.example.com/login");
+page.fill("#username", "testuser");
+page.fill("#password", "pass123");
+page.click("#login");
+
+// API-клиент автоматически получает cookies из браузера
+APIRequestContext apiWithAuth = browser.newAPIRequestContext(apiOptions);
+// Теперь API-запросы будут от имени авторизованного testuser
+```
+
+> **Главный критерий выбора:** используйте `playwright.request().newContext()` для изолированных API-тестов, 
+> `browser.newAPIRequestContext()` - когда нужно синхронизировать состояние с UI-сессией браузера.
+
+---
+
+## Выполнение запросов
+
+- `APIResponse get(String url, RequestOptions options)` - отправка GET-запроса по указанному пути или полному URL
+- `APIResponse post(String url, RequestOptions options)` - отправка POST-запроса с телом, заголовками или формой
+- `APIResponse put(String url, RequestOptions options)` - полная замена ресурса (идемпотентный запрос)
+- `APIResponse patch(String url, RequestOptions options)` - частичное обновление ресурса
+- `APIResponse delete(String url, RequestOptions options)` - удаление ресурса по идентификатору
+- `setBody(Object data)` - передача тела запроса: POJO-объект (автосериализация в JSON), String (сырой JSON/XML), byte[] или InputStream
+- `setForm(Map<String, String> data)` - отправка данных в формате `application/x-www-form-urlencoded`
+- `setMultipart(Map<String, Object> data)` - отправка `multipart/form-data` с поддержкой файлов и текстовых полей
+- `setFailOnStatusCode(boolean fail)` - автоматическое выбрасывание исключения при статус-коде `>= 400`
+- `setTimeout(int timeout)` - переопределение глобального таймаута для конкретного запроса
+- `setQueryParam(String name, String value)` - добавление параметра в query-строку URL
+
+```java
+// 1. GET-запрос с query-параметрами и кастомным таймаутом
+APIResponse getResponse = api.get("/users/123/profile", new RequestOptions()
+    .setQueryParam("include", "orders,preferences")                 // Добавляет ?include=orders,preferences
+    .setTimeout(10000));                                            // Локальный таймаут 10 сек
+
+// 2. POST-запрос с JSON-телом (Map автоматически конвертируется в JSON)
+APIResponse postResponse = api.post("/orders", new RequestOptions()
+    .setHeader("Idempotency-Key", UUID.randomUUID().toString())     // Уникальный ключ для повторных отправок (на бэк)
+    .setData(Map.of(                                                // Карта автоматически конвертируется в JSON
+        "productId", 789,
+        "quantity", 2,
+        "shippingAddress", Map.of("city", "Moscow", "zip", "101000")
+    ))
+    .setFailOnStatusCode(true));                                    // Выбросит ошибку, если статус >= 400
+
+// 3. PATCH-запрос с сырым JSON-строкой (для сложных legacy-API)
+APIResponse patchResponse = api.patch("/settings/notifications", new RequestOptions()
+    .setBody("{\"email\": true, \"sms\": false, \"push\": false}")  // Прямая передача строки
+    .setHeader("Content-Type", "application/json"));
+
+// 4. DELETE-запрос без тела
+APIResponse deleteResponse = api.delete("/cart/items/456");
+```
+
+---
+
+## Обработка ответов и валидация
+
+- `int status()` - возврат HTTP-статус-кода ответа (200, 404, 500 и т.д.)
+- `String statusText()` - текстовое описание статус-кода (OK, Not Found, Internal Server Error)
+- `boolean ok()` - быстрая проверка, находится ли статус в успешном диапазоне 200–299
+- `Map<String, String> headers()` - получение всех заголовков ответа в виде карты
+- `String headerValue(String name)` - извлечение конкретного заголовка без учёта регистра
+- `byte[] body()` - получение тела ответа в виде массива байтов (для бинарных данных или изображений)
+- `String text()` - декодирование тела ответа в строку с использованием UTF-8
+- `JsonElement json()` - парсинг JSON-ответа в объект `com.google.gson.JsonElement` для навигации по полям
+- `InputStream bodyStream()` - получение потока для чтения больших ответов без загрузки в память
+
+```java
+// Валидация статуса и заголовков
+assertTrue(postResponse.ok(), "Заказ должен быть успешно создан");
+assertEquals(201, postResponse.status());                       // Проверка конкретного статус-кода
+assertEquals("application/json; charset=utf-8", 
+    postResponse.headerValue("Content-Type"));                  // Проверка заголовка ответа
+
+// Парсинг и проверка JSON-полей через GSON
+JsonObject orderData = postResponse.json().getAsJsonObject();
+assertEquals("pending", orderData.get("status").getAsString()); // Проверка статуса заказа
+assertTrue(orderData.has("orderId"));                           // Проверка наличия обязательного поля
+
+// Интеграция с Playwright Assertions для API-ответов
+assertThat(postResponse).isOk();                                // Авто-ожидание успешного статуса
+assertThat(postResponse).hasStatus(201);                        // Строгая проверка кода
+assertThat(postResponse).hasHeader("X-RateLimit-Remaining");    // Проверка наличия заголовка
+
+// Работа с бинарными данными (например, экспорт PDF)
+APIResponse pdfResponse = api.get("/reports/invoice/99.pdf");
+if (pdfResponse.ok()) {
+    byte[] pdfBytes = pdfResponse.body();                       // Чтение всего файла в память
+    // Логика сохранения или валидации хеша файла
+}
+```
+
+---
+
+## Синхронизация UI и API-сценариев
+
+- `BrowserContext.storageState(Path path)` - сохранение текущего состояния cookies, localStorage и sessionStorage в JSON-файл
+- `BrowserContext.storageState()` - возврат состояния в виде объекта `StorageState` для программной передачи
+- `APIRequestContext.storageState()` - экспорт состояния авторизации для последующего переиспользования в UI-тестах
+- `context.route(String pattern, Route.Handler handler)` - перехват UI-запросов и подмена ответов данными из API
+- `route.fulfill(Route.FulfillOptions options)` - возврат мокированного ответа браузеру без обращения к реальному серверу
+
+```java
+// 1. Авторизация через API с последующим сохранением сессии
+APIRequestContext authClient = playwright.request().newContext(
+    new APIRequest.NewContextOptions().setBaseURL("https://auth.example.com"));
+
+APIResponse loginResp = authClient.post("/oauth/token", new RequestOptions()
+    .setForm(Map.of("grant_type", "client_credentials", "client_id", "test", "client_secret", "secret")));
+
+String accessToken = loginResp.json().getAsJsonObject().get("access_token").getAsString();
+
+// 2. Передача токена в UI-контекст для прямого входа
+BrowserContext uiContext = browser.newContext(new Browser.NewContextOptions()
+    .setExtraHTTPHeaders(Map.of("Authorization", "Bearer " + accessToken)));
+
+Page page = uiContext.newPage();
+page.navigate("https://app.example.com/dashboard");        // Пользователь сразу авторизован
+
+// 3. Подготовка данных через API перед UI-тестом
+APIRequestContext dataClient = browser.newAPIRequestContext();
+APIResponse createProduct = dataClient.post("/api/products", new RequestOptions()
+    .setHeader("Authorization", "Bearer " + accessToken)
+    .setData(Map.of("name", "Test-Product-01", "price", 99.99)));
+
+String productId = createProduct.json().getAsJsonObject().get("id").getAsString();
+
+// UI-тест использует созданный продукт без ручного заполнения форм
+page.navigate("https://app.example.com/products/" + productId);
+assertThat(page.getByText("Test-Product-01")).toBeVisible();
+```
+
+---
+
+## Продвинутые сценарии
+
+`setProxy(Proxy proxy)` - настройка прокси-сервера для маршрутизации всех API-запросов контекста
+`setClientCertificates(List<ClientCertificate> certs)` - добавление mTLS-сертификатов для взаимной аутентификации
+`Route.abort(String errorCode)` - принудительный обрыв запроса для эмуляции сетевых ошибок (connection refused, timeout)
+`Route.fulfill(Route.FulfillOptions options)` - полная подмена статуса, заголовков и тела ответа
+`BrowserContext.setOffline(boolean offline)` - эмуляция полного отключения сети на уровне браузера
+`Route.continue_(Route.ContinueOptions options)` - модификация запроса (URL, метод, заголовки) перед отправкой (именно `continue_()`)
+
+```java
+// 1. Настройка прокси и клиентских сертификатов для защищённых API
+APIRequest.NewContextOptions secureOptions = new APIRequest.NewContextOptions()
+    .setProxy(new Proxy().setServer("http://corporate-proxy:8080"))
+    .setClientCertificates(List.of(                      // mTLS для доступа к внутренним сервисам
+        new ClientCertificate()
+            .setOrigin("https://internal-api.corp")
+            .setCertPath(Path.of("/certs/client.crt"))
+            .setKeyPath(Path.of("/certs/client.key"))
+    ));
+APIRequestContext secureApi = playwright.request().newContext(secureOptions);
+
+// 2. Мокирование API-ответов в UI-тесте через route()
+browserContext.route("**/api/feature-flags", route -> route.fulfill(
+    new Route.FulfillOptions()
+        .setStatus(200)
+        .setContentType("application/json")
+        .setBody("{\"darkMode\": true, \"newCheckout\": false}") // Подмена фича-флагов
+));
+
+// 3. Эмуляция сетевых задержек и потери пакетов
+browserContext.route("**/*", route -> {
+    try { 
+        Thread.sleep(2000);                                 // Искусственная задержка 2 сек
+    } catch (InterruptedException e) {} 
+        
+    route.continue_();                                      // Передача управления дальше
+});
+```
+
+> Важное примечание:
+>
+> Для API-тестов без браузера (`playwright.request().newContext()`) методы перехвата запросов (`route`) недоступны 
+> — они работают только в контексте браузера (`browser.newContext()`).
+
+---
+
+## Best Practices
+
+- Используйте `playwright.request().newContext()` для чистых API-тестов, чтобы не тратить ресурсы на запуск и инициализацию браузера
+- Сохраняйте `storageState` после авторизации и переиспользуйте его во всех UI-сценариях, сокращая время прогона на 30–50%
+- Настраивайте `setFailOnStatusCode(true)` по умолчанию, чтобы не пропускать 4xx/5xx ответы без явной валидации в коде теста
+- Применяйте `setBody(Object)` с POJO-объектами или `Map` для типизированной сериализации JSON, избегайте ручной конкатенации строк
+- Изолируйте API-подготовку данных в `@BeforeClass` или `@BeforeAll`, чтобы не дублировать сетевые запросы в каждом тестовом методе
+- Не смешивайте UI-клиент (`page.locator()`) и API-клиент в одном потоке без чёткого разделения ответственности, 
+  это усложняет отладку и логирование
+- Не используйте `Thread.sleep()` для ожидания асинхронной обработки на бэкенде, применяйте polling через повторный `api.get()` 
+  с проверкой статуса ресурса
+- Не игнорируйте `setIgnoreHTTPSErrors(false)` в production-подобных окружениях, скрытие SSL-ошибок маскирует проблемы конфигурации инфраструктуры
+- Не передавайте чувствительные данные (passwords, tokens) в строковых литералах, выносите их в `.env` или CI-secrets 
+  с динамическим резолвингом
+- Не оставляйте `APIRequestContext` открытым после завершения тестов, вызывайте `close()` или используйте `try-with-resources` 
+  для своевременного освобождения сокетов
+
+---
