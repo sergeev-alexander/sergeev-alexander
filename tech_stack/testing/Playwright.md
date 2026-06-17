@@ -3250,3 +3250,856 @@ void cleanupSession() {
 - Не храните credentials в коде, выносите их в `.env` или CI-secrets, загружайте через `System.getenv()` или конфигурационные файлы
 
 ---
+
+# 10. Отчётность, трейсы и артефакты
+
+> Playwright предоставляет встроенный набор инструментов для диагностики падений: скриншоты, видеозаписи сессий 
+> и детальные трейсы с DOM-снэпшотами, сетевыми логами и исходным кодом шагов. 
+> 
+> Интеграция с Allure и ReportPortal позволяет централизованно собирать артефакты, визуализировать падения 
+> и передавать их команде для быстрого воспроизведения.
+
+## Встроенные инструменты
+
+Playwright предоставляет три основных типа артефактов, которые можно собирать как на уровне `Page`, так и на уровне `BrowserContext`. 
+
+Все инструменты работают в headless-режиме и не требуют дополнительных зависимостей.
+
+- `byte[] screenshot()` / `byte[] screenshot(ScreenshotOptions)` - получение PNG-изображения страницы или отдельного элемента 
+  в виде массива байтов
+- `Path saveScreenshot(Path path)` - сохранение скриншота напрямую в файл
+- `void saveAsVideo(Path path)` - сохранение записанного видео в указанный файл
+- `void startRecording(Tracing.StartOptions options)` - начало записи трейса с настройками (скриншоты, DOM-снэпшоты, исходный код)
+- `void stop(Path path)` - завершение записи и сохранение трейса в `.zip` файл
+- `void startChunk()` / `void stopChunk(Path path)` - разбиение трейса на отдельные чанки (полезно для группировки по тестам)
+
+#### Схема типов артефактов:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                  АРТЕФАКТЫ PLAYWRIGHT                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. SCREENSHOT (статичное изображение)                      │
+│     ├─► page.screenshot() → byte[] PNG                      │
+│     ├─► locator.screenshot() → элемент целиком              │
+│     └─► Сохранение: Path.of("target/screenshots/test.png")  │
+│                                                             │
+│  2. VIDEO (запись всей сессии)                              │
+│     ├─► context.newContext(setRecordVideoDir) → автозапись  │
+│     ├─► Формат: .webm (Chromium), .webm (Firefox)           │
+│     └─► Сохранение: page.video().saveAs(path)               │
+│                                                             │
+│  3. TRACE (детальная трассировка)                           │
+│     ├─► context.tracing().start(options)                    │
+│     ├─► Содержит: скриншоты + DOM + network + source code   │
+│     ├─► Формат: .zip архив                                  │
+│     └─► Просмотр: playwright show-trace trace.zip           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Пример настройки и сбора артефактов:
+
+```java
+// 1. Настройка записи видео на уровне контекста
+// Видео автоматически записывается для всех страниц в этом контексте
+Browser.NewContextOptions videoOptions = new Browser.NewContextOptions()
+    .setRecordVideoDir(Paths.get("target/videos"))           // Директория для сохранения видео
+    .setRecordVideoSize(new RecordVideoSize()                // Настройка разрешения видео
+        .setWidth(1280)                                      // Ширина в пикселях
+        .setHeight(720));                                    // Высота в пикселях
+
+BrowserContext videoContext = browser.newContext(videoOptions);
+Page videoPage = videoContext.newPage();
+videoPage.navigate("https://app.example.com");
+// ... выполнение действий ...
+
+// Сохранение видео после завершения теста
+// Важно: видео доступно только после закрытия страницы
+videoPage.close();                                                  // Закрытие страницы финализирует видео
+videoPage.video().saveAs(Paths.get("target/videos/test-run.webm")); // Явное сохранение в нужный путь
+videoContext.close();                                               // Закрытие контекста освобождает ресурсы
+
+// 2. Настройка трассировки с максимальным уровнем детализации
+Browser.NewContextOptions traceOptions = new Browser.NewContextOptions();
+BrowserContext traceContext = browser.newContext(traceOptions);
+
+// Начало записи трейса с настройками
+traceContext.tracing().start(new Tracing.StartOptions()
+    .setScreenshots(true)                                       // Скриншоты на каждом шаге
+    .setSnapshots(true)                                         // DOM-снэпшоты для инспекции элементов
+    .setSources(true)                                           // Исходный код Java-шагов
+    .setTitle("Checkout Flow Test"));                           // Название для идентификации в viewer
+
+Page tracePage = traceContext.newPage();
+tracePage.navigate("https://app.example.com/checkout");
+tracePage.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Оплатить")).click();
+
+// Завершение записи и сохранение трейса в zip-архив
+traceContext.tracing().stop(new Tracing.StopOptions()
+    .setPath(Paths.get("target/traces/checkout-flow.zip")));    // Путь для сохранения архива
+
+// 3. Скриншот отдельного элемента (не всей страницы)
+// Полезно для валидации конкретных компонентов: кнопок, форм, виджетов
+byte[] elementScreenshot = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Submit"))
+    .screenshot();                                              // Возврат byte[] PNG
+
+// Сохранение скриншота элемента в файл
+page.locator(".payment-form").screenshot(new Locator.ScreenshotOptions()
+    .setPath(Paths.get("target/screenshots/payment-form.png"))); // Прямое сохранение в файл
+
+// 4. Полностраничный скриншот с настройками
+page.screenshot(new Page.ScreenshotOptions()
+    .setPath(Paths.get("target/screenshots/full-page.png"))  // Путь сохранения
+    .setFullPage(true)                                       // Скриншот всей страницы (с прокруткой)
+    .setType(ScreenshotType.PNG)                             // Формат: PNG, JPEG
+    .setOmitBackground(true));                               // Прозрачный фон (для PNG)
+```
+
+---
+
+## Интеграция с Allure
+
+> Allure — популярный фреймворк для генерации интерактивных HTML-отчётов. 
+> 
+> Интеграция с Playwright позволяет автоматически вкладывать скриншоты, видео и трейсы в отчёт, 
+> а также группировать шаги через аннотации `@Step` и `@Attachment`.
+
+- `@Step("Описание шага")` - аннотация для маркировки метода как шага в отчёте Allure
+- `@Attachment(name = "Имя", type = "image/png")` - вложение файла (скриншот, видео, трейс) в отчёт
+- `Allure.step("Описание")` - программное создание шага без аннотации (для лямбд и циклов)
+- `Allure.addAttachment(name, content)` - добавление текстового или бинарного вложения
+- `AllureLifecycle` - низкоуровневый API для управления жизненным циклом шагов и вложений
+- `@Severity(SeverityLevel.CRITICAL)` - маркировка важности теста для фильтрации в отчёте
+- `@TmsLink("TEST-123")` / `@Issue("BUG-456")` - связывание теста с задачами в TMS/баг-трекере
+
+Пример интеграции с Allure:
+
+```java
+// Подключение Allure-расширения для JUnit 5
+@ExtendWith(AllureJunit5.class)
+class CheckoutFlowTest {
+    
+    private Page page;
+    private BrowserContext context;
+    
+    @BeforeEach
+    void setup() {
+        context = browser.newContext();
+        page = context.newPage();
+    }
+    
+    @AfterEach
+    void teardown(TestInfo testInfo) {
+        // Сохранение артефактов только при падении теста
+        if (testInfo.getDisplayName().contains("FAILED") || 
+            !testInfo.getTags().isEmpty()) {
+            
+            // 1. Скриншот при падении
+            byte[] screenshot = page.screenshot();
+            Allure.addAttachment(                          // Вложение скриншота в отчёт
+                "Screenshot on Failure",                   // Название вложения
+                "image/png",                               // MIME-тип
+                new ByteArrayInputStream(screenshot),      // Поток с данными
+                "png");                                    // Расширение файла
+            
+            // 2. Видео сессии (если записывалось)
+            if (page.video() != null) {
+                Path videoPath = Paths.get("target/videos/" + testInfo.getDisplayName() + ".webm");
+                page.video().saveAs(videoPath);            // Сохранение видео в файл
+                Allure.addAttachment(                      // Вложение видео
+                    "Session Video",                       // Название
+                    "video/webm",                          // MIME-тип
+                    videoPath);                            // Путь к файлу
+            }
+            
+            // 3. Трейс для детального анализа
+            Path tracePath = Paths.get("target/traces/" + testInfo.getDisplayName() + ".zip");
+            context.tracing().stop(new Tracing.StopOptions().setPath(tracePath));
+            Allure.addAttachment(                          // Вложение трейса
+                "Playwright Trace",                        // Название
+                "application/zip",                         // MIME-тип
+                tracePath);                                // Путь к архиву
+        }
+        
+        context.close();                                   // Закрытие контекста
+    }
+    
+    @Test
+    @Severity(SeverityLevel.CRITICAL)                      // Критический тест
+    @TmsLink("TEST-123")                                   // Ссылка на тест-кейс
+    @Issue("BUG-456")                                      // Ссылка на баг (если тест регрессионный)
+    @Feature("Checkout")                                   // Группировка по функциональности
+    @Story("Payment Flow")                                 // Подгруппа внутри фичи
+    void testSuccessfulCheckout() {
+        // Шаг 1: Навигация на страницу корзины
+        Allure.step("Открытие страницы корзины", () -> {   // Программное создание шага
+            page.navigate("https://app.example.com/cart");
+            assertThat(page.getByRole(AriaRole.HEADING)).toHaveText("Корзина");
+        });
+        
+        // Шаг 2: Переход к оформлению заказа
+        navigateToCheckout();                              // Вызов метода с @Step
+        
+        // Шаг 3: Заполнение формы доставки
+        fillShippingForm();
+        
+        // Шаг 4: Оплата
+        processPayment();
+        
+        // Шаг 5: Валидация успешного завершения
+        verifyOrderConfirmation();
+    }
+    
+    @Step("Переход к оформлению заказа")                   // Аннотация шага
+    void navigateToCheckout() {
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Оформить заказ")).click();
+        page.waitForURL("**/checkout");                    // Ожидание перехода
+    }
+    
+    @Step("Заполнение формы доставки")
+    void fillShippingForm() {
+        page.getByLabel("Имя").fill("Иван Петров");        // Ввод имени
+        page.getByLabel("Адрес").fill("ул. Ленина, д. 1"); // Ввод адреса
+        page.getByLabel("Город").fill("Москва");           // Ввод города
+        page.getByLabel("Индекс").fill("101000");          // Ввод индекса
+    }
+    
+    @Step("Обработка оплаты")
+    void processPayment() {
+        page.getByLabel("Номер карты").fill("4111 1111 1111 1111");
+        page.getByLabel("Срок действия").fill("12/25");
+        page.getByLabel("CVV").fill("123");
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Оплатить")).click();
+    }
+    
+    @Step("Проверка подтверждения заказа")
+    void verifyOrderConfirmation() {
+        assertThat(page.getByRole(AriaRole.HEADING))
+            .toHaveText("Заказ успешно оформлен");         // Валидация успешного завершения
+    }
+}
+```
+
+#### Конфигурация `allure.properties`:
+
+```properties
+# Базовая конфигурация Allure
+allure.results.directory=target/allure-results                  # Директория для промежуточных результатов
+allure.link.tms.pattern=https://tms.example.com/browse/{}       # Шаблон ссылки на TMS
+allure.link.issue.pattern=https://jira.example.com/browse/{}    # Шаблон ссылки на баг-трекер
+
+# Настройки отображения
+allure.report.name=Playwright Test Report                  # Название отчёта
+allure.report.directory=target/allure-report               # Директория для финального HTML-отчёта
+```
+
+Maven-плагин для генерации отчёта:
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-maven</artifactId>
+            <version>2.12.0</version>
+            <configuration>
+                <resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+                <reportDirectory>${project.build.directory}/allure-report</reportDirectory>
+            </configuration>
+            <executions>
+                <execution>
+                    <id>allure-report</id>                 <!-- Идентификатор выполнения -->
+                    <phase>post-integration-test</phase>   <!-- Фаза сборки для генерации -->
+                    <goals>
+                        <goal>report</goal>                <!-- Цель: генерация HTML-отчёта -->
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+---
+
+## ReportPortal (опционально)
+
+> ReportPortal — серверная платформа для агрегации результатов тестов с аналитикой, историей запусков и интеграцией с CI/CD. 
+>
+> В отличие от Allure (статичный HTML), ReportPortal хранит данные в базе и предоставляет REST API для запросов.
+
+- `ReportPortalExtension` - JUnit 5 расширение для автоматической отправки результатов в ReportPortal
+- `TestNGListener` - листенер TestNG для интеграции с ReportPortal
+- `@TestCaseId("TC-123")` - связывание теста с идентификатором в TMS
+- `attributes` - кастомные теги для фильтрации запусков (окружение, браузер, версия)
+- `launch` - группировка тестовых запусков по признакам (regression, smoke, nightly)
+
+Пример интеграции с ReportPortal:
+
+```java
+import com.epam.reportportal.junit5.ReportPortalExtension;
+import com.epam.reportportal.annotations.TestCaseId;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import java.util.Map;
+
+// Подключение ReportPortal-расширения
+@ExtendWith(ReportPortalExtension.class)
+class RegressionTest {
+    
+    @Test
+    @TestCaseId("TC-456")                                  // Связь с тест-кейсом в TMS
+    @DisplayName("Проверка добавления товара в корзину")
+    void testAddToCart() {
+        // Установка атрибутов запуска для фильтрации в ReportPortal
+        ReportPortalExtension.emitAttributes(Map.of(
+            "browser", "chromium",                         // Атрибут браузера
+            "env", "staging",                              // Атрибут окружения
+            "version", "2.5.1"                             // Атрибут версии приложения
+        ));
+        
+        // Тестовая логика
+        page.navigate("https://staging.example.com/products");
+        page.getByTestId("product-123").click();
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("В корзину")).click();
+        
+        assertThat(page.locator(".cart-count")).toHaveText("1");
+    }
+}
+```
+
+Конфигурация `reportportal.properties`:
+
+```properties
+# Подключение к серверу ReportPortal
+rp.endpoint=https://reportportal.example.com               # URL сервера
+rp.uuid=your-api-token-here                                # API-токен для аутентификации
+rp.project=my-project                                      # Название проекта в ReportPortal
+rp.launch=Playwright Regression                            # Название запуска
+
+# Настройки логирования
+rp.enable=true                                             # Включение интеграции
+rp.mode=DEFAULT                                            # Режим работы (DEFAULT, DEBUG)
+rp.description=Automated UI tests with Playwright          # Описание запуска
+```
+
+---
+
+Нет, этот код **не будет работать** как ожидается.
+
+`TestInfo.getDisplayName()` возвращает только метаданные теста (имя метода, параметры), но **не его результат**. Он никогда не содержит строку `"FAILED"` — там будет что-то вроде `testSuccessfulCheckout()` или `[1] user@test.com`.
+
+В JUnit 5 для реакции на результат теста существует интерфейс `TestWatcher` с методами `testFailed()`, `testSuccessful()`, `testAborted()`, `testDisabled()`. Это правильный механизм для сохранения артефактов только при падении.
+
+## Настройка артефактов
+
+> Правильная организация путей, имён файлов и ротации артефактов критична для production-запусков.
+>
+> Избыточное хранение скриншотов и видео быстро исчерпывает дисковое пространство CI-агентов.
+
+- `timestamp` - добавление временной метки к имени файла для уникальности
+- `testName` - использование имени теста в имени файла для быстрой идентификации
+- `rotation` - автоматическое удаление старых артефактов старше N дней
+- `cleanup` - очистка директории артефактов перед каждым запуском
+- `TestWatcher` - интерфейс JUnit 5 для реакции на результат теста (упал/прошёл/пропущен)
+- `ExtensionContext.Store` - хранилище для передачи состояния между callback-ами раннера
+- `CI-artifact storage` - интеграция с GitHub Actions, Jenkins, S3 для хранения артефактов после прогона
+
+#### ArtifactManager: утилиты для работы с файлами
+
+```java
+public class ArtifactManager {
+    
+    // Директории для разных типов артефактов
+    private static final Path SCREENSHOTS_DIR = Paths.get("target/screenshots");
+    private static final Path VIDEOS_DIR = Paths.get("target/videos");
+    private static final Path TRACES_DIR = Paths.get("target/traces");
+    
+    // Период хранения артефактов перед автоматическим удалением
+    private static final int MAX_AGE_DAYS = 7;
+    
+    // Формат временной метки для уникальных имён файлов
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = 
+        DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+    
+    // Инициализация директорий с очисткой устаревших файлов
+    public static void initializeArtifactDirectories() throws IOException {
+        // Создание директорий, если они не существуют
+        Files.createDirectories(SCREENSHOTS_DIR);
+        Files.createDirectories(VIDEOS_DIR);
+        Files.createDirectories(TRACES_DIR);
+        
+        // Очистка старых артефактов во всех директориях
+        cleanOldArtifacts(SCREENSHOTS_DIR);
+        cleanOldArtifacts(VIDEOS_DIR);
+        cleanOldArtifacts(TRACES_DIR);
+    }
+    
+    // Очистка файлов старше MAX_AGE_DAYS в указанной директории
+    private static void cleanOldArtifacts(Path directory) throws IOException {
+        // Вычисление даты отсечения: текущее время минус MAX_AGE_DAYS
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(MAX_AGE_DAYS);
+        
+        // Рекурсивный обход всех файлов в директории
+        try (Stream<Path> paths = Files.walk(directory)) {
+            paths.filter(Files::isRegularFile)                                    // Только файлы, не директории
+                .filter(path -> isOlderThan(path, cutoff))                        // Фильтр по дате модификации
+                .forEach(path -> deleteQuietly(path));                            // Удаление без выброса исключений
+        }
+    }
+    
+    // Проверка, старше ли файл указанной даты отсечения
+    private static boolean isOlderThan(Path path, LocalDateTime cutoff) {
+        try {
+            // Получение времени последней модификации файла
+            LocalDateTime fileTime = LocalDateTime.ofInstant(
+                Files.getLastModifiedTime(path).toInstant(),
+                ZoneId.systemDefault());
+            return fileTime.isBefore(cutoff);                                     // true, если файл старше cutoff
+        } catch (IOException e) {
+            // При ошибке чтения метаданных пропускаем файл
+            return false;
+        }
+    }
+    
+    // Тихое удаление файла с логированием ошибок
+    private static void deleteQuietly(Path path) {
+        try {
+            Files.delete(path);                                                   // Удаление файла
+            System.out.println("Удалён старый артефакт: " + path);
+        } catch (IOException e) {
+            System.err.println("Ошибка удаления: " + path + " - " + e.getMessage());
+        }
+    }
+    
+    // Генерация уникального имени файла на основе имени теста и timestamp
+    public static String generateArtifactName(String testName, String extension) {
+        // Формирование временной метки: 20260618_143025
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        
+        // Санитизация имени теста: замена недопустимых символов и ограничение длины
+        String sanitizedTestName = testName
+            .replaceAll("[^a-zA-Z0-9_-]", "_")                                    // Замена спецсимволов на _
+            .replaceAll("_+", "_")                                                // Схлопывание множественных _
+            .substring(0, Math.min(testName.length(), 50));                       // Ограничение длины 50 символов
+        
+        // Финальное имя: testName_YYYYMMDD_HHMMSS.extension
+        return sanitizedTestName + "_" + timestamp + "." + extension;
+    }
+    
+    // Сохранение полностраничного скриншота с уникальным именем
+    public static Path saveScreenshot(Page page, String testName) throws IOException {
+        String fileName = generateArtifactName(testName, "png");                  // Генерация имени файла
+        Path filePath = SCREENSHOTS_DIR.resolve(fileName);                        // Полный путь к файлу
+        
+        // Создание скриншота с сохранением в файл
+        page.screenshot(new Page.ScreenshotOptions()
+            .setPath(filePath)                                                    // Путь сохранения
+            .setFullPage(true));                                                  // Полностраничный скриншот (с прокруткой)
+        
+        return filePath;                                                          // Возврат пути для логирования
+    }
+    
+    // Сохранение видео сессии с уникальным именем
+    public static Path saveVideo(Page page, String testName) throws IOException {
+        if (page.video() == null) {                                               // Проверка, записывалось ли видео
+            return null;                                                          // Видео не записывалось
+        }
+        
+        String fileName = generateArtifactName(testName, "webm");                 // Генерация имени файла
+        Path filePath = VIDEOS_DIR.resolve(fileName);                             // Полный путь к файлу
+        
+        // Сохранение видео в файл (доступно только после page.close())
+        page.video().saveAs(filePath);
+        
+        return filePath;
+    }
+    
+    // Сохранение трейса с уникальным именем
+    public static Path saveTrace(com.microsoft.playwright.Tracing tracing, 
+                                  String testName) throws IOException {
+        String fileName = generateArtifactName(testName, "zip");                  // Генерация имени файла
+        Path filePath = TRACES_DIR.resolve(fileName);                             // Полный путь к файлу
+        
+        // Остановка записи трейса с сохранением в zip-архив
+        tracing.stop(new com.microsoft.playwright.Tracing.StopOptions()
+            .setPath(filePath));
+        
+        return filePath;
+    }
+}
+```
+
+#### ArtifactCollector: расширение JUnit 5 для сбора артефактов при падениях
+
+```java
+// Расширение JUnit 5, реагирующее на результат выполнения теста
+// Реализует TestWatcher для перехвата событий testFailed/testSuccessful
+public class ArtifactCollector implements TestWatcher {
+    
+    // Ключ для хранения Page в ExtensionContext.Store
+    private static final String PAGE_KEY = "playwright.page";
+    
+    // Ключ для хранения BrowserContext в ExtensionContext.Store
+    private static final String CONTEXT_KEY = "playwright.context";
+    
+    // Ключ для хранения флага "тест упал"
+    private static final String FAILED_KEY = "test.failed";
+    
+    // Вызывается при падении теста (AssertionError, Exception и т.д.)
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+        // Установка флага падения в Store для последующей обработки
+        getStore(context).put(FAILED_KEY, Boolean.TRUE);
+        
+        // Логирование причины падения
+        System.err.println("Тест упал: " + context.getDisplayName() + 
+                           " - " + cause.getMessage());
+        
+        // Сохранение артефактов (скриншот, видео, трейс)
+        saveArtifactsOnFailure(context);
+    }
+    
+    // Вызывается при успешном завершении теста
+    @Override
+    public void testSuccessful(ExtensionContext context) {
+        // При успешном тесте артефакты можно удалить для экономии места
+        // Или оставить для анализа — зависит от политики проекта
+        System.out.println("Тест успешен: " + context.getDisplayName());
+    }
+    
+    // Вызывается при прерывании теста (AssumptionFailed)
+    @Override
+    public void testAborted(ExtensionContext context, Throwable cause) {
+        System.out.println("Тест прерван: " + context.getDisplayName());
+    }
+    
+    // Вызывается при отключении теста (@Disabled)
+    @Override
+    public void testDisabled(ExtensionContext context, java.util.Optional<String> reason) {
+        System.out.println("Тест отключён: " + context.getDisplayName() + 
+                           " - " + reason.orElse("без причины"));
+    }
+    
+    // Сохранение артефактов при падении теста
+    private void saveArtifactsOnFailure(ExtensionContext context) {
+        try {
+            // Получение Page из Store (устанавливается в @BeforeEach или фикстуре)
+            Page page = getStore(context).get(PAGE_KEY, Page.class);
+            BrowserContext browserContext = getStore(context).get(CONTEXT_KEY, BrowserContext.class);
+            
+            // Имя теста для генерации уникальных имён файлов
+            String testName = context.getDisplayName();
+            
+            if (page != null) {
+                // Сохранение скриншота
+                java.nio.file.Path screenshotPath = ArtifactManager.saveScreenshot(page, testName);
+                System.out.println("Скриншот сохранён: " + screenshotPath);
+                
+                // Сохранение видео (если записывалось)
+                java.nio.file.Path videoPath = ArtifactManager.saveVideo(page, testName);
+                if (videoPath != null) {
+                    System.out.println("Видео сохранено: " + videoPath);
+                }
+            }
+            
+            // Сохранение трейса (если записывался)
+            if (browserContext != null) {
+                java.nio.file.Path tracePath = ArtifactManager.saveTrace(
+                    browserContext.tracing(), testName);
+                System.out.println("Трейс сохранён: " + tracePath);
+            }
+        } catch (Exception e) {
+            // Ошибки при сохранении артефактов не должны ломать тест
+            System.err.println("Ошибка сохранения артефактов: " + e.getMessage());
+        }
+    }
+    
+    // Получение Store для текущего тестового контекста
+    private ExtensionContext.Store getStore(ExtensionContext context) {
+        // Используем namespace на основе класса теста для изоляции
+        return context.getStore(
+            ExtensionContext.Namespace.create(getClass(), context.getRequiredTestClass()));
+    }
+    
+    // Статический метод для регистрации Page в Store (вызывается из @BeforeEach)
+    public static void registerPage(ExtensionContext context, Page page) {
+        context.getStore(ExtensionContext.Namespace.create(
+                ArtifactCollector.class, context.getRequiredTestClass()))
+            .put(PAGE_KEY, page);
+    }
+    
+    // Статический метод для регистрации BrowserContext в Store
+    public static void registerContext(ExtensionContext context, BrowserContext browserContext) {
+        context.getStore(ExtensionContext.Namespace.create(
+                ArtifactCollector.class, context.getRequiredTestClass()))
+            .put(CONTEXT_KEY, browserContext);
+    }
+    
+    // Проверка, упал ли текущий тест (для использования в @AfterEach)
+    public static boolean isTestFailed(ExtensionContext context) {
+        Boolean failed = context.getStore(ExtensionContext.Namespace.create(
+                ArtifactCollector.class, context.getRequiredTestClass()))
+            .get(FAILED_KEY, Boolean.class);
+        return Boolean.TRUE.equals(failed);
+    }
+}
+```
+
+#### Использование ArtifactCollector в тестах
+
+```java
+// Подключение расширения ArtifactCollector к тестовому классу
+@ExtendWith(ArtifactCollector.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class CheckoutFlowTest {
+    
+    private Playwright playwright;
+    private Browser browser;
+    private BrowserContext context;
+    private Page page;
+    
+    // Однократная инициализация Playwright и Browser на весь класс
+    @BeforeAll
+    void launchBrowser() throws IOException {
+        // Инициализация директорий артефактов с очисткой старых файлов
+        ArtifactManager.initializeArtifactDirectories();
+        
+        // Запуск Playwright и браузера
+        playwright = Playwright.create();
+        browser = playwright.chromium().launch(
+            new BrowserType.LaunchOptions().setHeadless(true));
+    }
+    
+    // Инициализация изолированного контекста перед каждым тестом
+    @BeforeEach
+    void setupContext(ExtensionContext extensionContext) {
+        // Создание нового контекста с записью видео
+        context = browser.newContext(new Browser.NewContextOptions()
+            .setRecordVideoDir(Paths.get("target/videos")));
+        page = context.newPage();
+        
+        // Начало записи трейса для последующего сохранения при падении
+        context.tracing().start(new Tracing.StartOptions()
+            .setScreenshots(true)                                               // Скриншоты на каждом шаге
+            .setSnapshots(true)                                                 // DOM-снэпшоты
+            .setSources(true));                                                 // Исходный код шагов
+        
+        // Регистрация Page и BrowserContext в Store расширения ArtifactCollector
+        ArtifactCollector.registerPage(extensionContext, page);
+        ArtifactCollector.registerContext(extensionContext, context);
+    }
+    
+    // Очистка контекста после каждого теста
+    @AfterEach
+    void teardownContext(ExtensionContext extensionContext) {
+        // Проверка статуса теста через ArtifactCollector
+        boolean failed = ArtifactCollector.isTestFailed(extensionContext);
+        
+        if (context != null) {
+            // Остановка записи трейса
+            // Если тест упал, артефакты уже сохранены в ArtifactCollector.testFailed()
+            // Если тест успешен, трейс можно удалить для экономии места
+            if (!failed) {
+                context.tracing().stop();                                       // Просто остановить без сохранения
+            }
+            
+            // Закрытие контекста (обязательно для финализации видео)
+            context.close();
+        }
+    }
+    
+    // Закрытие браузера после всех тестов
+    @AfterAll
+    void closeBrowser() {
+        if (browser != null) browser.close();
+        if (playwright != null) playwright.close();
+    }
+    
+    // Успешный тест: артефакты не сохраняются (или удаляются)
+    @Test
+    void testSuccessfulCheckout() {
+        page.navigate("https://app.example.com/checkout");
+        page.getByRole(AriaRole.BUTTON, 
+            new Page.GetByRoleOptions().setName("Оплатить")).click();
+        // ... валидация успешного оформления
+    }
+    
+    // Падающий тест: ArtifactCollector автоматически сохранит скриншот, видео и трейс
+    @Test
+    void testFailedPayment() {
+        page.navigate("https://app.example.com/checkout");
+        page.getByLabel("Номер карты").fill("invalid-card");
+        page.getByRole(AriaRole.BUTTON, 
+            new Page.GetByRoleOptions().setName("Оплатить")).click();
+        
+        // Это утверждение упадёт, и ArtifactCollector.testFailed() сохранит артефакты
+        Assertions.assertTrue(page.getByText("Ошибка оплаты").isVisible());
+    }
+}
+```
+
+---
+
+### Интеграция с CI-artifact storage (GitHub Actions):
+
+```yaml
+# .github/workflows/playwright.yml
+name: Playwright Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4                        # Checkout кода
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps          # Установка браузеров
+      
+      - name: Run tests
+        run: mvn test                                    # Запуск тестов
+      
+      - name: Upload test artifacts                      # Загрузка артефактов в GitHub
+        if: always()                                     # Загрузка даже при падении
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts                     # Название артефакта
+          path: |                                        # Пути к артефактам
+            target/screenshots/
+            target/videos/
+            target/traces/
+            target/allure-results/
+          retention-days: 7                              # Хранение 7 дней
+```
+
+---
+
+## Debugging UI
+
+> Playwright предоставляет мощный инструмент `Trace Viewer` для интерактивного анализа трейсов.
+>
+> Позволяет воспроизвести каждый шаг теста, просматривать DOM-дерево в момент времени, просмотреть сетевые запросы и консольные логи.
+>
+> Это полноценное веб-приложение для отладки, которое открывается в браузере и предоставляет богатый интерактивный интерфейс 
+> для анализа выполнения тестов.
+
+- `playwright show-trace trace.zip` - открытие Trace Viewer в браузере
+- `Инспектор элементов` - выбор элемента на скриншоте и просмотр его селекторов
+- `Network Tab` - анализ всех HTTP-запросов с таймингами и payload
+- `Console Tab` - просмотр логов консоли браузера
+- `Source Tab` - просмотр исходного кода Java-шагов с привязкой к таймлайну
+- `Actionability Timeline` - визуализация проверок actionability (visible, enabled, stable)
+
+#### Схема интерфейса Trace Viewer:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PLAYWRIGHT TRACE VIEWER                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  TIMELINE (горизонтальная шкала времени)                                    │
+│  ├─► [Step 1] ─── [Step 2] ─── [Step 3] ─── [Step 4] ─── [Step 5]           │ 
+│  │    navigate    click        fill        click       assert               │
+│  │    /login      "Submit"    "email"     "Login"     "Welcome"             │
+│  │                                                                          │
+│  └──────────────────────────────────────────────────────────────────────────│
+│                                                                             │
+│  SCREENSHOT (скриншот текущего шага)                                        │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │    │
+│  │  │                                                             │    │    │
+│  │  │              [Визуальное представление страницы]            │    │    │
+│  │  │                                                             │    │    │
+│  │  │         ┌──────────────┐                                    │    │    │
+│  │  │         │  Email Input │ ← Инспектор: можно кликнуть        │    │    │
+│  │  │         └──────────────┘   и увидеть селекторы              │    │    │
+│  │  │                                                             │    │    │
+│  │  └─────────────────────────────────────────────────────────────┘    │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  DOM SNAPSHOT (снимок DOM-дерева в момент шага)                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  <form id="login-form">                                             │    │
+│  │    <input type="email" name="email" value="user@test.com" />        │    │
+│  │    <input type="password" name="password" />                        │    │
+│  │    <button type="submit">Login</button>                             │    │
+│  │  </form>                                                            │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  NETWORK TAB (сетевые запросы)                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  [GET] /api/user/profile → 200 OK (45ms)                            │    │
+│  │  [POST] /api/login → 200 OK (120ms)                                 │    │
+│  │  [GET] /api/dashboard → 200 OK (89ms)                               │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  CONSOLE TAB (логи консоли браузера)                                        │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  [INFO] Application loaded successfully                             │    │
+│  │  [WARN] Deprecated API usage detected                               │    │
+│  │  [ERROR] Failed to load resource: 404                               │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Пример использования Trace Viewer для отладки:
+
+```java
+// 1. Запись трейса с максимальным уровнем детализации
+context.tracing().start(new Tracing.StartOptions()
+    .setScreenshots(true)                                    // Скриншоты на каждом шаге
+    .setSnapshots(true)                                      // DOM-снэпшоты
+    .setSources(true)                                        // Исходный код Java
+    .setTitle("Debug Session"));                             // Название для идентификации
+
+// 2. Выполнение тестовых действий
+page.navigate("https://app.example.com");
+page.getByLabel("Email").fill("user@test.com");
+page.getByLabel("Password").fill("secret");
+page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Login")).click();
+
+// 3. Сохранение трейса
+Path tracePath = Paths.get("target/traces/debug-session.zip");
+context.tracing().stop(new Tracing.StopOptions().setPath(tracePath));
+
+// 4. Открытие Trace Viewer через CLI
+// Команда выполняется в терминале:
+// npx playwright show-trace target/traces/debug-session.zip
+
+// 5. Анализ в Trace Viewer:
+// - Перемотка таймлайна для просмотра каждого шага
+// - Клик по элементу на скриншоте для инспекции селекторов
+// - Проверка Network Tab для анализа API-запросов
+// - Просмотр Console Tab для выявления JS-ошибок
+// - Анализ Actionability Timeline для понимания, почему действие не выполнилось
+```
+
+---
+
+## Best Practices
+
+- Включайте трассировку только при падениях через условную логику в `@AfterEach`, это экономит дисковое пространство и ускоряет успешные прогоны
+- Настраивайте `setRecordVideoSize()` для оптимизации размера видео, разрешение 1280x720 достаточно для большинства сценариев
+- Используйте `generateArtifactName()` с timestamp и testName для уникальности файлов, избегайте перезаписи при параллельных запусках
+- Интегрируйте артефакты с CI-artifact storage (GitHub Actions, Jenkins, S3), чтобы команда могла скачать их после прогона
+- Применяйте ротацию артефактов через `cleanOldArtifacts()`, удаляя файлы старше 7 дней для предотвращения переполнения диска
+- Используйте `playwright show-trace` для анализа падений, это быстрее и информативнее, чем просмотр статичных скриншотов
+- Не записывайте трейсы для каждого теста без условия, это генерирует гигабайты данных и замедляет CI/CD
+- Не храните артефакты в `src/test/resources`, выносите их в `target/` или временные директории для исключения из Git
+- Не игнорируйте `page.video().saveAs()`, видео доступно только после закрытия страницы, вызывайте `page.close()` перед сохранением
+- Не хардкодьте пути к артефактам в коде, используйте конфигурационные файлы или переменные окружения для гибкости
+- Не удаляйте артефакты сразу после прогона, оставляйте их минимум на 7 дней для анализа регрессий и исторических данных
+- Не смешивайте артефакты разных запусков в одной директории, используйте timestamp или build number для изоляции
+
+---
