@@ -2365,3 +2365,480 @@ browserContext.route("**/*", route -> {
   для своевременного освобождения сокетов
 
 ---
+
+# 8. Архитектурные паттерны и организация кода
+
+> Выбор архитектурного паттерна определяет масштабируемость, поддерживаемость и скорость разработки тестов. 
+> 
+> Playwright не навязывает конкретную структуру, но предоставляет гибкие примитивы (`Locator`, `Page`, `BrowserContext`), 
+> которые можно комбинировать в классические паттерны (Page Object, Component Model) или современные подходы (Screenplay). 
+> 
+> Правильная организация кода снижает дублирование, упрощает рефакторинг и ускоряет онбординг новых участников команды.
+
+## Page Object Model (POM)
+
+> Классический паттерн инкапсуляции логики взаимодействия со страницей. 
+> 
+> Каждый класс POM представляет одну страницу или компонент приложения, скрывая детали селекторов и действий от тестов.
+
+- `Locator` - приватные поля класса, хранящие селекторы элементов страницы
+- `void action()` - публичные методы, выполняющие действия на странице (клик, ввод, навигация)
+- `boolean isElementVisible()` - методы проверки состояния элементов
+- `Page getPage()` - доступ к объекту `Page` для сложных сценариев (не рекомендуется выносить наружу)
+
+#### Пример базовой реализации POM:
+
+```java
+// Page Object для страницы логина
+public class LoginPage {
+
+    private final Page page; // Хранение ссылки на Page для выполнения действий
+    
+    // Приватные локаторы: селекторы инкапсулированы внутри класса
+    private final Locator emailInput = page.getByLabel("Email");
+    private final Locator passwordInput = page.getByLabel("Password");
+    private final Locator submitButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Войти"));
+    private final Locator errorMessage = page.locator(".error-message");
+    
+    // Конструктор принимает Page из теста или фикстуры
+    public LoginPage(Page page) {
+        this.page = page;
+    }
+    
+    // Публичный метод: выполнение действия логина
+    public void login(String email, String password) {
+        emailInput.fill(email);           // Ввод email
+        passwordInput.fill(password);     // Ввод пароля
+        submitButton.click();             // Нажатие кнопки входа
+    }
+    
+    // Метод проверки состояния: видимость сообщения об ошибке
+    public boolean isErrorDisplayed() {
+        return errorMessage.isVisible();  // Возврат булево значение
+    }
+    
+    // Метод получения текста ошибки для валидации в тесте
+    public String getErrorText() {
+        return errorMessage.textContent(); // Извлечение текста из DOM
+    }
+    
+    // Навигационный метод: переход на страницу логина
+    public LoginPage navigateTo() {
+        page.navigate("https://app.example.com/login"); // Переход по URL
+        return this; // Возврат this для fluent-цепочек
+    }
+}
+```
+
+#### Использование Page Object в тесте:
+
+```java
+class LoginFlowTest {
+  
+    @Test
+    void testSuccessfulLogin() {
+        // Тест не знает о селекторах, только о бизнес-логике
+        LoginPage loginPage = new LoginPage(page);
+        loginPage.navigateTo()                           // Fluent-цепочка навигации
+                 .login("user@test.com", "secret123");   // Выполнение действия
+        
+        // Валидация через assertions
+        assertThat(page.getByRole(AriaRole.HEADING))
+            .toHaveText("Добро пожаловать");
+    }
+    
+    @Test
+    void testInvalidCredentials() {
+        LoginPage loginPage = new LoginPage(page);
+        loginPage.login("wrong@email.com", "invalid");
+        
+        // Проверка состояния через метод Page Object
+        assertTrue(loginPage.isErrorDisplayed());
+        assertEquals("Неверный email или пароль", loginPage.getErrorText());
+    }
+}
+```
+
+---
+
+## Page Component Model
+
+> Расширение POM для переиспользуемых виджетов: модальные окна, хедеры, пагинация, таблицы. 
+> 
+> Компоненты не привязаны к конкретной странице и могут использоваться в разных контекстах.
+
+- `Component` - базовый класс или интерфейс для переиспользуемых виджетов
+- `Locator root` - корневой селектор компонента, ограничивающий область поиска
+- `void interact()` - методы взаимодействия с компонентом
+- `Component within(Locator parent)` - фабрика для создания компонента в контексте конкретного родителя
+
+#### Пример реализации переиспользуемого компонента:
+
+```java
+// Компонент модального окна: может появляться на любой странице
+public class ModalComponent {
+    
+    private final Locator root; // Корневой локатор модального окна
+    
+    // Приватные локаторы внутри компонента
+    private final Locator title = root.locator(".modal-title");
+    private final Locator closeButton = root.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Закрыть"));
+    private final Locator content = root.locator(".modal-body");
+    
+    // Конструктор принимает корневой локатор модального окна
+    public ModalComponent(Locator root) {
+        this.root = root;
+    }
+    
+    // Метод проверки видимости модального окна
+    public boolean isVisible() {
+        return root.isVisible(); // Проверка состояния корневого элемента
+    }
+    
+    // Метод получения заголовка модального окна
+    public String getTitle() {
+        return title.textContent(); // Извлечение текста заголовка
+    }
+    
+    // Метод закрытия модального окна
+    public void close() {
+        closeButton.click(); // Клик по кнопке закрытия
+    }
+    
+    // Метод получения содержимого модального окна
+    public String getContent() {
+        return content.textContent(); // Извлечение текста тела модального окна
+    }
+}
+```
+
+#### Использование компонента в разных Page Objects:
+
+```java
+// Page Object для страницы корзины
+public class CartPage {
+    
+    private final Page page;
+    
+    // Компонент модального окна подтверждения удаления
+    private final ModalComponent deleteConfirmationModal = new ModalComponent(page.locator("#delete-confirmation-modal") // Корневой селектор модального окна
+    );
+    
+    public CartPage(Page page) {
+        this.page = page;
+    }
+    
+    // Метод удаления товара из корзины
+    public void removeItem(String productName) {
+        page.locator(".cart-item")
+            .filter(new Locator.FilterOptions().setHasText(productName))
+            .locator("button.remove")
+            .click();
+    }
+    
+    // Метод подтверждения удаления через модальное окно
+    public void confirmDeletion() {
+        deleteConfirmationModal.close(); // Использование компонента
+    }
+    
+    // Метод проверки видимости модального окна
+    public boolean isDeleteModalVisible() {
+        return deleteConfirmationModal.isVisible(); // Делегирование компоненту
+    }
+}
+```
+
+---
+
+## Screenplay Pattern
+
+> Альтернативный подход, где тесты описываются через действия `Actor` (актёра), выполняющего `Task` (задачи) 
+> с использованием `Ability` (способностей). 
+> 
+> Подходит для сложных бизнес-сценариев с множеством ролей.
+
+- `Actor` - субъект, выполняющий действия (пользователь, администратор, система)
+- `Ability` - способность актёра взаимодействовать с системой (браузер, API, база данных)
+- `Task` - последовательность действий, выполняемых актёром
+- `Question` - вопрос о состоянии системы, на который актёр получает ответ
+
+#### Пример базовой реализации Screenplay:
+
+```java
+// Способность: доступ к браузеру
+public class BrowseTheWeb implements Ability {
+    
+    private final Page page; // Хранение ссылки на Page
+    
+    public BrowseTheWeb(Page page) {
+        this.page = page;
+    }
+    
+    // Метод получения Page для выполнения действий
+    public Page getPage() {
+        return page;
+    }
+    
+    // Статический фабричный метод для создания способности
+    public static BrowseTheWeb with(Page page) {
+        return new BrowseTheWeb(page);
+    }
+}
+
+// Задача: вход в систему
+public class Login implements Task {
+    
+    private final String email;
+    private final String password;
+    
+    public Login(String email, String password) {
+        this.email = email;
+        this.password = password;
+    }
+    
+    // Статический фабричный метод для создания задачи
+    public static Login withCredentials(String email, String password) {
+        return new Login(email, password);
+    }
+    
+    // Метод выполнения задачи актером
+    @Override
+    public <T extends Actor> void performAs(T actor) {
+        Page page = actor.abilityTo(BrowseTheWeb.class).getPage(); // Получение Page из способности
+        
+        // Выполнение действий входа
+        page.getByLabel("Email").fill(email);
+        page.getByLabel("Password").fill(password);
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Войти")).click();
+    }
+}
+
+// Вопрос: видимость сообщения об ошибке
+public class TheErrorMessage implements Question<Boolean> {
+    
+    // Метод получения ответа на вопрос
+    @Override
+    public <T extends Actor> Boolean answeredBy(T actor) {
+        Page page = actor.abilityTo(BrowseTheWeb.class).getPage();
+        return page.locator(".error-message").isVisible(); // Возврат булева значения
+    }
+    
+    // Статический фабричный метод для создания вопроса
+    public static TheErrorMessage displayed() {
+        return new TheErrorMessage();
+    }
+}
+```
+
+#### Использование Screenplay в тесте:
+
+```java
+class ScreenplayLoginTest {
+
+    private Playwright playwright;
+    private Browser browser;
+    private Page page;
+    private Actor user;
+
+    @BeforeEach
+    void setUp() {
+        playwright = Playwright.create();
+        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
+        page = browser.newPage();
+        page.navigate("https://your-login-page.com");
+
+        user = new Actor("Пользователь");
+        user.can(BrowseTheWeb.with(page));
+    }
+
+    @Test
+    void testInvalidLogin() {
+        user.attemptsTo(Login.withCredentials("wrong@email.com", "invalid"));
+
+        assertTrue(user.asksWhether(TheErrorMessage.displayed()));
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (page != null) page.close();
+        if (browser != null) browser.close();
+        if (playwright != null) playwright.close();
+    }
+}
+```
+
+---
+
+## Page-level абстракция vs нативный Playwright
+
+> Сравнение подходов к организации кода: использование абстракций (POM/Component) против прямой работы с `Locator` в тестах.
+
+| Критерий               | Page Object Model                      | Нативный Playwright                      |
+|:-----------------------|----------------------------------------|------------------------------------------|
+| Дублирование кода      | Минимальное (селекторы в одном месте)  | Высокое (селекторы повторяются в тестах) |
+| Рефакторинг селекторов | Изменение в одном классе POM           | Изменение во всех тестах                 |
+| Скорость разработки    | Медленнее (требует создания классов)   | Быстрее (прямое написание тестов)        |
+| Читаемость тестов      | Высокая (бизнес-логика без деталей)    | Средняя (смесь селекторов и действий)    |
+| Подходит для           | Крупных проектов, командной разработки | Маленьких проектов, прототипирования     |
+
+#### Пример нативного подхода без абстракций:
+
+```java
+class NativePlaywrightTest {
+
+    // ... 
+    
+    @Test
+    void testLogin() {
+        // Прямая работа с локаторами в тесте
+        page.navigate("https://app.example.com/login");
+        page.getByLabel("Email").fill("user@test.com");
+        page.getByLabel("Password").fill("secret");
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Войти")).click();
+        
+        // Валидация
+        assertThat(page.getByRole(AriaRole.HEADING)).toHaveText("Добро пожаловать");
+    }
+    
+    @Test
+    void testInvalidLogin() {
+        // Повторение селекторов в другом тесте
+        page.navigate("https://app.example.com/login");
+        page.getByLabel("Email").fill("wrong@email.com");
+        page.getByLabel("Password").fill("invalid");
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Войти")).click();
+        
+        // Валидация
+        assertThat(page.locator(".error-message")).toBeVisible();
+    }
+}
+```
+
+---
+
+## Организация проекта
+
+> Структура директорий и пакетов влияет на поддерживаемость и скорость онбординга. 
+> 
+> Рекомендуется разделять тесты, Page Objects, компоненты, утилиты и конфигурацию.
+
+#### Cхема структуры проекта:
+
+```text
+src/
+├── test/
+│   ├── java/
+│   │   └── com.example.tests/
+│   │       ├── pages/                    # Page Objects
+│   │       │   ├── LoginPage.java
+│   │       │   ├── DashboardPage.java
+│   │       │   └── CartPage.java
+│   │       ├── components/               # Переиспользуемые компоненты
+│   │       │   ├── ModalComponent.java
+│   │       │   ├── HeaderComponent.java
+│   │       │   └── PaginationComponent.java
+│   │       ├── tests/                    # Тестовые классы
+│   │       │   ├── LoginFlowTest.java
+│   │       │   ├── CheckoutFlowTest.java
+│   │       │   └── ApiIntegrationTest.java
+│   │       ├── api/                      # API-клиенты и DTO
+│   │       │   ├── UserApiClient.java
+│   │       │   └── ProductApiClient.java
+│   │       ├── utils/                    # Утилиты и хелперы
+│   │       │   ├── TestDataGenerator.java
+│   │       │   └── ScreenshotHelper.java
+│   │       ├── fixtures/                 # Фикстуры и DI
+│   │       │   ├── BrowserFixture.java
+│   │       │   └── PageFixture.java
+│   │       └── config/                   # Конфигурационные классы
+│   │           └── TestConfig.java
+│   └── resources/
+│       ├── test.properties               # Конфигурация окружений
+│       ├── test-data/                    # Тестовые данные (JSON, CSV)
+│       │   ├── users.json
+│       │   └── products.csv
+│       └── allure.properties             # Настройки Allure
+└── main/
+    └── java/                             # Исходный код приложения (если тесты внутри проекта)
+```
+
+#### Конфигурационный файл `test.properties`:
+
+```properties
+# Базовые URL для разных окружений
+env.base.url=https://staging.example.com
+env.api.url=https://api.staging.example.com
+
+# Настройки браузера
+browser.type=chromium
+browser.headless=true
+browser.slowMo=0
+
+# Таймауты
+timeout.default=30000
+timeout.navigation=60000
+
+# Пути к артефактам
+artifacts.screenshots=target/screenshots
+artifacts.traces=target/traces
+artifacts.videos=target/videos
+```
+
+#### Класс загрузки конфигурации:
+
+```java
+// Утилита для загрузки конфигурации из test.properties
+public class TestConfig {
+
+    private static final Properties properties = new Properties();
+    
+    // Статический блок инициализации: загрузка файла при первом обращении к классу
+    static {
+        try (InputStream input = TestConfig.class.getClassLoader().getResourceAsStream("test.properties")) {
+            if (input == null) {
+                throw new RuntimeException("Не найден файл test.properties");
+            }
+            properties.load(input); // Загрузка свойств из файла
+        } catch (IOException e) {
+            throw new RuntimeException("Ошибка загрузки конфигурации", e);
+        }
+    }
+    
+    // Метод получения строкового свойства
+    public static String get(String key) {
+        return properties.getProperty(key); // Возврат значения по ключу
+    }
+    
+    // Метод получения числового свойства с дефолтным значением
+    public static int getInt(String key, int defaultValue) {
+        String value = properties.getProperty(key);
+        return value != null ? Integer.parseInt(value) : defaultValue; // Парсинг или дефолт
+    }
+    
+    // Метод получения булева свойства
+    public static boolean getBoolean(String key) {
+        return Boolean.parseBoolean(properties.getProperty(key)); // Парсинг булева значения
+    }
+}
+```
+
+---
+
+## Best Practices
+
+- Используйте Page Object Model для проектов с более чем 10 тестами, это снижает дублирование и упрощает рефакторинг селекторов
+- Выносите переиспользуемые виджеты (модальные окна, хедеры, пагинацию) в отдельные классы компонентов, 
+  чтобы не дублировать логику в разных Page Objects
+- Храните селекторы как приватные поля `Locator` в Page Objects, не возвращайте их наружу 
+  — тесты должны работать через публичные методы
+- Применяйте fluent-цепочки (`return this`) в Page Objects для навигационных методов, это улучшает читаемость тестов
+- Разделяйте тесты, Page Objects, компоненты и утилиты по пакетам, это упрощает навигацию и снижает когнитивную нагрузку
+- Централизуйте конфигурацию в `test.properties` или `.env`, не хардкодьте URL, таймауты и пути в коде
+- Не создавайте Page Objects для одной страницы с одним тестом, это избыточная абстракция — используйте нативный Playwright
+- Не возвращайте `Locator` из Page Objects в тесты, это нарушает инкапсуляцию и приводит к дублированию селекторов
+- Не наследуйте Page Objects друг от друга без крайней необходимости, предпочитайте композицию через компоненты
+- Не хардкодьте URL и таймауты в коде, выносите их в конфигурационные файлы для гибкого переключения окружений
+- Не смешивайте бизнес-логику теста с деталями реализации (selectors, `page.click()`), используйте методы Page Objects
+- Не создавайте глобальные статические `Page` или `BrowserContext` без `ThreadLocal`, это приводит к гонкам состояний при параллельных запусках
+
+---
