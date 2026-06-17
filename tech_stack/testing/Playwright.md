@@ -2842,3 +2842,411 @@ public class TestConfig {
 - Не создавайте глобальные статические `Page` или `BrowserContext` без `ThreadLocal`, это приводит к гонкам состояний при параллельных запусках
 
 ---
+
+# 9. Продвинутые сценарии и изоляция тестов
+
+> Playwright предоставляет встроенные механизмы для работы со сложными сценариями, 
+> которые в Selenium требуют ручного переключения окон, выполнения JavaScript или привлечения сторонних библиотек. 
+> 
+> Многооконность, вложенные фреймы, сетевое мокирование, нативные диалоги и управление сессиями 
+> — все эти задачи решаются декларативно через API `BrowserContext`, `Page` и `Route`, сохраняя авто-ожидания и типобезопасность.
+
+## Работа с несколькими вкладками и окнами
+
+> `BrowserContext` управляет всеми вкладками, открытыми в рамках одной сессии. 
+>
+> Новые окна (попапы) автоматически создаются в том же контексте, что позволяет переключаться между ними без потери cookies и localStorage.
+
+- `Page waitForPopup(Runnable action)` - ожидание открытия новой вкладки в результате выполнения действия 
+  (клик по `target="_blank"`, `window.open()`)
+- `List<Page> pages()` - возврат списка всех открытых страниц в контексте
+- `void bringToFront()` - перемещение страницы на передний план (эмуляция фокуса пользователя)
+- `void close()` - закрытие конкретной вкладки без завершения контекста
+- `BrowserContext waitForPage(Runnable action)` - ожидание создания новой страницы на уровне контекста
+- `EventEmitter onPage(Consumer<Page> handler)` - подписка на событие открытия новой вкладки
+
+#### Схема переключения вкладок:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    BrowserContext                           │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│   │   Page #1    │  │   Page #2    │  │   Page #3    │      │
+│   │  (активная)  │  │   (попап)    │  │  (фоновая)   │      │
+│   │  main.html   │  │  modal.html  │  │  report.html │      │
+│   └──────────────┘  └──────────────┘  └──────────────┘      │
+│         ▲                                                   │
+│         │                                                   │
+│  context.pages() → [Page#1, Page#2, Page#3]                 │
+│  Page page1 = context.pages().get(0);                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+- Индекс не равен "активности". Если вы переключитесь на вкладку №2 программно (`page2.bringToFront()`), она станет активной визуально, 
+  но ее индекс в списке `pages()` не изменится. Он всегда равен порядку создания.
+
+- Закрытие вкладок. Если вы закроете `Page #1` (`page1.close()`), то индексы сдвинутся: `Page #2` станет `get(0)`, а `Page #3` — `get(1)`.
+
+---
+
+#### Пример работы с попапами:
+
+```java
+// Получение контекста браузера
+BrowserContext context = page.context(); // Из существующей страницы
+// или
+BrowserContext context = browser.newContext(); // Создание нового контекста
+
+// 1. Ожидание попапа через waitForPopup (рекомендуемый способ)
+// Метод принимает Runnable с действием, вызывающим открытие новой вкладки
+Page popup = page.waitForPopup(() -> {
+    page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Открыть в новой вкладке"))
+        .click(); // Клик по ссылке с target="_blank"
+});
+
+// popup теперь ссылается на новую вкладку, можно с ней работать
+popup.waitForLoadState(LoadState.NETWORKIDLE); // Ожидание полной загрузки попапа
+assertThat(popup.getByRole(AriaRole.HEADING)).toHaveText("Детали заказа");
+
+// 2. Получение всех открытых вкладок
+List<Page> allPages = context.pages();
+System.out.println("Открыто вкладок: " + allPages.size()); // Например: 3
+
+// 3. Переключение фокуса на конкретную вкладку
+Page targetPage = allPages.stream()
+    .filter(p -> p.url().contains("/dashboard")) // Поиск по URL
+    .findFirst()
+    .orElseThrow(() -> new RuntimeException("Вкладка не найдена"));
+
+targetPage.bringToFront(); // Активация вкладки (эмуляция клика по ней)
+
+// 4. Закрытие лишних вкладок для экономии памяти
+for (Page p : context.pages()) {
+    if (!p.url().contains("/checkout")) { // Оставляем только страницу оформления
+        p.close(); // Закрытие вкладки без завершения контекста
+    }
+}
+```
+
+---
+
+## Frames и iFrames
+
+> `FrameLocator` — специализированный локатор для работы с `<iframe>`. 
+> 
+> В отличие от Selenium, где требуется ручное `driver.switchTo().frame()`, Playwright автоматически ограничивает 
+> область поиска содержимым фрейма и поддерживает вложенность без явного переключения контекста.
+
+- `FrameLocator frameLocator(String selector)` - получение фрейм-локатора по CSS-селектору iframe / рекурсивный доступ к вложенным фреймам
+- `Locator locator(String selector)` - поиск элемента внутри фрейма
+- `FrameLocator first()` / `last()` / `nth(int)` - выбор конкретного фрейма при наличии нескольких совпадений
+- `Frame frameByName(String name)` / `frameByUrl(String pattern)` - поиск фрейма по имени или URL (для сложных сценариев)
+
+#### Пример работы с вложенными фреймами:
+
+```java
+// 1. Простой доступ к элементу внутри одного iframe
+FrameLocator paymentFrame = page.frameLocator("#payment-iframe");
+paymentFrame.locator("input[name='cardNumber']").fill("4111 1111 1111 1111");
+paymentFrame.locator("input[name='cvv']").fill("123");
+
+// 2. Вложенные iframes (iframe внутри iframe)
+// Структура: #outer-frame → #inner-frame → button.submit
+Locator submitBtn = page.frameLocator("#outer-frame")
+    .frameLocator("#inner-frame") // Рекурсивный доступ к вложенному фрейму
+    .locator("button.submit");
+submitBtn.click();
+
+// 3. Обработка динамически загружаемых фреймов
+// Фрейм может появиться в DOM после AJAX-запроса
+page.waitForSelector("#dynamic-frame", new Page.WaitForSelectorOptions()
+    .setState(WaitForSelectorState.ATTACHED)); // Ожидание появления фрейма в DOM
+FrameLocator dynamicFrame = page.frameLocator("#dynamic-frame");
+dynamicFrame.locator(".content-loaded").waitFor(); // Ожидание рендеринга содержимого
+
+// 4. Обход CSP-ограничений через frameLocator
+// Если iframe блокирует прямой доступ, Playwright всё равно может работать с ним
+// через нативный протокол браузера (без нарушения Same-Origin Policy)
+FrameLocator restrictedFrame = page.frameLocator("[name='restricted-widget']");
+restrictedFrame.locator("body").textContent(); // Чтение содержимого без JS-ошибок
+
+// 5. Поиск фрейма по URL (для случаев, когда селектор недоступен)
+Frame frame = page.frames().stream()
+    .filter(f -> f.url().contains("stripe.com")) // Фильтрация по домену
+    .findFirst()
+    .orElseThrow();
+frame.locator("input[name='card-expiry']").fill("12/25");
+```
+
+---
+
+## Сетевое мокирование и стабы
+
+> `route()` — мощный механизм перехвата сетевых запросов на уровне `BrowserContext` или `Page`. 
+> 
+> Позволяет мокировать API-ответы, блокировать аналитику, эмулировать задержки и модифицировать заголовки без изменения кода приложения.
+
+- `void route(String urlPattern, Route.Handler handler)` - регистрация обработчика для URL-паттерна (глобы `**/*`)
+- `void routeFromHAR(Path harFile, RouteFromHAROptions options)` - воспроизведение записанных HAR-файлов как моков
+  ```java
+  // На уровне Page (применяется только к этой странице)
+  Page page = context.newPage();
+  page.route("**/api/**", route -> route.fulfill(...));
+  page.routeFromHAR(Path.of("mocks.har"));
+
+  // На уровне BrowserContext (применяется ко всем страницам в контексте)
+  BrowserContext context = browser.newContext();
+  context.route("**/api/**", route -> route.fulfill(...));
+  context.routeFromHAR(Path.of("mocks.har"));
+  ```
+  `Page` моки имеют приоритет над `BrowserContext` моками
+- `Route.fulfill(Route.FulfillOptions options)` - возврат кастомного ответа без обращения к серверу
+- `Route.abort(String errorCode)` - принудительный обрыв запроса с кодом ошибки (`failed`, `timedout`, `accessdenied`)
+- `Route.continue_(Route.ContinueOptions options)` - модификация запроса (URL, метод, заголовки) и передача дальше
+- `Route.fallback(Route.Handler handler)` - цепочка обработчиков (если первый не fulfill/abort, управление передаётся следующему)
+
+#### Примеры сетевого мокирования:
+
+```java
+// 1. Мокирование API-ответа с кастомным JSON
+context.route("**/api/user/profile", route -> route.fulfill(
+    new Route.FulfillOptions()
+        .setStatus(200)                                    // HTTP-статус ответа
+        .setContentType("application/json")                // Content-Type заголовок
+        .setBody("{\"id\": 1, \"name\": \"Test User\", \"role\": \"admin\"}") // Тело ответа
+));
+
+// 2. Блокировка внешних ресурсов (аналитика, реклама, трекинг)
+context.route("**/*", route -> {
+    String url = route.request().url();
+    // Список доменов для блокировки
+    if (url.contains("google-analytics.com") || 
+        url.contains("facebook.net") || 
+        url.contains("doubleclick.net")) {
+        route.abort("blockedbyclient"); // Обрыв запроса с кодом блокировки
+    } else {
+        route.continue_(); // Передача управления дальше для остальных запросов
+    }
+});
+
+// 3. Эмуляция сетевых задержек (тестирование лоадеров и таймаутов)
+context.route("**/api/slow-endpoint", route -> {
+    try {
+        Thread.sleep(3000); // Искусственная задержка 3 секунды
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt(); // Восстановление флага прерывания
+    }
+    route.fulfill(new Route.FulfillOptions()
+        .setStatus(200)
+        .setBody("{\"status\": \"ok\"}"));
+});
+
+// 4. Модификация запроса перед отправкой (подмена токена, добавление заголовков)
+context.route("**/api/secure/*", route -> route.continue_(
+    new Route.ContinueOptions()
+        .setHeaders(Map.of(                                  // Добавление кастомного заголовка
+            "X-Test-Mode", "true",
+            "Authorization", "Bearer test-token-123"
+        ))
+));
+
+// 5. Воспроизведение HAR-файла как источника моков
+// HAR-файл можно записать через браузер или Postman
+context.routeFromHAR(Path.of("src/test/resources/api-mocks.har"), 
+    new BrowserContext.RouteFromHAROptions()
+        .setUpdate(false)                                    // Не обновлять HAR автоматически
+        .setUrl("**/api/**")                                 // Применять только к API-запросам
+        .setNotFound(Fallback.CONTINUE)                      // Пропускать запросы без моков
+);
+```
+
+---
+
+## Диалоги и алерты
+
+> `page.onDialog()` — механизм перехвата нативных браузерных диалогов (`alert`, `confirm`, `prompt`, `beforeunload`). 
+>
+> В отличие от Selenium, где требуется ручная обработка через `Alert.accept()`, Playwright позволяет 
+> декларативно задать поведение для всех диалогов через один хендлер.
+
+- `EventEmitter onDialog(Consumer<Dialog> handler)` - подписка на событие появления диалога
+- `void accept()` / `void accept(String promptText)` - подтверждение диалога с опциональным вводом текста
+- `void dismiss()` - отмена диалога (эквивалент нажатия "Отмена")
+- `String message()` - получение текста сообщения диалога
+- `DialogType type()` - тип диалога (`ALERT`, `CONFIRM`, `PROMPT`, `BEFOREUNLOAD`)
+
+Примеры обработки диалогов:
+
+```java
+// 1. Базовая обработка alert/confirm
+page.onDialog(dialog -> {
+    System.out.println("Тип диалога: " + dialog.type());   // ALERT, CONFIRM, PROMPT
+    System.out.println("Сообщение: " + dialog.message());  // Текст диалога
+    
+    if (dialog.type() == DialogType.CONFIRM) {
+        dialog.accept(); // Подтверждение (OK)
+    } else {
+        dialog.dismiss(); // Отмена (Cancel)
+    }
+});
+
+// 2. Ввод текста в prompt-диалог
+page.onDialog(dialog -> {
+    if (dialog.type() == DialogType.PROMPT) {
+        dialog.accept("Значение по умолчанию"); // Ввод текста и подтверждение
+    }
+});
+
+// 3. Обработка beforeunload (предупреждение о несохранённых данных)
+page.onDialog(dialog -> {
+    if (dialog.type() == DialogType.BEFOREUNLOAD) {
+        dialog.accept(); // Автоматическое подтверждение перехода
+    }
+});
+
+// 4. Отключение нативных диалогов через глобальный хендлер
+// Все диалоги будут автоматически закрываться
+page.onDialog(Dialog::accept); // Лямбда-выражение: принять любой диалог
+
+// 5. Валидация сообщения диалога в тесте
+List<String> dialogMessages = new ArrayList<>();
+page.onDialog(dialog -> {
+    dialogMessages.add(dialog.message()); // Сохранение сообщения для проверки
+    dialog.accept();
+});
+
+// Выполнение действия, вызывающего диалог
+page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Удалить")).click();
+
+// Валидация
+assertEquals("Вы уверены, что хотите удалить запись?", dialogMessages.get(0));
+```
+
+---
+
+## Аутентификация и сессии
+
+> `storageState()` — механизм сохранения и загрузки состояния авторизации (cookies, localStorage, sessionStorage) в JSON-файл. 
+> 
+> Позволяет однократно выполнить логин и переиспользовать сессию во всех последующих тестах, ускоряя прогон на 30–50%.
+
+- `void storageState(Path path)` - сохранение текущего состояния в файл
+- `StorageState storageState()` - возврат состояния в виде объекта для программной обработки
+- `Browser.NewContextOptions setStorageState(Path path)` - загрузка состояния при создании контекста
+- `void clearCookies()` / `void clearPermissions()` - очистка credentials и разрешений
+- `void addCookies(List<Cookie> cookies)` - программное добавление cookies без логина
+
+#### Примеры управления сессиями:
+
+```java
+// 1. Сохранение состояния после логина (выполняется один раз в @BeforeAll)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class AuthSetup {
+    private BrowserContext authContext;
+    
+    @BeforeAll
+    void saveAuthState() {
+        authContext = browser.newContext();
+        Page loginPage = authContext.newPage();
+        
+        // Выполнение логина
+        loginPage.navigate("https://app.example.com/login");
+        loginPage.getByLabel("Email").fill("admin@test.com");
+        loginPage.getByLabel("Password").fill("secret");
+        loginPage.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Войти")).click();
+        
+        // Ожидание успешной авторизации
+        loginPage.waitForURL("**/dashboard");
+        
+        // Сохранение состояния в файл (cookies + localStorage)
+        authContext.storageState(new BrowserContext.StorageStateOptions()
+            .setPath(Path.of("src/test/resources/auth-state.json")));
+        
+        authContext.close();
+    }
+}
+
+// 2. Загрузка состояния в каждом тесте (пропуск экрана логина)
+@BeforeEach
+void setupContext() {
+    context = browser.newContext(new Browser.NewContextOptions()
+        .setStorageState(Path.of("src/test/resources/auth-state.json"))); // Загрузка сессии
+    page = context.newPage();
+}
+
+@Test
+void testDashboardAccess() {
+    page.navigate("https://app.example.com/dashboard"); // Прямой переход без логина
+    assertThat(page.getByRole(AriaRole.HEADING)).toHaveText("Панель управления");
+}
+
+// 3. Обход MFA/2FA через программное добавление cookies
+// Если MFA-токен можно получить через API или тестовый секрет
+List<Cookie> mfaCookies = List.of(
+    new Cookie("mfa_verified", "true")
+        .setDomain("app.example.com")
+        .setPath("/")
+        .setExpires(System.currentTimeMillis() / 1000 + 3600), // Срок действия 1 час
+    new Cookie("session_id", "test-session-abc123")
+        .setDomain("app.example.com")
+        .setPath("/")
+);
+context.addCookies(mfaCookies); // Добавление cookies без логина
+
+// 4. Тестирование ролей (RBAC) через разные storageState
+// Подготовка: auth-admin.json, auth-user.json, auth-guest.json
+@Test
+void testAdminAccess() {
+    BrowserContext adminContext = browser.newContext(new Browser.NewContextOptions()
+        .setStorageState(Path.of("src/test/resources/auth-admin.json"))); // Роль администратора
+    Page adminPage = adminContext.newPage();
+    adminPage.navigate("https://app.example.com/admin/users");
+    assertThat(adminPage.getByText("Список пользователей")).toBeVisible();
+    adminContext.close();
+}
+
+@Test
+void testUserAccessDenied() {
+    BrowserContext userContext = browser.newContext(new Browser.NewContextOptions()
+        .setStorageState(Path.of("src/test/resources/auth-user.json"))); // Роль обычного пользователя
+    Page userPage = userContext.newPage();
+    userPage.navigate("https://app.example.com/admin/users");
+    assertThat(userPage.getByText("Доступ запрещён")).toBeVisible(); // Проверка отказа
+    userContext.close();
+}
+
+// 5. Очистка credentials между тестами
+@AfterEach
+void cleanupSession() {
+    context.clearCookies(); // Удаление всех cookies
+    context.clearPermissions(); // Сброс разрешений (геолокация, уведомления)
+    // localStorage очищается автоматически при context.close()
+}
+```
+
+---
+
+## Best Practices
+
+- Используйте `waitForPopup()` вместо ручного перебора `context.pages()`, это гарантирует корректную синхронизацию 
+  с асинхронным открытием вкладок
+- Применяйте `frameLocator()` для работы с iframe, избегайте `page.frames()` и ручного поиска 
+  — это сохраняет авто-ожидания и типобезопасность
+- Блокируйте аналитику и трекинг через `route()` с `abort()`, это ускоряет тесты на 20–30% и снижает нагрузку на внешние сервисы
+- Сохраняйте `storageState` один раз в `@BeforeAll` и загружайте его в каждом тесте, это ускоряет прогон на 30–50% 
+  по сравнению с повторным логином
+- Обрабатывайте `beforeunload` через `onDialog(Dialog::accept)`, чтобы избежать блокировки тестов при навигации с несохранёнными данными
+- Используйте `routeFromHAR()` для воспроизведения записанных API-ответов, это упрощает поддержку моков и делает их версионируемыми
+- Не переключайтесь между вкладками через `context.pages().get(index)`, это хрупкий подход — используйте `waitForPopup()` 
+  или фильтрацию по URL
+- Не игнорируйте вложенные iframe, Playwright поддерживает рекурсивный доступ через `frameLocator().frameLocator()`, 
+  не пишите кастомный JS для обхода
+- Не модифицируйте запросы через `page.evaluate("fetch(...)")`, используйте `route()` — это декларативно, 
+  типобезопасно и интегрировано с трейсами
+- Не обрабатывайте диалоги через `Thread.sleep()` в ожидании их появления, используйте `onDialog()` 
+  — хендлер вызывается автоматически при появлении диалога
+- Не логиньтесь в каждом тесте заново, сохраняйте `storageState` и переиспользуйте его — это критично для производительности CI/CD
+- Не храните credentials в коде, выносите их в `.env` или CI-secrets, загружайте через `System.getenv()` или конфигурационные файлы
+
+---
