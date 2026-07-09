@@ -107,7 +107,7 @@ This work is private property and is not licensed for copying, distribution, mod
 
 ---
 
-### 3. УРОВНИ ДОСТУПА К КОДУ / СИСТЕМЕ (System Knowledge Levels)
+## 3. УРОВНИ ДОСТУПА К КОДУ / СИСТЕМЕ (System Knowledge Levels)
 
 - `Black Box` (Черный ящик): Тестирование без знания внутреннего устройства системы, основанное на требованиях и
   спецификациях.
@@ -117,7 +117,7 @@ This work is private property and is not licensed for copying, distribution, mod
 
 ---
 
-### 4. УРОВНИ ИСПОЛНЕНИЯ КОДА (Test Execution Levels)
+## 4. УРОВНИ ИСПОЛНЕНИЯ КОДА (Test Execution Levels)
 
 - [`Static Testing` (Статическое тестирование)](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md")
   <br>
@@ -129,7 +129,7 @@ This work is private property and is not licensed for copying, distribution, mod
 
 ---
 
-### 5. СТЕПЕНИ АВТОМАТИЗАЦИИ ТЕСТИРОВАНИЯ (Test Automation Levels)
+## 5. СТЕПЕНИ АВТОМАТИЗАЦИИ ТЕСТИРОВАНИЯ (Test Automation Levels)
 
 > Классификация по способу выполнения тестов (независима от функциональной принадлежности).
 
