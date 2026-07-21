@@ -71,8 +71,8 @@
       </summary>
   
 `Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
-[`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security")
-[`JWT`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/Spring/JWT.md "JWT.md") 
+[`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security.md")
+[`JWT`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/JWT.md"JWT.md" "JVT.md") 
 <br>
 `DI` `IoC` `Bean Lifecycle` `Application Properties` `Profiles` `Configuration`
 <br>
