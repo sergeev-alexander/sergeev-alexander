@@ -45,30 +45,30 @@
       </summary>
          
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
-[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md")  
+[`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md") 
 [`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md") 
 [`NIO`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md") 
 [`Reflection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Reflection.md "Reflection.md") 
 [`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md") 
+`JDBC` `JPA` 
 <br>
 [`Stream API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Stream_API.md "Stream_API.md") 
 [`Collectios`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Collections.md "Collections.md") 
 [`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md") 
 [`Lambda`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Lambda_Expressions.md "Lambda.md") 
-`Date/Time API` 
 [`Generics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Generics.md "Generics.md") 
+`Date/Time API` 
+[`Comparator`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Comparator.md "Comparator.md") 
+<br>
 [`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md") 
 [`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md") 
-<br>
-[`Anonymous Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Anonymous_Classes.md "Anonymous_Classes.md")
+[`Anonymous Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Anonymous_Classes.md "Anonymous_Classes.md") 
 [`Nested_Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Nested_Classes.md "Nested Classes.md") 
-[`Comparator`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Comparator.md "Comparator.md") 
 [`RecursiveTask`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/RecursiveTask.md "RecursiveTask.md") 
 <br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
 [`ThreadLocal`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/ThreadLocal.md "ThreadLocal.md") 
-<br>
-`JDBC` `JPA` `Log4j` 
+
 </details>
 
    <details open>
@@ -76,20 +76,16 @@
          <b>🍃 Spring</b>
       </summary>
   
-`Spring Boot` `Spring Framework` `Spring MVC` `Spring Data JPA`
-[`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security.md")
+`Spring Boot` `Spring Framework` `Spring MVC` 
+[`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security.md") 
 [`JWT`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/JWT.md"JWT.md" "JVT.md") 
 <br>
-`DI` `IoC` `Bean Lifecycle` `Application Properties` `Profiles` `Configuration`
+`DI` `IoC` `Bean Lifecycle` `Configuration` `@ControllerAdvice` 
 <br>
-`@RestController` `@RequestMapping` `@ExceptionHandler`
-[`Validation`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotations.md") 
+`Spring Data JPA` `JPA Repositories` `Specifications` `@Transactional` 
 <br>
-`@Transactional` `JPA Repositories` `Query Methods` `Pagination`
-<br>
-`RestTemplate` 
 [`RestClient`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/RestClient.md "RestClient.md") 
-`WebFlux` `WebClient`
+`WebClient` `WebFlux` 
 
 </details>
 
@@ -98,7 +94,7 @@
          <b>💾 SQL/NoSQL</b>
       </summary>
       
-`PostgreSQL` `MySQL`
+`PostgreSQL` `MySQL` 
 <br>
 [`Redis`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Redis.md "Redis.md") 
 `Amazon DynamoDB` 
@@ -116,13 +112,12 @@
       </summary>
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md") 
-[`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md") 
-`Gradle` 
-<br>
-[`Kafka`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Kafka.md "Kafka")
+[`Kafka`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Kafka.md "Kafka") 
 [`Jenkins`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Jenkins.md "Jenkins.md") 
 <br>
-`Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok` 
+[`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md") 
+`Gradle` 
+`Lombok` 
 <br>
 [`Jackson`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Jackson.md "Jackson.md") 
 [`JsonPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/JsonPath.md "JsonPath.md") 
@@ -130,9 +125,8 @@
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md") 
 <br>
 [`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md") 
-`GitHab` 
-[`GilabCI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Gitlab.md "GitlabCI.md")
-[`CI/CD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/CI_CD.md "CI_CD.md") 
+`GitHub Actions` 
+[`GitLab CI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/GitLab_CI.md "GitLab_CI.md") 
 </details>
 
 
@@ -152,7 +146,7 @@
 [`Allure`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Allure.md "Allure.md") 
 [`Hamcrest`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Hamcrest.md "Hamcrest.md") 
 <br>
-`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator` `TestContainers` `AssertJ` 
+`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockitoBean` `Actuator` `TestContainers` `AssertJ` 
 <br>
 [`Playwright`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Playwright.md "Playwright.md") 
 [`Selenium`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenium.md "Selenium.md") 
@@ -198,7 +192,8 @@
 <br>
 [`AGILE`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/AGILE.md "AGILE.md") 
 [`SCRUM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SCRUM.md "SCRUM.md") 
-[`SDLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SDLC.md "SDLC.md") 
+[`SDLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SDLC.md "SDLC.md")
+[`CI/CD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/CI_CD.md "CI_CD.md") 
 <br>
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md")
 [`Encryption Protocols`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/Encryption_protocols.md "Encryption_protocols.md") 
