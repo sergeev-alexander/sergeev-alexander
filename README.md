@@ -129,47 +129,60 @@
 [`GitLab CI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/GitLab_CI.md "GitLab_CI.md") 
 </details>
 
-
 <details open>
     <summary>
-         <b>🧪 Q/A</b>
+         <b>🧪 QA / AQA</b>
     </summary>
 
 [`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 `Postman` 
 [`OpenApi Specification`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 <br>
-[`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md") 
-[`TestNG`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md") 
+[`Rest Assured`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/RestAssured.md "RestAssured.md")
+[`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md")
+[`TestNG`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md")
 [`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "Mockito") 
-[`Rest Assured`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/RestAssured.md "RestAssured.md") 
 [`Allure`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Allure.md "Allure.md") 
-[`Hamcrest`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Hamcrest.md "Hamcrest.md") 
+[`Hamcrest`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Hamcrest.md "Hamcrest.md")
+`AssertJ` 
 <br>
-`Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockitoBean` `Actuator` `TestContainers` `AssertJ` 
+`@DataJpaTest` `@WebMvcTest` `TestContainers` 
 <br>
 [`Playwright`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Playwright.md "Playwright.md") 
-[`Selenium`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenium.md "Selenium.md") 
-[`Selenide`](http://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenide.md "Selenide.md") 
-[`Cucumber`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Cucumber.md "Cucumber.md") 
-<br>
-[`JDI_Dark`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JDI_Dark.md "JDI_Dark.md") 
+[`Selenium`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenium.md "Selenium.md")
+[`Selenide`](http://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenide.md "Selenide.md")
+[`JDI_Dark`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JDI_Dark.md "JDI_Dark.md")
+[`Cucumber`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Cucumber.md "Cucumber.md")
 [`CSS_Selectors`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/CSS_Selectors.md "CSS_Selectors.md") 
-[`XPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/XPath.md "XPath.md") 
-<br>
-[`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md") 
-[`Test Design`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md") 
-[`STLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/STLC.md "STLC.md") 
-[`Test Documentation And Metrics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_documentation.md "Test_documentation.md") 
-[`Defects and Errors`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Defects_and_Errors.md "Defects_and_Errors.md") 
-[`Root Cause Analysis`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Root_cause_analysis.md "Root_cause_analysis.md") 
-<br>
-[`Functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md") 
-[`Non-functional Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md") 
-[`Change-related Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md") 
-[`Static Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md") 
-[`Dynamic Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Dynamic_testing.md "Dynamic_testing.md") 
-[`Risk-based Testing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md") 
+[`XPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/XPath.md "XPath.md")
+
+<!-- <br> -->
+
+[//]: # ([`Testing Theory`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md"&#41; )
+
+[//]: # ([`Test Design`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md"&#41; )
+
+[//]: # ([`STLC`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/STLC.md "STLC.md"&#41; )
+
+[//]: # ([`Test Documentation And Metrics`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_documentation.md "Test_documentation.md"&#41; )
+
+[//]: # ([`Defects and Errors`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Defects_and_Errors.md "Defects_and_Errors.md"&#41; )
+
+[//]: # ([`Root Cause Analysis`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Root_cause_analysis.md "Root_cause_analysis.md"&#41; )
+
+<!-- <br> --> 
+
+[//]: # ([`Functional Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md"&#41; )
+
+[//]: # ([`Non-functional Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md"&#41; )
+
+[//]: # ([`Change-related Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md"&#41; )
+
+[//]: # ([`Static Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md"&#41; )
+
+[//]: # ([`Dynamic Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Dynamic_testing.md "Dynamic_testing.md"&#41; )
+
+[//]: # ([`Risk-based Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md"&#41; )
 
 </details>
 
