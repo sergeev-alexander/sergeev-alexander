@@ -60,6 +60,8 @@
 [`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md") 
 [`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md") 
 <br>
+[`Anonymous Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Anonymous_Classes.md "Anonymous_Classes.md")
+<br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
 <br>
 `JDBC` `JPA` `Log4j` 
@@ -98,6 +100,10 @@
 `Amazon DynamoDB` 
 [`MongoDB`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/MongoDB.md "MongoDB.md") 
 [`Cassandra`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Cassandra.md "Cassandra.md") 
+<br>
+[`Database Normalization`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Database_Normalization.md "Database_Normalization.md") 
+[`NoSQL`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/NoSQL.md "NoSQL.md") 
+[`SQL Indexing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/SQL_Indexing.md "SQL_Indexing.md") 
 </details>
 
    <details open>
