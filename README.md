@@ -61,8 +61,12 @@
 [`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md") 
 <br>
 [`Anonymous Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Anonymous_Classes.md "Anonymous_Classes.md")
+[`Nested_Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Nested_Classes.md "Nested Classes.md") 
+[`Comparator`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Comparator.md "Comparator.md") 
+[`RecursiveTask`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/RecursiveTask.md "RecursiveTask.md") 
 <br>
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
+[`ThreadLocal`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/ThreadLocal.md "ThreadLocal.md") 
 <br>
 `JDBC` `JPA` `Log4j` 
 </details>

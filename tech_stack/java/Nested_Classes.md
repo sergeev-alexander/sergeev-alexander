@@ -2,39 +2,63 @@
 
 All Rights Reserved.
 
-This work is private property and is not licensed for copying, distribution, modification, or any other use without the explicit written permission of the author.
+This work is private property and is not licensed for copying, distribution, modification, or any other use without the
+explicit written permission of the author.
 
-Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому другому использованию без явного письменного разрешения автора.
+Данные материалы являются частной собственностью и не подлежат копированию, распространению, изменению или любому
+другому использованию без явного письменного разрешения автора.
 
 ---
 
 # Nested classes
 
-> Nested class (вложенный класс) в Java - это класс, определенный внутри другого класса. Вложенные классы могут быть статическими (static) или нестатическими (non-static). Они используются для логической группировки классов и улучшения структуры кода
+> Nested class (вложенный класс) в Java - это класс, определенный внутри другого класса. Вложенные классы могут быть
+> статическими (static) или нестатическими (non-static). Они используются для логической группировки классов и улучшения
+> структуры кода
+
+---
 
 - ### Логическая организация кода:
-  - Вложенные классы используются для группировки классов, которые логически связаны между собой. Это может повысить читаемость и понимание кода.
+
+  Вложенные классы используются для группировки классов, которые логически связаны между собой. Это может повысить
+  читаемость и понимание кода.
+
 - ### Инкапсуляция:
-  - Вложенные классы могут быть использованы для инкапсуляции логически связанных классов и скрытия их деталей реализации от внешнего кода.
+  
+  Вложенные классы могут быть использованы для инкапсуляции логически связанных классов и скрытия их деталей
+  реализации от внешнего кода.
+
 - ### Уменьшение видимости:
-  - Если вложенный класс объявлен как private, его члены будут недоступны за пределами внешнего класса, что может уменьшить видимость и предоставить лучшее управление доступом.
+
+  Если вложенный класс объявлен как private, его члены будут недоступны за пределами внешнего класса, что может
+  уменьшить видимость и предоставить лучшее управление доступом.
+
 - ### Использование внутри другого класса:
-  - Вложенные классы часто используются, когда класс имеет смысл только в контексте другого класса. Это позволяет сделать код более локализованным и уменьшить глобальное пространство имен.
+
+  Вложенные классы часто используются, когда класс имеет смысл только в контексте другого класса. Это позволяет
+  сделать код более локализованным и уменьшить глобальное пространство имен.
+ 
 - ### Упрощение структуры кода:
-  - Вложенные классы могут использоваться для упрощения структуры кода и избежания создания большого количества небольших файлов классов.
+
+  Вложенные классы могут использоваться для упрощения структуры кода и избежания создания большого количества
+  небольших файлов классов.
+
+---
 
 ## Статический вложенный класс (static nested class)
-   
+
 - Когда нужна логическая группировка, но без привязки к экземпляру внешнего класса
 - Для вспомогательных классов, относящихся к внешнему (например, `Entry` в `Map`).
 - В `record`/`sealed` - для кэширования, билдеров и т.д.
 
 ```java
 public class Database {
+    
     private String url;
 
     // Статический вложенный - не зависит от конкретного Database
     public static class Config {
+        
         private String host;
         private int port;
 
@@ -50,7 +74,7 @@ public class Database {
     }
 
     public Database(Config config) {
-        this.url = config.buildUrl(); // ✅ доступ к private-методу!
+        this.url = config.buildUrl(); // Доступ к private-методу!
     }
 }
 
@@ -59,9 +83,11 @@ Database.Config cfg = new Database.Config("localhost", 5432);
 Database db = new Database(cfg);
 ```
 
-- Компактно - Config «живёт» внутри Database, но не создаёт overhead.
+- Компактно - `Config` «живёт» внутри `Database`, но не создаёт overhead.
 - Безопасно - никаких скрытых ссылок → нет риска утечки памяти.
-- Полный доступ к private внешнего класса (даже если Config - public).
+- Полный доступ к `private` внешнего класса (даже если `Config` - `public`).
+
+---
 
 ## Внутренний (non-static) класс (inner class)
 
@@ -70,41 +96,47 @@ Database db = new Database(cfg);
 
 ```java
 public class Car {
+    
     private String model;
     private int fuel = 50;
 
     // Внутренний класс - машина "владеет" двигателем
     public class Engine {
+        
         public void start() {
             if (fuel > 0) {
-                System.out.println(model + " заводится!"); // ✅ доступ к model
+                System.out.println(model + " заводится!"); // Доступ к model
                 fuel -= 5;
             }
         }
 
         // Явный доступ к внешнему экземпляру:
         public Car getCar() {
-            return Car.this; // <- ⚠️ особый синтаксис!
+            return Car.this; // <- Особый синтаксис!
         }
     }
 
     public Engine getEngine() {
-        return new Engine(); // <- ⚠️ создаётся "привязанным" к this (к экземпляру)
+        return new Engine(); // <- Создаётся "привязанным" к this (к экземпляру)
     }
 }
 
 // Использование:
 Car car = new Car("Tesla", 50);
-Car.Engine engine = car.getEngine(); // <- engine "знает", что принадлежит конкретному car
+Car.Engine engine = car.getEngine(); // <- engine "знает", что принадлежит конкретному car 
+
 engine.start(); // -> Tesla заводится!
 ```
 
-## ⚠️ Подводные камни
+---
+
+## Подводные камни
 
 ### Скрытая ссылка -> утечки памяти
 
 ```java
 public class Heavy {
+    
     // Большой объект - 1 МБ
     private final byte[] data = new byte[1_000_000];
 
@@ -139,6 +171,7 @@ public class Heavy {
 
 ```java
 public class Cache {
+    
     // Долгоживущий кэш (например, веб-кэш, пуле задач)
     private static final List<Runnable> TASKS = new ArrayList<>();
 
@@ -151,6 +184,7 @@ public class Cache {
 Heavy heavy = new Heavy();              // <- создаём "тяжёлый" объект
 Runnable task = heavy.createTask();     // <- task "держит" ссылку на heavy!
 Cache.addTask(task);                    // <- task попадает в статический список
+
 heavy = null;                           // <- "забываем" heavy - но он НЕ СОБЁТСЯ GC!
 ```
 
@@ -172,50 +206,41 @@ public Runnable createTask() {
 
 ```java
 public Runnable createTask() {
+    
     // Локальный static-класс (Java 16+)
     static class DoneTask implements Runnable {
         @Override
-        public void run() { 
-            System.out.println("Done"); 
+        public void run() {
+            System.out.println("Done");
         }
     }
-    
+
     return new DoneTask();
 }
 ```
 
-Решение: сделайте статическим, если не нужен доступ к this:
-
-```java
-public Runnable createTask() {
-    return new Runnable() {  // <- компилятор сделает его static-подобным (если не захватывает this)
-        @Override
-        public void run() { 
-            System.out.println("Done"); 
-        }
-    };
-}
-// ИЛИ явно:
-    return () -> System.out.println("Done"); // <- лямбда - никогда не захватывает this, если не нужно
-```
+---
 
 ### Нельзя создать без экземпляра внешнего класса
 
 ```java
-Car.Engine e = new Car.Engine(); // ❌ Ошибка: "non-static class Engine cannot be referenced from a static context"
+Car.Engine e = new Car.Engine(); // Ошибка: "non-static class Engine cannot be referenced from a static context"
 Car car = new Car("BMW", 40);
-Car.Engine e = car.new Engine(); // ✅ Синтаксис: outer.new Inner()
+Car.Engine e = car.new Engine(); // Синтаксис: outer.new Inner()
 ```
+
+---
 
 ### Сложно сериализовать
 
-> Если внешний класс `Car` реализует `Serializable`, то внутренний класс `Engine` тоже должен реализовывать `Serializable`,
-потому что при сериализации `Engine` требуется сериализовать и скрытую ссылку на `Car.this`.
+> Если внешний класс `Car` реализует `Serializable`, то внутренний класс `Engine` тоже должен реализовывать
+> `Serializable`, потому что при сериализации `Engine` требуется сериализовать и скрытую ссылку на `Car.this`.
 >
 > При десериализации сначала восстанавливается `Car`, потом - `Engine`,
-что усложняет процесс и может привести к `InvalidClassException`, если версии не совпадают.
+> что усложняет процесс и может привести к `InvalidClassException`, если версии не совпадают.
 
-### ✅ Решение: используйте `static class Engine` - тогда `Engine` сериализуется независимо, без `Car`. 
+> Решение: используйте `static class Engine` - тогда `Engine` сериализуется независимо, без `Car`.
+
 
 ## Best practice
 
@@ -223,7 +248,3 @@ Car.Engine e = car.new Engine(); // ✅ Синтаксис: outer.new Inner()
 - ### `class` (без `static`) = кусочек состояния внешнего объекта
 - ### Если не используете `Outer.this` - сделайте `static`.
 - ### Анонимные и локальные - на крайний случай.
-
-
-
-

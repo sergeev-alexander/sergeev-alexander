@@ -25,6 +25,8 @@ This work is private property and is not licensed for copying, distribution, mod
 лямбда-выражений, method references, Stream API и многих других
 конструкций, где тип может быть выведен из окружающего контекста.
 
+---
+
 ### Основные характеристики Type Inference
 
 -   Вывод ограничен **контекстом конкретного вызова метода** (invocation
@@ -76,7 +78,7 @@ static <T, U extends Comparable<? super U>> Comparator<T> comparing(Function<? s
 
 Вывод типа консистентен, ограничений нет, метод подходит.
 
-------------------------------------------------------------------------
+---
 
 ## Почему `.reversed()` ломает вывод типов
 
@@ -97,6 +99,8 @@ Comparator.comparing(Map.Entry::getValue).reversed()
 5.  Контекст, доступный для вывода типа на втором шаге, неполон, и Java
     не может реконструировать `T`.
 
+---
+
 >`.reversed()` требует, чтобы тип `Comparator<T>` был уже полностью
 определён. Однако `T` был выведен только в рамках одного вызова
 `comparing`, и компилятор не переносит inferred типы между вызовами -
@@ -116,6 +120,8 @@ Comparator.<Map.Entry<String, Double>>comparing(Map.Entry::getValue).reversed()
 
 Вывод типа полностью определён пользователем.
 
+---
+
 ### Пример 2: Специализированный comparingDouble
 
 ``` java
@@ -124,6 +130,8 @@ Comparator.comparingDouble(Map.Entry::getValue).reversed()
 
 Этот метод принимает `ToDoubleFunction`, а не `Function<T, U>`, поэтому
 generic-вывода почти нет.
+
+---
 
 ### Пример 3: comparingByValue
 
@@ -170,8 +178,7 @@ Map.Entry.<String, Double>comparingByValue().reversed()
 
 ### Method references в generic-контекстах
 
-Например, `Function.identity()` часто ломает вывод типов в цепочках,
-если тип не указан явно.
+- Например, `Function.identity()` часто ломает вывод типов в цепочках, если тип не указан явно.
 
 ---
 
