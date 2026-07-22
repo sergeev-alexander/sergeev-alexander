@@ -109,6 +109,7 @@
 [`Maven`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Maven.md "Maven.md") 
 `Gradle` 
 <br>
+[`Kafka`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Kafka.md "Kafka")
 [`Jenkins`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Jenkins.md "Jenkins.md") 
 <br>
 `Apache Tomcat` `Apache Commons` `Apache Http Client` `Lombok` 
@@ -119,7 +120,8 @@
 [`XML/XSD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/XML_XSD.md "XML_XSD.md") 
 <br>
 [`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md") 
-`GitHub` 
+`GitHab` 
+[`GilabCI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Gitlab.md "GitlabCI.md")
 [`CI/CD`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/CI_CD.md "CI_CD.md") 
 </details>
 
@@ -129,19 +131,27 @@
          <b>🧪 Q/A</b>
     </summary>
 
-[`Selenium`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenium.md "Selenium.md")
 [`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 `Postman` 
 [`OpenApi Specification`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 <br>
 [`JUnit`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "JUnit.md") 
 [`TestNG`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/TestNG.md "TestNG.md") 
-[`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "Mockito")
-[`Rest Assured`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/RestAssured.md "RestAssured.md")
-[`Allure`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Allure.md "Allure.md")
+[`Mockito`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JUnit.md "Mockito") 
+[`Rest Assured`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/RestAssured.md "RestAssured.md") 
+[`Allure`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Allure.md "Allure.md") 
 [`Hamcrest`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Hamcrest.md "Hamcrest.md") 
 <br>
 `Spring Boot Test` `@DataJpaTest` `@WebMvcTest` `@MockBean` `Actuator` `TestContainers` `AssertJ` 
+<br>
+[`Playwright`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Playwright.md "Playwright.md") 
+[`Selenium`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenium.md "Selenium.md") 
+[`Selenide`](http://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Selenide.md "Selenide.md") 
+[`Cucumber`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Cucumber.md "Cucumber.md") 
+<br>
+[`JDI_Dark`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/JDI_Dark.md "JDI_Dark.md") 
+[`CSS_Selectors`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/CSS_Selectors.md "CSS_Selectors.md") 
+[`XPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/XPath.md "XPath.md") 
 <br>
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md") 
 [`Test Design`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md") 
@@ -174,12 +184,14 @@
 [`HTTP/HTTPS`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/HTTP_HTTPS.md "HTTP_HTTPS.md") 
 [`gRPC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/gRPC.md "gRPC.md") 
 [`SOAP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOAP.md "SOAP.md") 
+[`WSDL`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/WSDL.md "WSDL.md") 
 <br>
 [`AGILE`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/AGILE.md "AGILE.md") 
 [`SCRUM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SCRUM.md "SCRUM.md") 
 [`SDLC`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SDLC.md "SDLC.md") 
 <br>
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md")
+[`Encryption Protocols`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/Encryption_protocols.md "Encryption_protocols.md") 
    </details>
 
    <details open>
