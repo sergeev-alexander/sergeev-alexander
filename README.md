@@ -216,7 +216,7 @@
 
 #### Java Projects
 
-- [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app")
+- [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
   
   Educational SpringBoot MVC project
 
