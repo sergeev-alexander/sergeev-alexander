@@ -214,51 +214,55 @@
       📚 Portfolio
    </summary>
 
-### ♨️ Java Projects:
-
-- [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
+  <details closed>
+     <summary>
+        ♨️ Java Projects
+     </summary>
   
-  **Educational Spring Boot project**
-
-  Sharing economy platform that allows users to share and book various items. 
-  The application is built using a microservices architecture with Spring Boot, PostgreSQL, and Docker Compose. 
-  Users can share their items with others, browse available items, make bookings, and leave comments about their experiences. 
-  Admins can manage users and items.
-
-
-- [Bank Card Management System](https://github.com/sergeev-alexander/bank-rest)
-
-  **Test Task for Effective Mobile**
-
-  RESTful banking service for managing bank cards, transactions, and user profiles with role-based access control.
-  The application provides secure card management with encrypted card numbers, JWT-based authentication, 
-  and a complete transaction system supporting deposits, withdrawals, and transfers between cards.
-  Administrators can oversee user accounts, approve card blocking requests, and manage system operations through 
-  a comprehensive admin panel.
-  The project is built with Spring Boot 3.2.0, PostgreSQL, and Docker Compose, featuring integration tests 
-  with Testcontainers and full Swagger/OpenAPI documentation.
-
-
-- [Filmorate](https://github.com/sergeev-alexander/filmorate)
-
-  **Educational Spring Boot Project**
-
-  A social media platform for movie enthusiasts to share reviews, ratings, and recommendations.
-  The application allows users to add friends, share film reviews, and keep track of movies they want to watch.
-  Built with Spring Boot and PostgreSQL, the project features a complete REST API with user management, film catalog, 
-  friend system, likes, reviews, and activity feed functionality.
-  The application is containerized with Docker Compose and includes comprehensive integration tests.
-
-
-- [Geometry Project](https://github.com/sergeev-alexander/geometry)
-
-  **Educational Maven Multi-Module Project**
-
-  A multi-module Maven project demonstrating advanced dependency management with BOM (Bill of Materials) for centralized 
-  version control.
-  The project implements a comprehensive geometry library with separate modules for core abstractions, 
-  2D and 3D shape implementations, and utility converters.
-  Built with Java 24 and Maven, the project showcases best practices for modular architecture, dependency management, 
-  and versioning in large-scale Java applications.
-
+  - [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
+    
+    **Educational Spring Boot project**
+  
+    Sharing economy platform that allows users to share and book various items. 
+    The application is built using a microservices architecture with Spring Boot, PostgreSQL, and Docker Compose. 
+    Users can share their items with others, browse available items, make bookings, and leave comments about their experiences. 
+    Admins can manage users and items.
+  
+  
+  - [Bank Card Management System](https://github.com/sergeev-alexander/bank-rest)
+  
+    **Test Task for Effective Mobile**
+  
+    RESTful banking service for managing bank cards, transactions, and user profiles with role-based access control.
+    The application provides secure card management with encrypted card numbers, JWT-based authentication, 
+    and a complete transaction system supporting deposits, withdrawals, and transfers between cards.
+    Administrators can oversee user accounts, approve card blocking requests, and manage system operations through 
+    a comprehensive admin panel.
+    The project is built with Spring Boot 3.2.0, PostgreSQL, and Docker Compose, featuring integration tests 
+    with Testcontainers and full Swagger/OpenAPI documentation.
+  
+  
+  - [Filmorate](https://github.com/sergeev-alexander/filmorate)
+  
+    **Educational Spring Boot Project**
+  
+    A social media platform for movie enthusiasts to share reviews, ratings, and recommendations.
+    The application allows users to add friends, share film reviews, and keep track of movies they want to watch.
+    Built with Spring Boot and PostgreSQL, the project features a complete REST API with user management, film catalog, 
+    friend system, likes, reviews, and activity feed functionality.
+    The application is containerized with Docker Compose and includes comprehensive integration tests.
+  
+  
+  - [Geometry Project](https://github.com/sergeev-alexander/geometry)
+  
+    **Educational Maven Multi-Module Project**
+  
+    A multi-module Maven project demonstrating advanced dependency management with BOM (Bill of Materials) for centralized 
+    version control.
+    The project implements a comprehensive geometry library with separate modules for core abstractions, 
+    2D and 3D shape implementations, and utility converters.
+    Built with Java 24 and Maven, the project showcases best practices for modular architecture, dependency management, 
+    and versioning in large-scale Java applications.
+  
+  </details>
 </details>
