@@ -37,13 +37,8 @@
       🛠 Stack
    </summary>
 
-<br>
+### ♨️ Java
 
-   <details open>
-      <summary>
-         <b>♨️ Java</b>
-      </summary>
-         
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
 [`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md") 
 [`I/O`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/IO%2BNIO.md "IO+NIO.md") 
@@ -69,12 +64,7 @@
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
 [`ThreadLocal`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/ThreadLocal.md "ThreadLocal.md") 
 
-</details>
-
-   <details open>
-      <summary>
-         <b>🍃 Spring</b>
-      </summary>
+### 🍃 Spring
   
 `Spring Boot` `Spring Framework` `Spring MVC` 
 [`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security.md") 
@@ -87,12 +77,7 @@
 [`RestClient`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/RestClient.md "RestClient.md") 
 `WebClient` `WebFlux` 
 
-</details>
-
-   <details open>
-      <summary>
-         <b>💾 SQL/NoSQL</b>
-      </summary>
+### 💾 SQL/NoSQL</b>
       
 `PostgreSQL` `MySQL` 
 <br>
@@ -104,12 +89,8 @@
 [`Database Normalization`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Database_Normalization.md "Database_Normalization.md") 
 [`NoSQL`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/NoSQL.md "NoSQL.md") 
 [`SQL Indexing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/SQL_Indexing.md "SQL_Indexing.md") 
-</details>
 
-   <details open>
-      <summary>
-         <b>⚙️ Tools & Infrastructure</b>
-      </summary>
+### ⚙️ Tools & Infrastructure</b>
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md") 
 [`Kafka`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Kafka.md "Kafka") 
@@ -127,12 +108,8 @@
 [`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md") 
 `GitHub Actions` 
 [`GitLab CI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/GitLab_CI.md "GitLab_CI.md") 
-</details>
 
-<details open>
-    <summary>
-         <b>🧪 QA / AQA</b>
-    </summary>
+### 🧪 QA / AQA</b>
 
 [`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 `Postman` 
@@ -184,12 +161,7 @@
 
 [//]: # ([`Risk-based Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md"&#41; )
 
-</details>
-
-   <details open>
-      <summary>
-         <b>📚 Theory</b>
-      </summary>
+### 📚 Theory</b>
 
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
 [`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md") 
@@ -210,12 +182,8 @@
 <br>
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md")
 [`Encryption Protocols`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/Encryption_protocols.md "Encryption_protocols.md") 
-   </details>
 
-   <details open>
-      <summary>
-         <b>🧠 Algorithms and data structures</b>
-      </summary>
+### 🧠 Algorithms and data structures</b>
   
 [`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
 [`SelectionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/SelectionSort.java "SelectionSort java example")
@@ -239,7 +207,6 @@
 [`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci java examles")
 [`etc`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/diverse_tasks "Diverse tasks java examples")
 
-   </details>
 </details>
 
 <details closed>
