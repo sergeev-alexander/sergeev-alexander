@@ -37,8 +37,6 @@
       🛠 Stack
    </summary>
 
----
-
 #### ♨️ Java
 
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
@@ -66,8 +64,6 @@
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
 [`ThreadLocal`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/ThreadLocal.md "ThreadLocal.md") 
 
----
-
 #### 🍃 Spring
   
 `Spring Boot` `Spring Framework` `Spring MVC` 
@@ -81,9 +77,7 @@
 [`RestClient`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/RestClient.md "RestClient.md") 
 `WebClient` `WebFlux` 
 
----
-
-### 💾 SQL/NoSQL</b>
+#### 💾 SQL/NoSQL
       
 `PostgreSQL` `MySQL` 
 <br>
@@ -96,9 +90,7 @@
 [`NoSQL`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/NoSQL.md "NoSQL.md") 
 [`SQL Indexing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/SQL_Indexing.md "SQL_Indexing.md") 
 
----
-
-### ⚙️ Tools & Infrastructure</b>
+#### ⚙️ Tools & Infrastructure
    
 [`Docker`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Docker.md "Docker.md") 
 [`Kafka`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Kafka.md "Kafka") 
@@ -117,9 +109,7 @@
 `GitHub Actions` 
 [`GitLab CI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/GitLab_CI.md "GitLab_CI.md") 
 
----
-
-## 🧪 QA / AQA</b>
+#### 🧪 QA / AQA
 
 [`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 `Postman` 
@@ -171,9 +161,7 @@
 
 [//]: # ([`Risk-based Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md"&#41; )
 
----
-
-## 📚 Theory</b>
+#### 📚 Theory
 
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
 [`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md") 
@@ -195,11 +183,9 @@
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md")
 [`Encryption Protocols`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/Encryption_protocols.md "Encryption_protocols.md") 
 
----
-
-### 🧠 Algorithms and data structures</b>
+#### 🧠 Algorithms and data structures
   
- - [`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
+[`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
 [`SelectionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/SelectionSort.java "SelectionSort java example")
 [`InsertionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/InsertionSort.java "InsertionSort java example")
 [`MergeSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/MergeSort.java "MergeSort java example")
@@ -207,13 +193,16 @@
 [`BubbleSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BubbleSort.java "BubbleSort java example")
 [`CombSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/CombSort.java "CombSort java example")
 [`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BogoSort.java "BogoSort java example")
-- [`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
+<br>
+[`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
 [`BFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/Bfs.java "BFS java example")
 [`DFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/Traverse.java "DFS travese example")
-- [`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
+<br>
+[`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
 [`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie java example")
 [`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/BinarySearchTree.java "BST java example")
-- [`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm java example")
+<br>
+[`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm java example")
 [`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD java examples")
 [`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci java examles")
 [`etc`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/diverse_tasks "Diverse tasks java examples")
