@@ -46,7 +46,7 @@
   [`Reflection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Reflection.md "Reflection.md") 
   [`Annotations`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Annotations.md "Annotation.md") 
   `JDBC` `JPA` 
-<br>
+
   [`Stream API`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Stream_API.md "Stream_API.md") 
   [`Collectios`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Collections.md "Collections.md") 
   [`Optional`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Optional.md "Optional.md") 
@@ -54,13 +54,13 @@
   [`Generics`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Generics.md "Generics.md") 
   `Date/Time API` 
   [`Comparator`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Comparator.md "Comparator.md") 
-<br>
+
   [`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md") 
   [`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md") 
   [`Anonymous Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Anonymous_Classes.md "Anonymous_Classes.md") 
   [`Nested_Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Nested_Classes.md "Nested Classes.md") 
   [`RecursiveTask`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/RecursiveTask.md "RecursiveTask.md") 
-<br>
+
   `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
   [`ThreadLocal`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/ThreadLocal.md "ThreadLocal.md") 
 
