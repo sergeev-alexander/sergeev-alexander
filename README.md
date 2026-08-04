@@ -37,6 +37,8 @@
       🛠 Stack
    </summary>
 
+---
+
 ### ♨️ Java
 
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
@@ -64,6 +66,8 @@
 `Multithreading` `Concurrency` `ExecutorService` `CompletableFuture` 
 [`ThreadLocal`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/ThreadLocal.md "ThreadLocal.md") 
 
+---
+
 ### 🍃 Spring
   
 `Spring Boot` `Spring Framework` `Spring MVC` 
@@ -77,6 +81,8 @@
 [`RestClient`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/RestClient.md "RestClient.md") 
 `WebClient` `WebFlux` 
 
+---
+
 ### 💾 SQL/NoSQL</b>
       
 `PostgreSQL` `MySQL` 
@@ -89,6 +95,8 @@
 [`Database Normalization`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/Database_Normalization.md "Database_Normalization.md") 
 [`NoSQL`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/NoSQL.md "NoSQL.md") 
 [`SQL Indexing`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/database/SQL_Indexing.md "SQL_Indexing.md") 
+
+---
 
 ### ⚙️ Tools & Infrastructure</b>
    
@@ -108,6 +116,8 @@
 [`Git`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/Git.md "Git.md") 
 `GitHub Actions` 
 [`GitLab CI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/GitLab_CI.md "GitLab_CI.md") 
+
+---
 
 ## 🧪 QA / AQA</b>
 
@@ -161,6 +171,8 @@
 
 [//]: # ([`Risk-based Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md"&#41; )
 
+---
+
 ## 📚 Theory</b>
 
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
@@ -182,6 +194,8 @@
 <br>
 [`Testing Theory`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md")
 [`Encryption Protocols`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/Encryption_protocols.md "Encryption_protocols.md") 
+
+---
 
 ### 🧠 Algorithms and data structures</b>
   
