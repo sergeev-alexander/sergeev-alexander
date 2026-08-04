@@ -247,11 +247,16 @@
       📚 Portfolio
    </summary>
 
-   <a href="https://github.com/sergeev-alexander/stuff-sharing-app">
-     <img align="left" src="https://github-readme-stats.vercel.app/api/pin/?username=sergeev-alexander&repo=stuff-sharing-app" />
-   </a>
-   <a href="https://github.com/sergeev-alexander/stuff-sharing-app">
-     <img align="left" src="https://github-readme-stats.vercel.app/api/pin/?username=sergeev-alexander&repo=stuff-sharing-app" />
-   </a>
+<br>
+
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+  <a href="https://github.com/sergeev-alexander/stuff-sharing-app">
+    <img src="https://github-readme-stats.vercel.app/api/pin/?username=sergeev-alexander&repo=stuff-sharing-app" />
+  </a>
+  <a href="https://github.com/sergeev-alexander/youtrack-api-tests">
+    <img src="https://github-readme-stats.vercel.app/api/pin/?username=sergeev-alexander&repo=youtrack-api-tests" />
+  </a>
+  <!-- Добавьте сюда третью, четвёртую карточку по аналогии -->
+</div>
 
 </details>
