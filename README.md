@@ -241,3 +241,17 @@
 
    </details>
 </details>
+
+<details closed>
+   <summary>
+      📚 Portfolio
+   </summary>
+
+   <a href="https://github.com/sergeev-alexander/stuff-sharing-app">
+     <img align="left" src="https://github-readme-stats.vercel.app/api/pin/?username=sergeev-alexander&repo=stuff-sharing-app" />
+   </a>
+   <a href="https://github.com/sergeev-alexander/stuff-sharing-app">
+     <img align="left" src="https://github-readme-stats.vercel.app/api/pin/?username=sergeev-alexander&repo=stuff-sharing-app" />
+   </a>
+
+</details>
