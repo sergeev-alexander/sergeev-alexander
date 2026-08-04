@@ -39,7 +39,7 @@
 
 ---
 
-### ♨️ Java
+#### ♨️ Java
 
 [`JVM`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/JVM.md "JVM.md") 
 [`Garbage collection`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Garbage_collection.md "Garbage_collection.md") 
@@ -68,7 +68,7 @@
 
 ---
 
-### 🍃 Spring
+#### 🍃 Spring
   
 `Spring Boot` `Spring Framework` `Spring MVC` 
 [`Spring Security`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/spring/Spring_security.md "Spring Security.md") 
