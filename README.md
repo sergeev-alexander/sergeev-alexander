@@ -109,7 +109,7 @@
 `GitHub Actions` 
 [`GitLab CI`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/tools/GitLab_CI.md "GitLab_CI.md") 
 
-### 🧪 QA / AQA</b>
+## 🧪 QA / AQA</b>
 
 [`Swagger`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Swagger_OpenApi.md "Swagger_OpenApi.md") 
 `Postman` 
@@ -161,7 +161,7 @@
 
 [//]: # ([`Risk-based Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md"&#41; )
 
-### 📚 Theory</b>
+## 📚 Theory</b>
 
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
 [`SOLID`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/SOLID.md "SOLID.md") 
@@ -185,7 +185,7 @@
 
 ### 🧠 Algorithms and data structures</b>
   
-[`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
+ - [`QuickSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/QuickSort.java "QuickSort java example")
 [`SelectionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/SelectionSort.java "SelectionSort java example")
 [`InsertionSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/InsertionSort.java "InsertionSort java example")
 [`MergeSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/MergeSort.java "MergeSort java example")
@@ -194,15 +194,15 @@
 [`CombSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/CombSort.java "CombSort java example")
 [`BogoSort`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/sorting/BogoSort.java "BogoSort java example")
 <br>
-[`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
+- [`BinarySearch`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/BinarySearch.java "BinarySearch java example")
 [`BFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/Bfs.java "BFS java example")
 [`DFS`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/Traverse.java "DFS travese example")
 <br>
-[`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
+- [`Heap`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/heap/Heap.java "Heap java example")
 [`Trie`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/trie/Trie.java "Trie java example")
 [`BST`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/data_structures/bst/BinarySearchTree.java "BST java example")
 <br>
-[`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm java example")
+- [`Huffman encoding algorithm`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/huffman_algorithm/implementation_1/Huffman.java "Huffman algorithm java example")
 [`GCD`](https://github.com/sergeev-alexander/algorithms/blob/master/src/main/java/sergeev/alexander/algorithms/GCD/GreatestCommonDivisor.java "GCD java examples")
 [`Fibonacci Numbers`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/algorithms/fibonacci "Fibonacci java examles")
 [`etc`](https://github.com/sergeev-alexander/algorithms/tree/master/src/main/java/sergeev/alexander/diverse_tasks "Diverse tasks java examples")
