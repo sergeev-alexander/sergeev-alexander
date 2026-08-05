@@ -32,9 +32,10 @@
 </p>
 
 ### 👋 Hi, I'm Alexander!<br>💼 Java developer at [Alivio AI](https://alivio.ai/ 'alivio.ai')<br>🚀 Open to any opportunities in Java backend development | Java AQA
+
 <details closed>
    <summary>
-      Stack
+      <b>Stack</b>
    </summary>
 
 #### ♨️ Java
@@ -211,12 +212,14 @@
 
 <details closed>
    <summary>
-      Portfolio
+      <b>Portfolio</b>
    </summary>
+
+<br>
 
   <details closed>
      <summary>
-        ♨️ Java Projects
+        <b>♨️ Java</b> Projects
      </summary>
 
   - [Bank Card Management System](https://github.com/sergeev-alexander/bank-rest)
@@ -268,7 +271,8 @@
     
     The project includes Docker Compose orchestration, comprehensive integration tests, OpenAPI 3.0 documentation, 
     and Postman collections.
-  
+
+
   - [Geometry Project](https://github.com/sergeev-alexander/geometry)
   
     **Educational Maven Multi-Module Project**
@@ -285,7 +289,7 @@
 
   <details closed>
     <summary>
-      ⚙️ Automation QA
+      <b>⚙️ Automation QA</b> Projects
     </summary>
 
   - [YouTrack API Test Framework](https://github.com/sergeev-alexander/youtrack-api-test-framework)
@@ -303,7 +307,7 @@
 
   <details>
     <summary>
-      🧪 Manual QA
+      <b>🧪 Manual QA</b> Projects
     </summary>
 
   - [Testing Yandex Browser + Yandex with Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-1/blob/main/Test_task_for_Yandex_Crowd_1.pdf)
