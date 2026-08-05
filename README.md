@@ -35,7 +35,7 @@
 
 <details closed>
    <summary>
-      <b>Stack</b>
+      <b>My Stack</b>
    </summary>
 
 #### ♨️ Java
@@ -212,7 +212,7 @@
 
 <details closed>
    <summary>
-      <b>Portfolio</b>
+      <b>My Portfolio</b>
    </summary>
 
 <br>
@@ -292,7 +292,7 @@
       <b>⚙️ Automation QA</b> Projects
     </summary>
 
-  - [YouTrack API Test Framework](https://github.com/sergeev-alexander/youtrack-api-test-framework)
+  - [YouTrack API Test Framework](https://github.com/sergeev-alexander/youtrack-api-tests)
 
     **Test Task for ITK Academy**
 
