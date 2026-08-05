@@ -218,17 +218,7 @@
      <summary>
         ♨️ Java Projects
      </summary>
-  
-  - [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
-    
-    **Educational Spring Boot project**
-  
-    Sharing economy platform that allows users to share and book various items. 
-    The application is built using a microservices architecture with Spring Boot, PostgreSQL, and Docker Compose. 
-    Users can share their items with others, browse available items, make bookings, and leave comments about their experiences. 
-    Admins can manage users and items.
-  
-  
+
   - [Bank Card Management System](https://github.com/sergeev-alexander/bank-rest)
   
     **Test Task for Effective Mobile**
@@ -238,20 +228,46 @@
     and a complete transaction system supporting deposits, withdrawals, and transfers between cards.
     Administrators can oversee user accounts, approve card blocking requests, and manage system operations through 
     a comprehensive admin panel.
-    The project is built with Spring Boot 3.2.0, PostgreSQL, and Docker Compose, featuring integration tests 
+    
+    Built with Spring Boot 3.2.0, PostgreSQL, and Docker Compose, featuring integration tests 
     with Testcontainers and full Swagger/OpenAPI documentation.
-  
-  
+
+
+  - [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
+
+    **Educational Spring Boot project**
+
+    Sharing economy platform that allows users to share and book various items.
+    Users can share their items with others, browse available items, make bookings, and leave comments about their experiences.
+    Admins can manage users and items.
+
+    Built using a microservices architecture with Spring Boot, PostgreSQL, and Docker Compose.
+
+
   - [Filmorate](https://github.com/sergeev-alexander/filmorate)
   
-    **Educational Spring Boot Project**
+    **Educational Group Spring Boot Project**
   
     A social media platform for movie enthusiasts to share reviews, ratings, and recommendations.
     The application allows users to add friends, share film reviews, and keep track of movies they want to watch.
+    
     Built with Spring Boot and PostgreSQL, the project features a complete REST API with user management, film catalog, 
     friend system, likes, reviews, and activity feed functionality.
     The application is containerized with Docker Compose and includes comprehensive integration tests.
+
   
+  - [Event Hub](https://github.com/sergeev-alexander/event-hub)
+
+    **Educational Spring Boot Project**
+
+    A microservices-based event management platform where users can publish events, submit participation requests 
+    with approval workflow, leave reviews and comments, and receive curated event compilations.
+    
+    Built with Spring Boot 2.7.9 and PostgreSQL, the application features a modular architecture with separate 
+    Main Service for business logic and Stats Service for hit tracking.
+    
+    The project includes Docker Compose orchestration, comprehensive integration tests, OpenAPI 3.0 documentation, 
+    and Postman collections.
   
   - [Geometry Project](https://github.com/sergeev-alexander/geometry)
   
@@ -261,6 +277,7 @@
     version control.
     The project implements a comprehensive geometry library with separate modules for core abstractions, 
     2D and 3D shape implementations, and utility converters.
+    
     Built with Java 24 and Maven, the project showcases best practices for modular architecture, dependency management, 
     and versioning in large-scale Java applications.
   
@@ -278,6 +295,7 @@
     A comprehensive automated testing framework for YouTrack API endpoints using RestAssured and TestNG.
     Provides complete test coverage for issue management (creation, update, deletion), project operations, user management, 
     and comment functionality through integration tests.
+    
     Built with Java 24, Gradle, and TestNG, the project utilizes Docker Compose for spinning up a local YouTrack instance, 
     Logback for structured logging, and generates detailed test reports with request/response logging for failed tests.
 
@@ -288,8 +306,38 @@
       🧪 Manual QA
     </summary>
 
-    
+  - [Testing Yandex Browser + Yandex with Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-1/blob/main/Test_task_for_Yandex_Crowd_1.pdf)
 
+    **Test Task for Yandex Crowd**
+
+    A comprehensive test documentation package for Yandex mobile applications (Yandex Browser and Yandex with Alice).
+    The document contains 6 detailed test cases covering cold start, widgets, incognito mode, smart camera, tab manager, 
+    and translator functionality.
+
+    Each test case includes steps, expected results, actual results, and identified bugs with clear reproduction steps. 
+
+
+  - [Testing voice assistant Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-2/blob/main/Test_task_for_Yandex_Crowd_2.pdf)
+
+    **Test Task for Yandex Crowd**
+
+    Test documentation for voice assistant "Alice" on iOS devices.
+    The document contains 8 bug reports covering weather forecasts, music playback, image search, coin toss sound effects, 
+    and the "Guess the Song" game skill.
+    Each bug report includes detailed steps to reproduce, expected vs actual results, and severity/priority assessment 
+    for the Yandex with Alice mobile application.
+
+
+  - [Auth flow (State and Transition Diagram)](https://github.com/sergeev-alexander/auth_flow_state_diagram/tree/main)
+
+    State diagram for user authentication with brute-force protection and password recovery.
+
+
+  - [ATM Operations (State and Transition Diagram)](https://github.com/sergeev-alexander/atm_operations_state_diagram/blob/main/README.md)
+
+    State diagram for ATM operations: card insertion, PIN verification (3 attempts), balance check, cash withdrawal 
+    with balance and limit validation, session timeouts, and card return.
+    
   </details>
 
 </details>
