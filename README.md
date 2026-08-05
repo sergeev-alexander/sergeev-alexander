@@ -34,7 +34,7 @@
 ### 👋 Hi, I'm Alexander!<br>💼 Java developer at [Alivio AI](https://alivio.ai/ 'alivio.ai')<br>🚀 Open to any opportunities in Java backend development | Java AQA
 <details closed>
    <summary>
-      🛠 Stack
+      Stack
    </summary>
 
 #### ♨️ Java
@@ -211,7 +211,7 @@
 
 <details closed>
    <summary>
-      📚 Portfolio
+      Portfolio
    </summary>
 
   <details closed>
@@ -265,4 +265,31 @@
     and versioning in large-scale Java applications.
   
   </details>
+
+  <details closed>
+    <summary>
+      ⚙️ Automation QA
+    </summary>
+
+  - [YouTrack API Test Framework](https://github.com/sergeev-alexander/youtrack-api-test-framework)
+
+    **Test Task for ITK Academy**
+
+    A comprehensive automated testing framework for YouTrack API endpoints using RestAssured and TestNG.
+    Provides complete test coverage for issue management (creation, update, deletion), project operations, user management, 
+    and comment functionality through integration tests.
+    Built with Java 24, Gradle, and TestNG, the project utilizes Docker Compose for spinning up a local YouTrack instance, 
+    Logback for structured logging, and generates detailed test reports with request/response logging for failed tests.
+
+  </details>
+
+  <details>
+    <summary>
+      🧪 Manual QA
+    </summary>
+
+    
+
+  </details>
+
 </details>
