@@ -303,6 +303,17 @@
     Built with Java 24, Gradle, and TestNG, the project utilizes Docker Compose for spinning up a local YouTrack instance, 
     Logback for structured logging, and generates detailed test reports with request/response logging for failed tests.
 
+
+  - [Array Compression Algorithm Testing](https://github.com/sergeev-alexander/test-task-for-gear-games)
+
+    **Test Task for Gear Games**
+
+    Implementation of a `compressNumbers(int[] array)` method that removes consecutive duplicates from an integer array, 
+    replacing them with a single element and comprehensive unit tests with JUnit 5 covering boundary cases, 
+    equivalence classes, and various scenarios.
+
+    Built with Java 24 and Maven.
+
   </details>
 
   <details>
