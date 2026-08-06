@@ -1,5 +1,5 @@
 <p align='center'>
-   
+    
    <a href="https://www.linkedin.com/in/sergeev-alexander/">
        <img height=24
           src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white"/>
@@ -134,34 +134,6 @@
 [`CSS_Selectors`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/CSS_Selectors.md "CSS_Selectors.md") 
 [`XPath`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/XPath.md "XPath.md")
 
-<!-- <br> -->
-
-[//]: # ([`Testing Theory`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Testing_theory.md "Testing_theory.md"&#41; )
-
-[//]: # ([`Test Design`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_design_technics.md "Test_design_technics.md"&#41; )
-
-[//]: # ([`STLC`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/STLC.md "STLC.md"&#41; )
-
-[//]: # ([`Test Documentation And Metrics`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Test_documentation.md "Test_documentation.md"&#41; )
-
-[//]: # ([`Defects and Errors`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Defects_and_Errors.md "Defects_and_Errors.md"&#41; )
-
-[//]: # ([`Root Cause Analysis`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Root_cause_analysis.md "Root_cause_analysis.md"&#41; )
-
-<!-- <br> --> 
-
-[//]: # ([`Functional Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Functional_testing_types.md "Functional_testing_types.md"&#41; )
-
-[//]: # ([`Non-functional Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Non-functional_testing_types.md "Non-functional_testing_types.md"&#41; )
-
-[//]: # ([`Change-related Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Change-Related_testing_types.md "Change-Related_testing_types.md"&#41; )
-
-[//]: # ([`Static Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Static_testing.md "Static_testing.md"&#41; )
-
-[//]: # ([`Dynamic Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Dynamic_testing.md "Dynamic_testing.md"&#41; )
-
-[//]: # ([`Risk-based Testing`]&#40;https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/testing/Risk-based_testing.md "Risk-based_testing.md"&#41; )
-
 #### 📚 Theory
 
 [`OOP`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/theory/OOP.md "OOP.md") 
@@ -217,142 +189,142 @@
 
 <br>
 
-  <details closed>
-     <summary>
-        <b>♨️ Java</b> Projects
-     </summary>
+   <details closed>
+       <summary>
+            <b>♨️ Java</b> Projects
+       </summary>
 
-  - [Bank Card Management System](https://github.com/sergeev-alexander/bank-rest)
-  
-    **Test Task for Effective Mobile**
-  
-    RESTful banking service for managing bank cards, transactions, and user profiles with role-based access control.
-    The application provides secure card management with encrypted card numbers, JWT-based authentication, 
-    and a complete transaction system supporting deposits, withdrawals, and transfers between cards.
-    Administrators can oversee user accounts, approve card blocking requests, and manage system operations through 
-    a comprehensive admin panel.
-    
-    Built with Spring Boot 3.2.0, PostgreSQL, and Docker Compose, featuring integration tests 
-    with Testcontainers and full Swagger/OpenAPI documentation.
-
-
-  - [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
-
-    **Educational Spring Boot project**
-
-    Sharing economy platform that allows users to share and book various items.
-    Users can share their items with others, browse available items, make bookings, and leave comments about their experiences.
-    Admins can manage users and items.
-
-    Built using a microservices architecture with Spring Boot, PostgreSQL, and Docker Compose.
+   - [Bank Card Management System](https://github.com/sergeev-alexander/bank-rest)
+   
+      **Test Task for Effective Mobile**
+   
+      RESTful banking service for managing bank cards, transactions, and user profiles with role-based access control.
+      The application provides secure card management with encrypted card numbers, JWT-based authentication, 
+      and a complete transaction system supporting deposits, withdrawals, and transfers between cards.
+      Administrators can oversee user accounts, approve card blocking requests, and manage system operations through 
+      a comprehensive admin panel.
+      
+      Built with Spring Boot 3.2.0, PostgreSQL, and Docker Compose, featuring integration tests 
+      with Testcontainers and full Swagger/OpenAPI documentation.
 
 
-  - [Filmorate](https://github.com/sergeev-alexander/filmorate)
-  
-    **Educational Group Spring Boot Project**
-  
-    A social media platform for movie enthusiasts to share reviews, ratings, and recommendations.
-    The application allows users to add friends, share film reviews, and keep track of movies they want to watch.
-    
-    Built with Spring Boot and PostgreSQL, the project features a complete REST API with user management, film catalog, 
-    friend system, likes, reviews, and activity feed functionality.
-    The application is containerized with Docker Compose and includes comprehensive integration tests.
+   - [Stuff Sharing App](https://github.com/sergeev-alexander/stuff-sharing-app)
 
-  
-  - [Event Hub](https://github.com/sergeev-alexander/event-hub)
+      **Educational Spring Boot project**
 
-    **Educational Spring Boot Project**
+      Sharing economy platform that allows users to share and book various items.
+      Users can share their items with others, browse available items, make bookings, and leave comments about their experiences.
+      Admins can manage users and items.
 
-    A microservices-based event management platform where users can publish events, submit participation requests 
-    with approval workflow, leave reviews and comments, and receive curated event compilations.
-    
-    Built with Spring Boot 2.7.9 and PostgreSQL, the application features a modular architecture with separate 
-    Main Service for business logic and Stats Service for hit tracking.
-    
-    The project includes Docker Compose orchestration, comprehensive integration tests, OpenAPI 3.0 documentation, 
-    and Postman collections.
+      Built using a microservices architecture with Spring Boot, PostgreSQL, and Docker Compose.
 
 
-  - [Geometry Project](https://github.com/sergeev-alexander/geometry)
-  
-    **Educational Maven Multi-Module Project**
-  
-    A multi-module Maven project demonstrating advanced dependency management with BOM (Bill of Materials) for centralized 
-    version control.
-    The project implements a comprehensive geometry library with separate modules for core abstractions, 
-    2D and 3D shape implementations, and utility converters.
-    
-    Built with Java 24 and Maven, the project showcases best practices for modular architecture, dependency management, 
-    and versioning in large-scale Java applications.
-  
-  </details>
+   - [Filmorate](https://github.com/sergeev-alexander/filmorate)
+   
+      **Educational Group Spring Boot Project**
+   
+      A social media platform for movie enthusiasts to share reviews, ratings, and recommendations.
+      The application allows users to add friends, share film reviews, and keep track of movies they want to watch.
+      
+      Built with Spring Boot and PostgreSQL, the project features a complete REST API with user management, film catalog, 
+      friend system, likes, reviews, and activity feed functionality.
+      The application is containerized with Docker Compose and includes comprehensive integration tests.
 
-  <details closed>
-    <summary>
-      <b>⚙️ Automation QA</b> Projects
-    </summary>
+   
+   - [Event Hub](https://github.com/sergeev-alexander/event-hub)
 
-  - [YouTrack API Test Framework](https://github.com/sergeev-alexander/youtrack-api-tests)
+      **Educational Spring Boot Project**
 
-    **Test Task for ITK Academy**
-
-    A comprehensive automated testing framework for YouTrack API endpoints using RestAssured and TestNG.
-    Provides complete test coverage for issue management (creation, update, deletion), project operations, user management, 
-    and comment functionality through integration tests.
-    
-    Built with Java 24, Gradle, and TestNG, the project utilizes Docker Compose for spinning up a local YouTrack instance, 
-    Logback for structured logging, and generates detailed test reports with request/response logging for failed tests.
+      A microservices-based event management platform where users can publish events, submit participation requests 
+      with approval workflow, leave reviews and comments, and receive curated event compilations.
+      
+      Built with Spring Boot 2.7.9 and PostgreSQL, the application features a modular architecture with separate 
+      Main Service for business logic and Stats Service for hit tracking.
+      
+      The project includes Docker Compose orchestration, comprehensive integration tests, OpenAPI 3.0 documentation, 
+      and Postman collections.
 
 
-  - [Array Compression Algorithm Testing](https://github.com/sergeev-alexander/test-task-for-gear-games)
+   - [Geometry Project](https://github.com/sergeev-alexander/geometry)
+   
+      **Educational Maven Multi-Module Project**
+   
+      A multi-module Maven project demonstrating advanced dependency management with BOM (Bill of Materials) for centralized 
+      version control.
+      The project implements a comprehensive geometry library with separate modules for core abstractions, 
+      2D and 3D shape implementations, and utility converters.
+      
+      Built with Java 24 and Maven, the project showcases best practices for modular architecture, dependency management, 
+      and versioning in large-scale Java applications.
+   
+   </details>
 
-    **Test Task for Gear Games**
+   <details closed>
+      <summary>
+         <b>⚙️ Automation QA</b> Projects
+      </summary>
 
-    Implementation of a `compressNumbers(int[] array)` method that removes consecutive duplicates from an integer array, 
-    replacing them with a single element and comprehensive unit tests with JUnit 5 covering boundary cases, 
-    equivalence classes, and various scenarios.
+   - [YouTrack API Test Framework](https://github.com/sergeev-alexander/youtrack-api-tests)
 
-    Built with Java 24 and Maven.
+      **Test Task for ITK Academy**
 
-  </details>
-
-  <details>
-    <summary>
-      <b>🧪 Manual QA</b> Projects
-    </summary>
-
-  - [Testing Yandex Browser + Yandex with Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-1/blob/main/Test_task_for_Yandex_Crowd_1.pdf)
-
-    **Test Task for Yandex Crowd**
-
-    A comprehensive test documentation package for Yandex mobile applications (Yandex Browser and Yandex with Alice).
-    The document contains 6 detailed test cases covering cold start, widgets, incognito mode, smart camera, tab manager, 
-    and translator functionality.
-
-    Each test case includes steps, expected results, actual results, and identified bugs with clear reproduction steps. 
-
-
-  - [Testing voice assistant Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-2/blob/main/Test_task_for_Yandex_Crowd_2.pdf)
-
-    **Test Task for Yandex Crowd**
-
-    Test documentation for voice assistant "Alice" on iOS devices.
-    The document contains 8 bug reports covering weather forecasts, music playback, image search, coin toss sound effects, 
-    and the "Guess the Song" game skill.
-    Each bug report includes detailed steps to reproduce, expected vs actual results, and severity/priority assessment 
-    for the Yandex with Alice mobile application.
+      A comprehensive automated testing framework for YouTrack API endpoints using RestAssured and TestNG.
+      Provides complete test coverage for issue management (creation, update, deletion), project operations, user management, 
+      and comment functionality through integration tests.
+      
+      Built with Java 24, Gradle, and TestNG, the project utilizes Docker Compose for spinning up a local YouTrack instance, 
+      Logback for structured logging, and generates detailed test reports with request/response logging for failed tests.
 
 
-  - [Auth flow (State and Transition Diagram)](https://github.com/sergeev-alexander/auth_flow_state_diagram/tree/main)
+   - [Array Compression Algorithm Testing](https://github.com/sergeev-alexander/test-task-for-gear-games)
 
-    State diagram for user authentication with brute-force protection and password recovery.
+      **Test Task for Gear Games**
+
+      Implementation of a `compressNumbers(int[] array)` method that removes consecutive duplicates from an integer array, 
+      replacing them with a single element and comprehensive unit tests with JUnit 5 covering boundary cases, 
+      equivalence classes, and various scenarios.
+
+      Built with Java 24 and Maven.
+
+   </details>
+
+   <details>
+      <summary>
+         <b>🧪 Manual QA</b> Projects
+      </summary>
+
+   - [Testing Yandex Browser + Yandex with Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-1/blob/main/Test_task_for_Yandex_Crowd_1.pdf)
+
+      **Test Task for Yandex Crowd**
+
+      A comprehensive test documentation package for Yandex mobile applications (Yandex Browser and Yandex with Alice).
+      The document contains 6 detailed test cases covering cold start, widgets, incognito mode, smart camera, tab manager, 
+      and translator functionality.
+
+      Each test case includes steps, expected results, actual results, and identified bugs with clear reproduction steps. 
 
 
-  - [ATM Operations (State and Transition Diagram)](https://github.com/sergeev-alexander/atm_operations_state_diagram/blob/main/README.md)
+   - [Testing voice assistant Alice](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-2/blob/main/Test_task_for_Yandex_Crowd_2.pdf)
 
-    State diagram for ATM operations: card insertion, PIN verification (3 attempts), balance check, cash withdrawal 
-    with balance and limit validation, session timeouts, and card return.
-    
-  </details>
+      **Test Task for Yandex Crowd**
+
+      Test documentation for voice assistant "Alice" on iOS devices.
+      The document contains 8 bug reports covering weather forecasts, music playback, image search, coin toss sound effects, 
+      and the "Guess the Song" game skill.
+      Each bug report includes detailed steps to reproduce, expected vs actual results, and severity/priority assessment 
+      for the Yandex with Alice mobile application.
+
+
+   - [Auth flow (State and Transition Diagram)](https://github.com/sergeev-alexander/auth_flow_state_diagram/tree/main)
+
+      State diagram for user authentication with brute-force protection and password recovery.
+
+
+   - [ATM Operations (State and Transition Diagram)](https://github.com/sergeev-alexander/atm_operations_state_diagram/blob/main/README.md)
+
+      State diagram for ATM operations: card insertion, PIN verification (3 attempts), balance check, cash withdrawal 
+      with balance and limit validation, session timeouts, and card return.
+      
+   </details>
 
 </details>
