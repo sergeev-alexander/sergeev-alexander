@@ -58,7 +58,6 @@
 <br>
 [`Records`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Records.md "Records.md") 
 [`Sealed Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Sealed_Classes.md "Sealed_Classes.md") 
-[`Anonymous Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Anonymous_Classes.md "Anonymous_Classes.md") 
 [`Nested_Classes`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/Nested_Classes.md "Nested Classes.md") 
 [`RecursiveTask`](https://github.com/sergeev-alexander/sergeev-alexander/blob/main/tech_stack/java/RecursiveTask.md "RecursiveTask.md") 
 <br>
