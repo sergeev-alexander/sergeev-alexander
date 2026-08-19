@@ -310,9 +310,22 @@
       Test documentation for voice assistant "Alice" on iOS devices.
       The document contains 8 bug reports covering weather forecasts, music playback, image search, coin toss sound effects, 
       and the "Guess the Song" game skill.
+      
       Each bug report includes detailed steps to reproduce, expected vs actual results, and severity/priority assessment 
       for the Yandex with Alice mobile application.
 
+   - [Yandex Browser Testing: Sidebar and Tab Groups](https://github.com/sergeev-alexander/test-task-for-yandex-crowd-3/blob/main/Test_task_for_Yandex_Crowd_3.pdf)
+
+     **Test Task for Yandex Crowd**
+
+     Comprehensive manual testing of the desktop version of Yandex Browser, focusing on sidebar functionality 
+     (adding websites as applications) and tab group management.
+     The testing process was executed and documented in Qase.io, including structured test runs and detailed bug reporting.
+     During the evaluation, 3 defects were identified and documented (including Major and Normal severity), 
+     such as incorrect ESC key behavior during group creation and focus loss when moving a tab via the context menu.
+     
+     Each bug report provides clear reproduction steps, expected vs. actual results, visual evidence, 
+     and precise environment specifications (Windows 11, Yandex Browser).
 
    - [Auth flow (State and Transition Diagram)](https://github.com/sergeev-alexander/auth_flow_state_diagram/tree/main)
 
