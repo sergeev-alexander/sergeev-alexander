@@ -1,38 +1,26 @@
 Портфолио: github.com/sergeev-alexander
 
 ► JAVA
-JVM | Garbage Collection | I/O | NIO | Reflection | Annotations | JDBC | JPA
-Stream API | Collections | Optional | Lambda | Generics | Date/Time API | Comparator
-Records | Sealed Classes | Anonymous Classes | Nested Classes | RecursiveTask
-Multithreading | Concurrency | ExecutorService | CompletableFuture | ThreadLocal
+JVM | Garbage Collection | NIO | Reflection | JPA | Stream API | Collections | Records | Sealed Classes
+Multithreading | Concurrency | ExecutorService | CompletableFuture | ThreadLocal | Optional | JDBC | JPA
 
 ► SPRING
-Spring Boot | Spring Framework | Spring MVC | Spring Security | JWT
-DI | IoC | Bean Lifecycle | Configuration | @ControllerAdvice
-Spring Data JPA | JPA Repositories | Specifications | @Transactional
-RestClient | WebClient | WebFlux
+Spring Boot | Spring Security | JWT | Spring MVC | Spring Data JPA | DI | IoC | Configuration
+RestClient | WebClient | WebFlux | @ControllerAdvice | Specifications | Transactions
 
-► SQL/NOSQL
-PostgreSQL | MySQL
-Redis | Amazon DynamoDB | MongoDB | Cassandra
-Database Normalization | NoSQL | SQL Indexing
+► SQL / NOSQL
+PostgreSQL | MySQL | Redis | Amazon DynamoDB | MongoDB | Apache Cassandra
+Database Normalization | SQL Indexing
 
 ► TOOLS & INFRASTRUCTURE
-Docker | Kafka | Jenkins
-Maven | Gradle | Lombok
-Jackson | JsonPath | JsonSchema | XML/XSD
-Git | GitHub Actions | GitLab CI
+Docker | Kafka | Jenkins | Maven | Gradle | Jackson | Lombok | JsonPath | JsonSchema | XML/XSD
+Kubernetes | Git | GitHub Actions | GitLab CI | Jira | Zephyr | Qase.io | Jackson | JsonPath
 
 ► QA / AQA
-Swagger | Postman | OpenApi Specification
-Rest Assured | JUnit | TestNG | Mockito | Allure | Hamcrest | AssertJ
-@DataJpaTest | @WebMvcTest | TestContainers
-Playwright | Selenium | Selenide | JDI_Dark | Cucumber | CSS_Selectors | XPath
+JUnit | TestNG | Hamcrest | Mockito | Allure | AssertJ | TestContainers | @DataJpaTest
+Postman | Swagger | OpenAPI Specification | CSS Selectors | XPath
+Rest Assured | Playwright | Selenium | Selenide | Selenoid | JDI Dark | Cucumber 
 
 ► THEORY
-OOP | SOLID | Design Patterns | GRASP
-API | REST | HTTP/HTTPS | gRPC | SOAP | WSDL
-AGILE | SCRUM | SDLC | CI/CD
-Testing Theory | Encryption | Protocols
-
-► ALGORITHMS & DATA STRUCTURES
+SOLID | Design patterns | GRASP | REST | HTTP/HTTPS | gRPC | SOAP | WSDL | Encryption Protocols
+Testing Theory | Test Design Techniques | AGILE | SCRUM | CI/CD | Algorithms & Data Structures
