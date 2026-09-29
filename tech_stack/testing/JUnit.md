@@ -199,6 +199,65 @@ JUnit 5 состоит из трёх модулей:
 - `@Nested` — Создаёт вложенный класс для группировки связанных тестов.
 - `@Tag` — Присваивает тег тесту или классу для фильтрации при запуске.
 
+Пример:
+```java
+class ShoppingCartTest {
+
+    private ShoppingCart cart;
+
+    @BeforeEach
+    void init() {
+        cart = new ShoppingCart();
+    }
+
+    @Test
+    @DisplayName("Новая корзина пуста")
+    void newCartIsEmpty() {
+        assertTrue(cart.isEmpty());
+        assertEquals(0, cart.totalItems());
+    }
+
+    @Nested
+    @DisplayName("Когда корзина содержит товары")
+    class WhenCartHasItems {
+
+        @BeforeEach
+        void addItems() {
+            cart.add("Apple", 1.0);
+            cart.add("Bread", 2.0);
+        }
+
+        @Test
+        @DisplayName("корзина не пуста")
+        void cartIsNotEmpty() {
+            assertFalse(cart.isEmpty());
+        }
+
+        @Test
+        @DisplayName("итоговая сумма считается верно")
+        void totalIsCalculated() {
+            assertEquals(3.0, cart.total());
+        }
+
+        @Nested
+        @DisplayName("и применяется скидка 10%")
+        class WithDiscount {
+
+            @BeforeEach
+            void applyDiscount() {
+                cart.applyDiscount(10);
+            }
+
+            @Test
+            @DisplayName("итоговая сумма уменьшается")
+            void totalIsDiscounted() {
+                assertEquals(2.7, cart.total(), 0.001);
+            }
+        }
+    }
+}
+```
+
 ---
 
 ## Аннотации отключения
@@ -207,12 +266,108 @@ JUnit 5 состоит из трёх модулей:
 - `@DisabledIf` — Отключает тест при выполнении определённого условия.
 - `@EnabledIf` — Включает тест только при выполнении определённого условия.
 
+**`@DisabledIf` / `@EnabledIf`** — это две разные аннотации с разными механизмами условий:
+
+**`@DisabledIf`** принимает **ссылку на метод** (строку), который должен вернуть `boolean`.
+```java
+@DisabledIf("isFeatureDisabled")
+void test() { ... }
+
+static boolean isFeatureDisabled() { return !featureFlag; }
+```
+Метод должен быть `static`, если используется на уровне класса или находится во внешнем классе .
+
+**`@EnabledIf`** принимает **скрипт** (по умолчанию JavaScript/Nashorn) .
+```java
+@EnabledIf("systemProperties['os.name'].contains('Windows')")
+void test() { ... }
+```
+Возвращаемое значение интерпретируется как `boolean` .
+
+Обе поддерживают `disabledReason` / `reason` для указания причины отключения:
+
+```java
+public class FeatureTest {
+
+    // Условие: если этот метод вернёт true, тест будет отключён
+    static boolean isFeatureDisabled() {
+        return true; // Допустим, фича выключена
+    }
+
+    @Test
+    @DisabledIf(value = "isFeatureDisabled",
+                disabledReason = "Фича отключена в конфигурации")
+    void testFeature() {
+        // Этот тест не будет выполнен
+    }
+}
+```
+
+```java
+public class FeatureTest {
+
+    // Условие: если этот метод вернёт true, тест будет включён
+    static boolean isFeatureEnabled() {
+        return false; // Допустим, фича выключена
+    }
+
+    @Test
+    @EnabledIf(value = "isFeatureEnabled",
+               reason = "Фича не включена в этой среде")
+    void testFeature() {
+        // Этот тест не будет выполнен, потому что условие false
+    }
+}
+```
+
+- `@DisabledIf` → используйте `disabledReason`
+- `@EnabledIf` → используйте `reason`
+
 ---
 
 ## Порядок выполнения тестов
 
 - `@TestMethodOrder` — Определяет порядок выполнения тестовых методов в классе.
 - `@Order` — Задаёт порядок выполнения для конкретного метода (вместе с `@TestMethodOrder(MethodOrderer.OrderAnnotation.class)`).
+
+```java
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class OrderedTests {
+
+    @Test
+    @Order(1)
+    @DisplayName("Сначала создаём пользователя")
+    void createUser() {
+        // ...
+    }
+
+    @Test
+    @Order(2)
+    @DisplayName("Потом логинимся под ним")
+    void loginUser() {
+        // ...
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("В конце удаляем пользователя")
+    void deleteUser() {
+        // ...
+    }
+}
+```
+
+**Что важно помнить:**
+
+1. **Без `@TestMethodOrder`** аннотация `@Order` игнорируется — методы всё равно выполнятся в непредсказуемом порядке.
+2. **`@Order` принимает `int`.** Меньшее значение — раньше выполнение. Одинаковые значения — порядок между ними не определён.
+3. **Отрицательные значения допустимы** (`-10`, `0`, `5`...) — удобно, когда нужно вставить шаг «перед всеми».
+4. **Есть и другие стратегии** в `MethodOrderer`:
+    - `OrderAnnotation.class` — по `@Order` (пример выше)
+    - `Alphanumeric.class` — по алфавиту имён методов
+    - `MethodName.class` — по имени метода (устаревшая, но работает)
+    - `Random.class` — случайный порядок (полезно для выявления скрытых зависимостей)
+5. **Зависимость между тестами — запах.** Если `loginUser` требует результата `createUser`, лучше подумать о `@BeforeAll`/`@BeforeEach` или объединить в один тест. `@Order` оправдан, когда реально важен сценарий (например, интеграционный сценарий «создать → изменить → удалить»).
 
 ---
 
@@ -474,7 +629,7 @@ AssertJ — популярная альтернатива стандартным
 > 
 > Позволяет добавлять кастомное поведение без наследования и правил.
 
-Extension — класс который реализует один или несколько интерфейсов расширения JUnit 5 и подключается через `@ExtendWith`.
+Extension — класс, который реализует один или несколько интерфейсов расширения JUnit 5 и подключается через `@ExtendWith`.
 
 ### Ключевые особенности:
 
@@ -507,14 +662,98 @@ JUnit 5 предоставляет несколько встроенных ра�
 - `MockitoExtension` - Mock объектов (Mockito)
 - `SpringExtension` - Интеграция со Spring
 
-### Пример TempDirectory:
+### TempDir:
+`@TempDir` на поле или параметре — JUnit создаёт временную директорию и удаляет её после теста.
 
 ```java
-    @ExtendWith(TempDirectory.class)
-    class TempDirDemo {
-        @TempDir
-        Path tempDir;  // Автоматически создаётся и удаляется
+@ExtendWith(TempDirectory.class)
+class TempDirDemo {
+    
+    @TempDir
+    Path tempDir;  // Автоматически создаётся и удаляется
+
+    @Test
+    void testWithTempDir() {
+        Path file = tempDir.resolve("test.txt");
+        Files.writeString(file, "hello");
+        assertTrue(Files.exists(file));
     }
+}
+```
+
+### @Timeout
+
+Декларативное ограничение времени выполнения.
+
+```java
+@Test
+@Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
+void testFailsIfTooSlow() {
+    // ...
+}
+```
+
+### @RepeatedTest
+
+Повторяет тест N раз, каждый запуск — как обычный `@Test`.
+
+```java
+@RepeatedTest(3)
+void repeatedTest() {
+    // ...
+}
+```
+
+### @ParameterizedTest
+
+Запускает тест с разными аргументами. Самый простой провайдер — `@ValueSource`.
+
+```java
+@ParameterizedTest
+@ValueSource(strings = {"apple", "banana", "cherry"})
+void testWithFruit(String fruit) {
+    assertNotNull(fruit);
+}
+```
+
+### MockitoExtension
+
+Включает `@Mock` и `@InjectMocks` в тестовом классе.
+
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+
+    @Mock
+    UserRepository userRepository;
+
+    @InjectMocks
+    UserService userService;
+
+    @Test
+    void test() {
+        // ...
+    }
+}
+```
+
+### SpringExtension
+
+Интеграция Spring TestContext. Обычно используется через `@SpringJUnitConfig`.
+
+```java
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = TestConfig.class)
+class SpringTest {
+
+    @Autowired
+    MyService service;
+
+    @Test
+    void test() {
+        // ...
+    }
+}
 ```
 
 ---
@@ -532,7 +771,7 @@ JUnit 5 предоставляет несколько встроенных ра�
 
 ### Condition интерфейсы (условия):
 
-- `ExecutionCondition` - Определяет выполняется ли тест
+- `ExecutionCondition` - Определяет, выполняется ли тест
 - `TestInstancePostProcessor` - Обработка экземпляра теста
 - `TestInstancePreDestroyCallback` - Перед уничтожением экземпляра
 
@@ -547,6 +786,136 @@ JUnit 5 предоставляет несколько встроенных ра�
 - `InvocationInterceptor` - Перехват вызова теста
 
 ---
+
+### Callback интерфейсы (выполнение кода)
+
+Пример расширения, которое измеряет время выполнения каждого тестового метода:
+
+```java
+public class TimingExtension implements BeforeTestExecutionCallback, AfterTestExecutionCallback {
+
+    private static final Logger logger = Logger.getLogger(TimingExtension.class.getName());
+    private static final String START_TIME = "start time";
+
+    @Override
+    public void beforeTestExecution(ExtensionContext context) {
+        getStore(context).put(START_TIME, System.currentTimeMillis());
+    }
+
+    @Override
+    public void afterTestExecution(ExtensionContext context) {
+        long startTime = getStore(context).remove(START_TIME, long.class);
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info(() -> String.format("Method [%s] took %s ms.",
+                context.getRequiredTestMethod().getName(), duration));
+    }
+
+    private ExtensionContext.Store getStore(ExtensionContext context) {
+        return context.getStore(ExtensionContext.Namespace.create(getClass()));
+    }
+}
+```
+
+Использование:
+```java
+@ExtendWith(TimingExtension.class)
+class MyTest {
+
+    @Test
+    void test() throws Exception {
+        Thread.sleep(20);
+    }
+}
+```
+
+### Condition интерфейсы (условия)
+
+Пример `ExecutionCondition`, который отключает тесты, если у пользователя нет определённого системного свойства:
+
+```java
+public class DisabledOnCiCondition implements ExecutionCondition {
+
+    @Override
+    public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
+        String ci = System.getProperty("ci");
+        if ("true".equalsIgnoreCase(ci)) {
+            return ConditionEvaluationResult.disabled("Disabled on CI");
+        }
+        return ConditionEvaluationResult.enabled("Not on CI");
+    }
+}
+```
+
+Использование:
+```java
+@ExtendWith(DisabledOnCiCondition.class)
+class MyTest {
+    @Test
+    void test() { /* ... */ }
+}
+```
+
+### Parameter интерфейсы (параметры)
+
+Пример `ParameterResolver`, который внедряет строку в тестовый метод:
+
+```java
+public class GreetingResolver implements ParameterResolver {
+
+    @Override
+    public boolean supportsParameter(ParameterContext parameterContext,
+                                     ExtensionContext extensionContext) {
+        return parameterContext.getParameter().getType() == String.class;
+    }
+
+    @Override
+    public Object resolveParameter(ParameterContext parameterContext,
+                                   ExtensionContext extensionContext) {
+        return "Hello, JUnit!";
+    }
+}
+```
+
+Использование:
+```java
+@ExtendWith(GreetingResolver.class)
+class MyTest {
+    
+    @Test
+    void test(String greeting) {
+        // greeting == "Hello, JUnit!"
+    }
+}
+```
+
+### Exception интерфейсы (исключения)
+
+Пример `TestExecutionExceptionHandler`, который "проглатывает" `IOException` и пробрасывает все остальные исключения:
+
+```java
+public class IgnoreIOExceptionExtension implements TestExecutionExceptionHandler {
+
+    @Override
+    public void handleTestExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
+        if (throwable instanceof IOException) {
+            return; // проглотить
+        }
+        throw throwable; // пробросить дальше
+    }
+}
+```
+
+Использование:
+```java
+@ExtendWith(IgnoreIOExceptionExtension.class)
+class MyTest {
+    
+    @Test
+    void test() throws IOException {
+        throw new IOException("This will be swallowed");
+    }
+}
+```
 
 ## Создание собственных расширений
 
@@ -631,11 +1000,13 @@ JUnit 5 предоставляет несколько встроенных ра�
 
 ## ExtensionContext
 
+## ExtensionContext
+
 > ExtensionContext — контекст, который предоставляет информацию о текущем тесте.
 
 ### Возможности:
 
-- `getDisplayName`() - Имя теста
+- `getDisplayName()` - Имя теста
 - `getTestClass()` - Класс теста
 - `getTestMethod()` - Метод теста
 - `getStore(namespace)` - Хранилище для данных
@@ -644,33 +1015,137 @@ JUnit 5 предоставляет несколько встроенных ра�
 
 ### Store для обмена данными:
 
-> Store - это способ передать данные между разными этапами выполнения тестов и между разными расширениями JUnit, 
+> Store - это способ передать данные между разными этапами выполнения тестов и между разными расширениями JUnit,
 > не делая их статическими полями или не используя внешние контейнеры.
 
 ```java
-    // Сохранить в Before
-    context.getStore(Namespace.GLOBAL).put("key", value);
-    
-    // Получить в After
-    Object value = context.getStore(Namespace.GLOBAL).get("key");
+// Сохранить в Before
+context.getStore(Namespace.GLOBAL).put("key", value);
+
+// Получить в After
+Object value = context.getStore(Namespace.GLOBAL).get("key");
 ```
 
 ---
+
+### Пример: таймер с сохранением в Store
+
+Более практичный пример — измерение времени выполнения теста с сохранением данных в `Store` и корректной передачей между callback'ами.
+
+```java
+public class TimingExtension implements BeforeTestExecutionCallback, AfterTestExecutionCallback {
+
+    private static final Logger logger = Logger.getLogger(TimingExtension.class.getName());
+    private static final String START_TIME = "start time";
+
+    @Override
+    public void beforeTestExecution(ExtensionContext context) {
+        getStore(context).put(START_TIME, System.currentTimeMillis());
+    }
+
+    @Override
+    public void afterTestExecution(ExtensionContext context) {
+        long startTime = getStore(context).remove(START_TIME, long.class);
+        long duration = System.currentTimeMillis() - startTime;
+
+        logger.info(() -> String.format("Method [%s] took %s ms.",
+                context.getRequiredTestMethod().getName(), duration));
+    }
+
+    private ExtensionContext.Store getStore(ExtensionContext context) {
+        return context.getStore(ExtensionContext.Namespace.create(getClass()));
+    }
+}
+```
+
+Использование:
+
+```java
+@ExtendWith(TimingExtension.class)
+class MyTest {
+
+    @Test
+    void fastTest() { /* ... */ }
+
+    @Test
+    void slowTest() throws InterruptedException {
+        Thread.sleep(50);
+    }
+}
+```
+
+В логе увидите что-то вроде:
+
+```
+Method [fastTest] took 3 ms.
+Method [slowTest] took 52 ms.
+```
+
+### Ключевые моменты
+
+**1. Почему `Namespace.create(getClass())`, а не `Namespace.GLOBAL`?**
+
+Если использовать `GLOBAL`, ключи разных расширений будут пересекаться. `Namespace.create(Class)` создаёт изолированное 
+пространство имён — стандартная практика, чтобы избежать коллизий.
+
+**2. Почему `store.remove(...)`, а не `store.get(...)`?**
+
+`remove` возвращает значение и **очищает** его из Store. 
+Это правильно для парных callback'ов (`beforeX` / `afterX`) — иначе данные накапливаются, а при параллельном выполнении 
+тестов возможны утечки.
+
+**3. Типизированное чтение**
+
+`remove(START_TIME, long.class)` — JUnit сам кастует значение к `Long`/`long`. Если тип не совпадёт, будет исключение. 
+Это безопаснее, чем `(Long) store.get(...)`.
+
+**4. Область видимости Store**
+
+Store привязан к контексту, в котором он получен:
+
+- Store, полученный из контекста **метода**, живёт только на время этого метода.
+- Store из контекста **класса** — на время всего класса.
+- `getParent()` позволяет подняться от метода к классу и достать данные, положенные на уровне класса.
+
+### Что ещё умеет ExtensionContext
+
+Помимо `getStore`, часто используются:
+
+- `context.getRequiredTestMethod()` — метод, к которому привязан контекст (кидает исключение, если его нет). 
+
+  Есть также `getTestMethod()` с `Optional`.
+
+- `context.getTestInstance()` — экземпляр тестового класса (актуально для `PER_METHOD` lifecycle).
+- `context.getTags()` — теги текущего теста (можно фильтровать поведение расширения по `@Tag`).
+- `context.getParent()` — подняться до родительского контекста (например, от метода до класса). 
+
+  Осторожно: у корневого контекста `getParent()` бросит исключение — лучше `getParent().orElse(null)`.
+
+- `context.getConfigurationParameter("key")` — читает `junit-platform.properties`.
+
+### Когда Store — правильный выбор
+
+- Передача состояния между `beforeX` и `afterX` внутри **одного** расширения.
+- Обмен данными между **разными** расширениями (если оба знают namespace и ключ).
+- Хранение контекста для `@Nested`-тестов (проверяется через `getParent()`).
+
+Не стоит использовать Store как глобальный кэш между тестами — для этого есть `Namespace.GLOBAL`, 
+но злоупотребление им делает тесты зависимыми друг от друга.
 
 ## Популярные расширения
 
 ### Mockito Extension:
 
 ```java
-    @ExtendWith(MockitoExtension.class)
-    class MyTest {
+@ExtendWith(MockitoExtension.class)
+class MyTest {
 
-        @Mock
-        Service service;
-        
-        @InjectMocks
-        Controller controller;
-    }
+    @Mock
+    Service service;
+
+    @InjectMocks
+    Controller controller;
+}
 ```
 
 **Зависимость:**
@@ -689,12 +1164,13 @@ JUnit 5 предоставляет несколько встроенных ра�
 ### Spring Extension:
 
 ```java
-    @ExtendWith(SpringExtension.class)
-    @SpringBootTest
-    class MyTest {
-        @Autowired
-        Repository repository;
-    }
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
+class MyTest {
+
+    @Autowired
+    Repository repository;
+}
 ```
 
 **Зависимость:**
@@ -712,12 +1188,12 @@ JUnit 5 предоставляет несколько встроенных ра�
 ### WireMock Extension:
 
 ```java
-    @ExtendWith(WireMockExtension.class)
-    class MyTest {
-        
-        @WireMockTest
-        void testWithMockServer() { }
-    }
+@ExtendWith(WireMockExtension.class)
+class MyTest {
+
+    @WireMockTest
+    void testWithMockServer() { }
+}
 ```
 
 ---
@@ -725,12 +1201,13 @@ JUnit 5 предоставляет несколько встроенных ра�
 ### Database Rider Extension:
 
 ```java
-    @ExtendWith(DBRiderExtension.class)
-    @DataSet("data.yml")
-    class MyTest {
-        @Test
-        void testWithDatabase() { }
-    }
+@ExtendWith(DBRiderExtension.class)
+@DataSet("data.yml")
+class MyTest {
+
+    @Test
+    void testWithDatabase() { }
+}
 ```
 
 ---
@@ -849,7 +1326,7 @@ JUnit 5 предоставляет несколько встроенных ра�
 
 | @Test            | @ParameterizedTest                |
 |:-----------------|-----------------------------------|
-| Один запуск      | Multiple запусков                 |
+| Один запуск      | Несколько запусков                |
 | Без параметров   | С параметрами                     |
 | Простые сценарии | Проверка различных входных данных |
 
@@ -880,25 +1357,25 @@ JUnit 5 предоставляет несколько встроенных ра�
 - Поддерживает EnumSource.Mode.INCLUDE(по умолчанию) / EXCLUDE / MATCH_ALL / MATCH_ANY режимы
 
 ```java
-  @ParameterizedTest
-  @EnumSource(DayOfWeek.class)
-  void testAllDays(DayOfWeek day) { }
+@ParameterizedTest
+@EnumSource(DayOfWeek.class)
+void testAllDays(DayOfWeek day) { }
 
-  @ParameterizedTest
-  @EnumSource(value = DayOfWeek.class, names = {"MONDAY", "FRIDAY"})
-  void testWeekdays(DayOfWeek day) { }
+@ParameterizedTest
+@EnumSource(value = DayOfWeek.class, names = {"MONDAY", "FRIDAY"})
+void testWeekdays(DayOfWeek day) { }
 ```
 
 ```java
-  enum Priority {
+enum Priority {
     LOW, MEDIUM, HIGH, CRITICAL, URGENT
-  }
+}
 
-  @ParameterizedTest
-  @EnumSource(value = Priority.class,
-        names = {"LOW", "MEDIUM"},
-        mode = EnumSource.Mode.EXCLUDE)
-  void testHighPriorityOnly(Priority priority) {
+@ParameterizedTest
+@EnumSource(value = Priority.class,
+      names = {"LOW", "MEDIUM"},
+      mode = EnumSource.Mode.EXCLUDE)
+void testHighPriorityOnly(Priority priority) {
     // Тест выполнится для HIGH, CRITICAL, URGENT
     // LOW и MEDIUM исключены
     assertThat(priority).isNotIn(Priority.LOW, Priority.MEDIUM);
@@ -914,26 +1391,27 @@ JUnit 5 предоставляет несколько встроенных ра�
 - Поддерживает кастомные разделители
 
 ```java
-  @ParameterizedTest
-  @CsvSource({
+@ParameterizedTest
+@CsvSource({
         "apple, 5",
         "banana, 6",
         "cherry, 6"
-  })
-  void testFruits(String fruit, int rank) {
+})
+void testFruits(String fruit, int rank) {
     assertEquals(fruit.length(), rank);
-  }
+}
 
-  @ParameterizedTest
-  @CsvSource(value = {
+@ParameterizedTest
+@CsvSource(value = {
         "apple | 1 | red",
         "banana | 2 | yellow",
-        "cherry | 3 | red"
-  }, delimiterString = " | ")
-  void testFruitsWithPipe(String fruit, int rank, String color) {
+        "cherry | 3 | red"}, 
+        delimiterString = " | ")
+void testFruitsWithPipe(String fruit, int rank, String color) {
     assertEquals(fruit.length(), rank);
-  }
+}
 ```
+
 ---
 
 ### @CsvFileSource
@@ -949,6 +1427,47 @@ JUnit 5 предоставляет несколько встроенных ра�
   void testFromFile(String input, int expected) { }
 ```
 
+Пример: проверка граничных значений для разных окружений (dev/prod)
+
+Допустим, у метода `add()` есть граничные случаи (максимум, минимум, переполнение), и для dev- и prod-окружений они 
+лежат в двух разных CSV-файлах, но логика метода одна и та же. 
+
+С помощью `resources` можно загрузить оба файла сразу — все кейсы объединятся в одну серию тестов:
+
+```java
+@ParameterizedTest
+@CsvFileSource(resources = {"/dev-boundaries.csv", "/prod-boundaries.csv"}, numLinesToSkip = 1)
+void testAddBoundaries(int a, int b, int expected) {
+    assertEquals(expected, calculator.add(a, b));
+}
+```
+
+Содержимое файлов:
+
+`dev-boundaries.csv`:
+```csv
+a,b,expected
+0,0,0
+2147483647,0,2147483647
+```
+
+`prod-boundaries.csv`:
+```csv
+a,b,expected
+-2147483648,-1,0
+2147483647,1,-2147483648
+```
+
+Результат: тестовый метод выполнится **4 раза** (строки из обоих файлов объединяются). 
+Не нужно ничего хардкодить в Java и не нужно вручную склеивать файлы.
+
+**Ключевые моменты:**
+- `resources` принимает массив `String[]` — JUnit по очереди обходит все строки каждого файла.
+- Путь, начинающийся с `/`, ищется от **корня classpath**; без `/` — относительно пакета тестового класса.
+- Если обоим файлам нужен одинаковый `numLinesToSkip`, его можно указать прямо в аннотации. 
+Если разный — придётся либо разнести на отдельные тестовые методы, либо использовать повторяющуюся аннотацию 
+`@CsvFileSource` через контейнер `@CsvFileSources` (поддерживается с JUnit 5.7+).
+
 ---
 
 ### @MethodSource
@@ -958,15 +1477,35 @@ JUnit 5 предоставляет несколько встроенных ра�
 - Метод должен быть `static` (для non-per-class lifecycle: `@TestInstance(Lifecycle.PER_METHOD)` (по умолчанию))
 
 ```java
-  @ParameterizedTest
-  @MethodSource("stringProvider")
-  void testWithMethod(String argument) {
+@ParameterizedTest
+@MethodSource("stringProvider")
+void testWithMethod(String argument) {
     assertTrue(argument.length() > 0);
-  }
+}
 
-  static Stream<String> stringProvider() {
-    return Stream.of("apple", "banana", "cherry");
-  }
+
+// Stream одного аргумента
+static Stream<String> singleArgs() {
+    return Stream.of("apple", "banana");
+}
+
+// Stream набора аргументов через Arguments.of(...)
+static Stream<Arguments> multipleArgs() {
+    return Stream.of(
+        Arguments.of("apple", 1),
+        Arguments.of("banana", 2)
+    );
+}
+
+// Iterable
+static Iterable<String> iterableArgs() {
+    return List.of("apple", "banana");
+}
+
+// Массив
+static String[] arrayArgs() {
+    return new String[]{"apple", "banana"};
+}
 ```
 
 ---
@@ -1008,12 +1547,23 @@ class CustomProvider implements ArgumentsProvider {
 - `{index}` — номер итерации
 
 ```java
-  @ParameterizedTest(name = "Тест {index}: {0} = {1}")
-  @CsvSource({
-        "apple, 1",
-        "banana, 2"
-  })
-  void testNamed(String fruit, int rank) { }
+@ParameterizedTest(name = "[{index}] Проверка: {0} должен иметь ранг {1}")
+@CsvSource({
+        "apple,  1",
+        "banana, 2",
+        "cherry, 3"
+})
+void testFruitRank(String fruit, int rank) {
+    // ...
+}
+```
+
+В отчёте вы увидите:
+
+```text
+[1] Проверка: apple должен иметь ранг 1
+[2] Проверка: banana должен иметь ранг 2
+[3] Проверка: cherry должен иметь ранг 3
 ```
 
 ---
@@ -1291,7 +1841,7 @@ class PersonAggregator implements ArgumentsAggregator {
 
 ---
 
-## 6.5. Управление ресурсами
+## Управление ресурсами
 
 ### @ResourceLock аннотация:
 
@@ -1300,20 +1850,71 @@ class PersonAggregator implements ArgumentsAggregator {
 > Когда несколько тестов одновременно обращаются к одному ресурсу (базе данных, файловой системе, настройкам локали), 
 > могут возникать непредсказуемые ошибки из-за состояния гонки. 
 > 
-> Аннотация создаёт барьер синхронизации: все тесты, помеченные одинаковым идентификатором ресурса, 
-> не будут выполняться одновременно — они будут выстроены в очередь, 
+> Аннотация создаёт барьер синхронизации: все тесты, помеченные одинаковым (произвольным, програмно не привязанным 
+> к определённому ресурсу)идентификатором ресурса, не будут выполняться одновременно — они будут выстроены в очередь, 
 > что гарантирует целостность данных и стабильность результатов. Режим `READ` позволяет параллельное чтение 
 > (например, несколько тестов могут одновременно проверять конфигурацию), 
 > а `READ_WRITE` обеспечивает эксклюзивный доступ (только один тест может модифицировать ресурс в любой момент времени).
 
+
 ```java
+class SharedFileTest {
+
+    private static final Path FILE = Path.of("target/shared.txt");
+
     @Test
-    @ResourceLock("database")
-    void testDatabase() { }
-    
+    @ResourceLock(value = "shared-file", mode = ResourceAccessMode.READ_WRITE)
+    void writeToFile() throws Exception {
+        Files.writeString(FILE, "hello");
+    }
+
     @Test
-    @ResourceLock("file-system")
-    void testFileSystem() { }
+    @ResourceLock(value = "shared-file", mode = ResourceAccessMode.READ) // значение "shared-file" просто плейсхолдер
+    void readFromFile() throws Exception {
+        // Этот тест не будет выполняться одновременно с writeToFile,
+        // потому что writeToFile берёт эксклюзивную блокировку READ_WRITE.
+    }
+
+    @Test
+    @ResourceLock(value = "shared-file", mode = ResourceAccessMode.READ)
+    void anotherRead() throws Exception {
+        // А вот этот тест МОЖЕТ выполняться параллельно с readFromFile,
+        // потому что оба держат только READ-блокировку.
+    }
+}
+```
+
+`@ResourceLock` можно ставить несколько раз на один метод или класс — тогда тест блокирует сразу несколько ресурсов. 
+Аннотация помечена `@Repeatable`:
+
+```java
+@Test
+@ResourceLock(value = "database", mode = ResourceAccessMode.READ_WRITE)
+@ResourceLock(value = "shared-file", mode = ResourceAccessMode.READ_WRITE)
+void migrateAndExport() throws Exception {
+    // Пишет в БД и в target/shared.txt
+}
+```
+
+JUnit перед запуском этого теста захватит обе блокировки. Тест не стартует, пока не освободятся и "database", 
+и "shared-file".
+
+Если весь класс работает с БД, но отдельные методы ещё и пишут в файл, можно поставить блокировку на класс и добавить 
+вторую на метод:
+
+```java
+@ResourceLock(value = "database", mode = ResourceAccessMode.READ_WRITE)
+class MigrationTest {
+
+    @Test
+    void readFromDb() { /* ... */ }
+    // держит только "database"
+
+    @Test
+    @ResourceLock(value = "shared-file", mode = ResourceAccessMode.READ_WRITE)
+    void exportToFile() { /* ... */ }
+    // держит "database" (с класса) + "shared-file" (с метода)
+}
 ```
 
 ### Режимы блокировки:
@@ -1322,13 +1923,13 @@ class PersonAggregator implements ArgumentsAggregator {
 - `READ_WRITE` — Эксклюзивный доступ (чтение + запись)
 
 ```java
-  @Test
-  @ResourceLock(value = "config", mode = ResourceLock.Mode.READ)
-  void readConfigTest() { }
+@Test
+@ResourceLock(value = "config", mode = ResourceLock.Mode.READ)
+void readConfigTest() { }
 
-  @Test
-  @ResourceLock(value = "config", mode = ResourceLock.Mode.READ_WRITE)
-  void writeConfigTest() { }
+@Test
+@ResourceLock(value = "config", mode = ResourceLock.Mode.READ_WRITE)
+void writeConfigTest() { }
 ```
 
 ### Встроенные ресурсы:
@@ -1344,7 +1945,10 @@ class PersonAggregator implements ArgumentsAggregator {
 
 ### Общие проблемы:
 
-- Статические переменные разделяются между потоками. Если один поток изменяет её значение, все остальные потоки видят это изменение.
+- Статические переменные разделяются между потоками. 
+  
+  Если один поток изменяет её значение, все остальные потоки видят это изменение.
+
 - Общие файлы могут быть повреждены
 - Подключения к БД могут конфликтовать
 - Порядок выполнения не гарантируется
