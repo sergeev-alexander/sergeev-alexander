@@ -100,7 +100,7 @@ This work is private property and is not licensed for copying, distribution, mod
 - **Цель**: Определение стратегии, подхода, ресурсов, инструментов и графика для достижения целей тестирования.
 - **Входные критерии**:
     - Утвержденные требования
-    - Матрица RTM
+    - Матрица RTM (Requirements Traceability Matrix)
     - Отчет о возможности автоматизации
 - **Выходные артефакты**:
     - `Test Strategy` (Тестовая стратегия)
@@ -112,7 +112,7 @@ This work is private property and is not licensed for copying, distribution, mod
 - **Входные критерии**:
     - Обновленная документация по требованиям
     - План тестирования
-    - Матрица RTM
+    - Матрица RTM (Requirements Traceability Matrix)
 - **Выходные артефакты**:
 
 <details>
@@ -154,6 +154,8 @@ This work is private property and is not licensed for copying, distribution, mod
 - Поддерживаемость: тест-кейсы должны регулярно актуализироваться при изменении требований.
 - Полнота покрытия: набор тест-кейсов должен включать как позитивные, так и негативные сценарии, включая граничные случаи.
 
+---
+
 </details>
 
 - Тестовые скрипты (для автоматизированного тестирования)
@@ -182,8 +184,8 @@ This work is private property and is not licensed for copying, distribution, mod
     - Подготовленные тестовые данные
 - **Выходные артефакты**:
     - Отчет о выполнении тестов
-    - Дефект-репорты (баг-репорты)
-    - Обновленная матрица RTM
+    - Баг-репорты
+    - Обновленная матрица RTM (Requirements Traceability Matrix)
 
 ---
 
