@@ -151,6 +151,7 @@ String signature = HMACSHA256(
 </details>
 
 ## Алгоритмы подписи JWT
+
 <details closed> 
     <summary>
         <b>Типы алгоритмов и их безопасность</b>
