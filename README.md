@@ -31,7 +31,7 @@
    </a>
 </p>
 
-### 👋 Hi, I'm Alexander!<br>💼 Java developer at [Alivio AI](https://alivio.ai/ 'alivio.ai')<br>🚀 Open to any opportunities in Java backend development | Java AQA
+### 👋 Hi, I'm Alexander!<br>💼 Java developer | Java AQA | QA at [Alivio AI](https://alivio.ai/ 'alivio.ai')<br>🚀 Open to any opportunities in Java backend development | Java AQA | QA
 
 <details closed>
    <summary>
